@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { Player, Match, Payment, Expense, AppState, UserRole, PayerOption, PaymentMode, OngoingMatch } from '../types';
+import { generateUUID } from '../utils';
 
 interface AppContextType extends AppState {
   addPlayer: (player: Omit<Player, 'id' | 'createdAt'>) => void;
@@ -61,7 +62,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addPlayer = useCallback((playerData: Omit<Player, 'id' | 'createdAt'>) => {
     const newPlayer: Player = {
       ...playerData,
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       createdAt: Date.now()
     };
     setState(prev => ({ ...prev, players: [newPlayer, ...prev.players] }));
@@ -77,7 +78,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addMatch = useCallback((matchData: Omit<Match, 'id'>) => {
     const newMatch: Match = {
       ...matchData,
-      id: crypto.randomUUID()
+      id: generateUUID()
     };
     setState(prev => ({ ...prev, matches: [newMatch, ...prev.matches] }));
   }, []);
@@ -92,7 +93,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addPayment = useCallback((paymentData: Omit<Payment, 'id'>) => {
     const newPayment: Payment = {
       ...paymentData,
-      id: crypto.randomUUID()
+      id: generateUUID()
     };
     setState(prev => ({ ...prev, payments: [newPayment, ...prev.payments] }));
   }, []);
@@ -107,7 +108,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addExpense = useCallback((expenseData: Omit<Expense, 'id'>) => {
     const newExpense: Expense = {
       ...expenseData,
-      id: crypto.randomUUID()
+      id: generateUUID()
     };
     setState(prev => ({ ...prev, expenses: [newExpense, ...prev.expenses] }));
   }, []);

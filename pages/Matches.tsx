@@ -2,7 +2,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { PayerOption, MatchPoints, UserRole, Player, Match } from '../types';
-import { Trophy, Check, RefreshCw, Zap, Table as TableIcon, Edit3, X, Clock, User, AlertCircle, Search, ChevronDown, Calendar, Filter, Activity } from 'lucide-react';
+import { Trophy, Check, RefreshCw, Zap, Table as TableIcon, Edit3, X, Clock, User, AlertCircle, Search, ChevronDown, Calendar, Filter, Activity, Play } from 'lucide-react';
+import { generateUUID } from '../utils';
 
 interface SearchableSelectProps {
   label: string;
@@ -96,6 +97,7 @@ export const Matches: React.FC = () => {
   
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isDirectRecord, setIsDirectRecord] = useState(false);
   const [playerAId, setPlayerAId] = useState('');
   const [playerBId, setPlayerBId] = useState('');
   const [points, setPoints] = useState<MatchPoints>(20);
@@ -113,6 +115,13 @@ export const Matches: React.FC = () => {
       setTable(ongoingMatch.table);
     }
   }, [ongoingMatch, editingId]);
+
+  // Check if the current selection matches a live match
+  const isCurrentlyLive = useMemo(() => {
+    return ongoingMatch && 
+           ongoingMatch.playerAId === playerAId && 
+           ongoingMatch.playerBId === playerBId;
+  }, [ongoingMatch, playerAId, playerBId]);
 
   // History & Filter State
   const todayStr = new Date().toISOString().split('T')[0];
@@ -209,7 +218,7 @@ export const Matches: React.FC = () => {
   const handleGoLive = () => {
     if (!playerAId || !playerBId) return;
     startOngoingMatch({
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       playerAId,
       playerBId,
       points,
@@ -217,13 +226,20 @@ export const Matches: React.FC = () => {
       startTime: Date.now()
     });
     setSuccess(true);
-    setTimeout(() => setSuccess(false), 1000);
+    setTimeout(() => setSuccess(false), 1200);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if(e) e.preventDefault();
     if (!playerAId || !playerBId) return;
 
+     // Handle Live Logic first: If it's a new match and we are in default (Live) mode
+    if (!editingId && !isDirectRecord && !isCurrentlyLive) {
+      handleGoLive();
+      return;
+    }
+
+    // Otherwise, we are recording/finishing
     const charges: { [id: string]: number } = {};
     if (chargePreview.a > 0) charges[playerAId] = chargePreview.a;
     if (chargePreview.b > 0) charges[playerBId] = chargePreview.b;
@@ -258,7 +274,7 @@ export const Matches: React.FC = () => {
         charges
       });
       // Clear ongoing match if it matches the recorded one
-      if (ongoingMatch && ongoingMatch.playerAId === playerAId && ongoingMatch.playerBId === playerBId) {
+      if (isCurrentlyLive) {
         clearOngoingMatch();
       }
     }
@@ -267,6 +283,7 @@ export const Matches: React.FC = () => {
     setTimeout(() => {
       setSuccess(false);
       setWinnerId('');
+      setIsDirectRecord(false); // Reset to live default
       if (editingId) {
         setPlayerAId('');
         setPlayerBId('');
@@ -298,6 +315,7 @@ export const Matches: React.FC = () => {
     setPlayerAId('');
     setPlayerBId('');
     setWinnerId('');
+    setIsDirectRecord(false); // Reset to live default
     setSuccess(false);
   };
 
@@ -333,24 +351,15 @@ export const Matches: React.FC = () => {
             <div className="bg-emerald-500 p-4 rounded-full mb-3 shadow-lg shadow-emerald-200">
               <Check className="w-10 h-10 text-white" />
             </div>
-            <p className="text-emerald-800 font-black text-xl">{editingId ? 'Update Saved!' : 'Match Logged!'}</p>
-            {!editingId && <p className="text-emerald-600 font-medium text-sm">Action successful.</p>}
+            <p className="text-emerald-800 font-black text-xl">{editingId ? 'Update Saved!' :isCurrentlyLive || isDirectRecord ? 'Match Logged!': 'Live Match Started'}</p>
+            <p className="text-emerald-600 font-medium text-sm">Action successful.</p>
           </div>
         )}
 
         <div className="space-y-2">
           <div className="flex justify-between items-center pr-1">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Point Format</label>
-            {!editingId && playerAId && playerBId && !ongoingMatch && (
-              <button 
-                type="button" 
-                onClick={handleGoLive}
-                className="text-[10px] font-black text-rose-500 flex items-center gap-1.5 hover:bg-rose-50 px-3 py-1 rounded-lg transition-all border border-rose-100 animate-pulse"
-              >
-                <Activity className="w-3 h-3" /> GO LIVE
-              </button>
-            )}
-            {ongoingMatch && ongoingMatch.playerAId === playerAId && ongoingMatch.playerBId === playerBId && (
+            {isCurrentlyLive && (
                <div className="text-[10px] font-black text-rose-500 flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-50 border border-rose-100">
                  <span className="relative flex h-2 w-2">
                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -400,7 +409,7 @@ export const Matches: React.FC = () => {
           />
         </div>
 
-        {playerAId && playerBId && (
+        {(playerAId && playerBId && (isDirectRecord || isCurrentlyLive || editingId)) && (
           <div className="space-y-2 py-2 animate-in slide-in-from-top-2">
             <div className="flex justify-between items-center pr-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Winner (Optional)</label>
@@ -488,21 +497,34 @@ export const Matches: React.FC = () => {
             </div>
           </div>
         )}
+        <div className="flex flex-col gap-4 pt-2">
+          <button 
+            type="submit"
+            disabled={!playerAId || !playerBId}
+            className={`w-full py-6 rounded-3xl font-black text-xl shadow-2xl transition-all flex items-center justify-center gap-3 ${
+              !playerAId || !playerBId 
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                : editingId 
+                  ? 'bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-amber-100'
+                  : isCurrentlyLive || isDirectRecord
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-emerald-200'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 shadow-indigo-200'
+            }`}
+          >
+            {editingId ? <Edit3 className="w-6 h-6" /> : isCurrentlyLive || isDirectRecord ? <Check className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+            {editingId ? 'Save Changes' : isCurrentlyLive ? 'Finish & Record Result' : isDirectRecord ? 'Record Past Match' : 'Start Live Match'}
+          </button>
 
-        <button 
-          type="submit"
-          disabled={!playerAId || !playerBId}
-          className={`w-full py-6 rounded-3xl font-black text-xl shadow-2xl transition-all flex items-center justify-center gap-3 ${
-            !playerAId || !playerBId 
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-              : editingId 
-                ? 'bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-amber-100'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 shadow-indigo-200'
-          }`}
-        >
-          {editingId ? <Edit3 className="w-6 h-6" /> : <TableIcon className="w-6 h-6" />}
-          {editingId ? 'Save Changes' : 'Record Match'}
-        </button>
+          {!editingId && !isCurrentlyLive && playerAId && playerBId && (
+            <button 
+              type="button"
+              onClick={() => setIsDirectRecord(!isDirectRecord)}
+              className="text-center text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700 transition-colors"
+            >
+              {isDirectRecord ? '← Switch to Live Entry' : 'Recording a past match? Log result directly →'}
+            </button>
+          )}
+        </div>
       </form>
 
       {/* History & Filtering Section */}
