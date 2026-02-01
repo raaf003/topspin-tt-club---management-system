@@ -129,6 +129,33 @@ export const Matches: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING_RESULT' | 'PENDING_PAYMENT'>('ALL');
 
+  // Live match timer
+  const [elapsedTime, setElapsedTime] = useState(0);
+
+  useEffect(() => {
+    if (!ongoingMatch) {
+      setElapsedTime(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - ongoingMatch.startTime) / 1000);
+      setElapsedTime(elapsed);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [ongoingMatch]);
+
+  const formatElapsedTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0) {
+      return `${hrs}h ${mins}m`;
+    }
+    return `${mins}m ${secs}s`;
+  };
+
   const matchTotal = points === 20 ? 30 : 20;
 
   /**
@@ -325,6 +352,34 @@ export const Matches: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-xl mx-auto">
+      {ongoingMatch && (
+        <div 
+          onClick={() => {
+            setPlayerAId(ongoingMatch.playerAId);
+            setPlayerBId(ongoingMatch.playerBId);
+            setPoints(ongoingMatch.points);
+            setTable(ongoingMatch.table);
+          }}
+          className="bg-gradient-to-r from-rose-500 to-rose-600 p-3 rounded-2xl shadow-lg shadow-rose-200 animate-pulse border border-rose-400 relative overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
+        >
+          <div className="relative z-10 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+                </span>
+                <span className="text-white font-black text-xs uppercase tracking-tight shrink-0">LIVE</span>
+              </div>
+              <span className="text-white font-bold text-xs truncate">
+                {players.find(p => p.id === ongoingMatch.playerAId)?.name} vs {players.find(p => p.id === ongoingMatch.playerBId)?.name}
+              </span>
+              <span className="text-white/70 font-bold text-xs shrink-0">({formatElapsedTime(elapsedTime)})</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className={`${editingId ? 'bg-amber-500' : 'bg-indigo-600'} p-2 rounded-xl transition-colors`}>
