@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   Home, 
@@ -11,14 +11,22 @@ import {
   ShieldCheck,
   UserCircle,
   Moon,
-  Sun
+  Sun,
+  Monitor
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { UserRole } from '../types';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, switchRole, isDarkMode, toggleDarkMode } = useApp();
+  const { currentUser, switchRole, isDarkMode, themeMode, setThemeMode } = useApp();
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const isAdmin = currentUser.role === UserRole.ADMIN;
+
+  const themeOptions: { mode: 'light' | 'dark' | 'auto'; icon: React.ReactNode; label: string }[] = [
+    { mode: 'light', icon: <Sun className="w-4 h-4" />, label: 'Light' },
+    { mode: 'dark', icon: <Moon className="w-4 h-4" />, label: 'Dark' },
+    { mode: 'auto', icon: <Monitor className="w-4 h-4" />, label: 'Auto' }
+  ];
 
   return (
     <div className="min-h-screen flex flex-col pb-20 md:pb-0 md:pl-20 bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
@@ -32,13 +40,40 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
         
         <div className="flex items-center gap-2">
-          <button
-            onClick={toggleDarkMode}
-            className="p-2 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
-            aria-label="Toggle dark mode"
-          >
-            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
+          {/* Theme Selector */}
+          <div className="relative">
+            <button
+              onClick={() => setShowThemeMenu(!showThemeMenu)}
+              className="p-2 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
+              aria-label="Select theme"
+            >
+              {themeMode === 'light' && <Sun className="w-4 h-4" />}
+              {themeMode === 'dark' && <Moon className="w-4 h-4" />}
+              {themeMode === 'auto' && <Monitor className="w-4 h-4" />}
+            </button>
+            
+            {showThemeMenu && (
+              <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-lg dark:shadow-slate-900/50 border border-gray-200 dark:border-slate-700 overflow-hidden z-50">
+                {themeOptions.map(option => (
+                  <button
+                    key={option.mode}
+                    onClick={() => {
+                      setThemeMode(option.mode);
+                      setShowThemeMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+                      themeMode === option.mode
+                        ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {option.icon}
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           
           <button 
             onClick={() => switchRole(isAdmin ? UserRole.STAFF : UserRole.ADMIN)}

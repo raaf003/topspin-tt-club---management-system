@@ -92,6 +92,8 @@ export interface Expense {
   notes?: string;
 }
 
+export type ThemeMode = 'light' | 'dark' | 'auto';
+
 export interface AppState {
   players: Player[];
   matches: Match[];
@@ -102,5 +104,5 @@ export interface AppState {
     role: UserRole;
     name: string;
   };
-  isDarkMode?: boolean;
+  themeMode: ThemeMode;
 }

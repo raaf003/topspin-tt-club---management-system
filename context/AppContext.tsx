@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { Player, Match, Payment, Expense, AppState, UserRole, PayerOption, PaymentMode, OngoingMatch } from '../types';
+import { Player, Match, Payment, Expense, AppState, UserRole, PayerOption, PaymentMode, OngoingMatch, ThemeMode } from '../types';
 import { generateUUID } from '../utils';
 
 interface AppContextType extends AppState {
@@ -13,7 +13,8 @@ interface AppContextType extends AppState {
   startOngoingMatch: (match: OngoingMatch) => void;
   clearOngoingMatch: () => void;
   switchRole: (role: UserRole) => void;
-  toggleDarkMode: () => void;
+  setThemeMode: (mode: ThemeMode) => void;
+  isDarkMode: boolean;
   getPlayerDues: (playerId: string) => number;
   getPlayerStats: (playerId: string) => { games: number; totalSpent: number; totalPaid: number; totalDiscounted: number; pending: number; initialBalance: number };
 }
@@ -21,6 +22,21 @@ interface AppContextType extends AppState {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'smashtrack_data_v1';
+const THEME_STORAGE_KEY = 'smashtrack_theme_v1';
+
+const getSystemTheme = (): 'light' | 'dark' => {
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return 'light';
+};
+
+const getEffectiveTheme = (themeMode: ThemeMode): 'light' | 'dark' => {
+  if (themeMode === 'auto') {
+    return getSystemTheme();
+  }
+  return themeMode;
+};
 
 const INITIAL_PLAYERS: Player[] = [
   { id: 'p1', name: 'Fardeen Malik', initialBalance: 0, createdAt: Date.now() },
@@ -43,6 +59,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }));
       // Ensure ongoingMatch exists in parsed state
       if (parsed.ongoingMatch === undefined) parsed.ongoingMatch = null;
+      // Migrate old isDarkMode to themeMode
+      if (parsed.isDarkMode !== undefined && parsed.themeMode === undefined) {
+        parsed.themeMode = parsed.isDarkMode ? 'dark' : 'light';
+        delete parsed.isDarkMode;
+      }
       return parsed;
     }
     return {
@@ -52,16 +73,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       expenses: [],
       ongoingMatch: null,
       currentUser: { role: UserRole.ADMIN, name: 'Partner 1' },
-      isDarkMode: false
+      themeMode: (localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode) || 'auto'
     };
   });
 
+  // Initialize themeMode from storage on mount if not already loaded
   useEffect(() => {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode;
+    if (savedTheme && state.themeMode !== savedTheme) {
+      setState(prev => ({ ...prev, themeMode: savedTheme }));
+    }
+  }, []);
+
+  // Update DOM dark mode class and listen for system theme changes
+  useEffect(() => {
+    const effectiveTheme = getEffectiveTheme(state.themeMode);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    if (state.isDarkMode) {
+    localStorage.setItem(THEME_STORAGE_KEY, state.themeMode);
+    
+    if (effectiveTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
+    }
+
+    // Listen for system theme changes when in auto mode
+    if (state.themeMode === 'auto' && typeof window !== 'undefined' && window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => {
+        const newTheme = getEffectiveTheme(state.themeMode);
+        if (newTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      };
+      
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
     }
   }, [state]);
 
@@ -131,8 +180,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setState(prev => ({ ...prev, currentUser: { ...prev.currentUser, role } }));
   }, []);
 
-  const toggleDarkMode = useCallback(() => {
-    setState(prev => ({ ...prev, isDarkMode: !prev.isDarkMode }));
+  const setThemeMode = useCallback((mode: ThemeMode) => {
+    setState(prev => ({ ...prev, themeMode: mode }));
   }, []);
 
   const getPlayerStats = useCallback((playerId: string) => {
@@ -173,6 +222,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const value = useMemo(() => ({
     ...state,
+    isDarkMode: getEffectiveTheme(state.themeMode) === 'dark',
     addPlayer,
     updatePlayer,
     addMatch,
@@ -183,10 +233,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     startOngoingMatch,
     clearOngoingMatch,
     switchRole,
-    toggleDarkMode,
+    setThemeMode,
     getPlayerDues,
     getPlayerStats
-  }), [state, addPlayer, updatePlayer, addMatch, updateMatch, addPayment, updatePayment, addExpense, startOngoingMatch, clearOngoingMatch, switchRole, toggleDarkMode, getPlayerDues, getPlayerStats]);
+  }), [state, addPlayer, updatePlayer, addMatch, updateMatch, addPayment, updatePayment, addExpense, startOngoingMatch, clearOngoingMatch, switchRole, setThemeMode, getPlayerDues, getPlayerStats]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
