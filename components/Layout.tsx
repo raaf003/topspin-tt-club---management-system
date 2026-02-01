@@ -23,12 +23,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   return (
     <div className="min-h-screen flex flex-col pb-20 md:pb-0 md:pl-20 bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between transition-colors duration-300">
+      <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 px-3 md:px-4 py-2.5 md:py-3 flex items-center justify-between transition-colors duration-300">
         <div className="flex items-center gap-2">
-          <div className="bg-indigo-600 p-1.5 rounded-lg shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
-            <Trophy className="text-white w-5 h-5" />
+          <div className="bg-indigo-600 p-1 md:p-1.5 rounded-lg shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
+            <Trophy className="text-white w-4 h-4 md:w-5 md:h-5" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight dark:text-white">TopSpin <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">TT</span></h1>
+          <h1 className="text-lg md:text-xl font-bold tracking-tight dark:text-white transition-all">TopSpin <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">TT</span></h1>
         </div>
         
         <div className="flex items-center gap-2">
