@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { PaymentMode, PaymentAllocation, UserRole, Player } from '../types';
@@ -43,17 +42,17 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
       {label && <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1 mb-1.5 block">{label}</label>}
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full bg-gray-50 border-2 border-transparent rounded-2xl cursor-pointer flex justify-between items-center shadow-inner group hover:border-emerald-100 transition-all ${small ? 'p-3' : 'p-4'}`}
+        className={`w-full bg-gray-50 dark:bg-slate-900 border-2 border-transparent rounded-2xl cursor-pointer flex justify-between items-center shadow-inner group hover:border-emerald-100 dark:hover:border-emerald-900 transition-all ${small ? 'p-3' : 'p-4'}`}
       >
-        <span className={`font-bold truncate ${selectedPlayer ? 'text-gray-800' : 'text-gray-400'} ${small ? 'text-sm' : ''}`}>
+        <span className={`font-bold truncate ${selectedPlayer ? 'text-gray-800 dark:text-white' : 'text-gray-400 dark:text-slate-500'} ${small ? 'text-sm' : ''}`}>
           {selectedPlayer ? `${selectedPlayer.name} ${selectedPlayer.nickname ? `(${selectedPlayer.nickname})` : ''}` : placeholder}
         </span>
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <div className="p-3 border-b border-gray-50 flex items-center gap-2">
+        <div className="absolute z-50 mt-2 w-full bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="p-3 border-b border-gray-50 dark:border-slate-800 flex items-center gap-2">
             <Search className="w-4 h-4 text-gray-400" />
             <input 
               autoFocus
@@ -61,7 +60,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search..."
-              className="w-full outline-none text-sm font-medium text-gray-800"
+              className="w-full outline-none text-sm font-medium text-gray-800 dark:text-white bg-transparent"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
@@ -77,17 +76,17 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                       setIsOpen(false);
                       setSearch('');
                     }}
-                    className={`px-4 py-3 text-sm cursor-pointer hover:bg-emerald-50 flex flex-col ${value === p.id ? 'bg-emerald-50 border-r-4 border-emerald-500' : ''}`}
+                    className={`px-4 py-3 text-sm cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-900/30 flex flex-col ${value === p.id ? 'bg-emerald-50 dark:bg-emerald-900/40 border-r-4 border-emerald-500' : ''}`}
                   >
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-gray-900">{p.name}</span>
+                      <span className="font-bold text-gray-900 dark:text-white">{p.name}</span>
                       {due !== null && (
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${due > 0 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${due > 0 ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'}`}>
                           ₹{due}
                         </span>
                       )}
                     </div>
-                    {p.nickname && <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">@{p.nickname}</span>}
+                    {p.nickname && <span className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-tight">@{p.nickname}</span>}
                   </div>
                 );
               })
@@ -118,6 +117,10 @@ export const Payments: React.FC = () => {
   const totalPaymentAmount = allocations.reduce((sum, a) => sum + (a.amount || 0), 0);
   const totalDiscountAmount = allocations.reduce((sum, a) => sum + (a.discount || 0), 0);
   const totalSettlement = totalPaymentAmount + totalDiscountAmount;
+
+  const formatTime = (ts: number) => {
+    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   const handleAddAllocation = () => {
     setAllocations([...allocations, { playerId: '', amount: 0, discount: 0 }]);
@@ -156,7 +159,12 @@ export const Payments: React.FC = () => {
         allocations: validAllocations,
         mode,
         notes,
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        recordedAt: Date.now(),
+        recordedBy: {
+          role: currentUser.role,
+          name: currentUser.name
+        }
       });
     }
 
@@ -198,173 +206,172 @@ export const Payments: React.FC = () => {
     <div className="space-y-6 max-w-xl mx-auto pb-10">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className={`${editingId ? 'bg-amber-500' : 'bg-emerald-600'} p-2 rounded-xl transition-colors`}>
+          <div className={`${editingId ? 'bg-amber-500' : 'bg-emerald-600'} p-2 rounded-xl`}>
             {editingId ? <Edit3 className="text-white w-6 h-6" /> : <IndianRupee className="text-white w-6 h-6" />}
           </div>
-          <h2 className="text-2xl font-bold">{editingId ? 'Update Payment' : 'Record Payment'}</h2>
+          <h2 className="text-2xl font-bold dark:text-white">{editingId ? 'Update Payment' : 'Pay Dues'}</h2>
         </div>
         {editingId && (
           <button 
             onClick={handleCancelEdit}
-            className="text-xs font-bold uppercase flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full"
+            className="text-xs font-bold uppercase flex items-center gap-1 px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full transition-colors"
           >
-            <X className="w-3 h-3" /> Cancel Edit
+            <X className="w-3 h-3" />
+            Cancel Edit
           </button>
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className={`space-y-6 bg-white p-6 rounded-[2.5rem] border shadow-xl relative overflow-hidden transition-all duration-300 ${editingId ? 'border-amber-200 ring-2 ring-amber-100' : 'border-gray-100'}`}>
+      <form onSubmit={handleSubmit} className={`space-y-6 bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border shadow-xl relative overflow-hidden transition-all duration-300 ${editingId ? 'border-amber-200 dark:border-amber-800 ring-2 ring-amber-100 dark:ring-amber-900/20' : 'border-gray-100 dark:border-slate-800'}`}>
         {success && (
-          <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center animate-in fade-in duration-300">
-            <div className="bg-emerald-500 p-4 rounded-full mb-3 shadow-lg shadow-emerald-200">
+          <div className="absolute inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center animate-in fade-in duration-300">
+            <div className="bg-emerald-500 p-4 rounded-full mb-3 shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20">
               <Check className="w-10 h-10 text-white" />
             </div>
-            <p className="text-emerald-800 font-black text-xl">{editingId ? 'Payment Updated!' : 'Payment Received!'}</p>
-            <p className="text-emerald-600 font-medium text-sm">Balances updated instantly.</p>
+            <p className="text-emerald-800 dark:text-emerald-400 font-black text-xl">{editingId ? 'Payment Updated!' : 'Payment Logged!'}</p>
+            <p className="text-emerald-600 dark:text-emerald-500 font-medium text-sm">Action successful.</p>
           </div>
         )}
 
-        {/* Primary Payer Selection */}
-        <SearchableSelect 
-          label="Who is giving the money?"
-          value={primaryPayerId}
-          onChange={handlePrimaryPayerChange}
-          options={players}
-          placeholder="Select Primary Payer..."
-          getPlayerDues={getPlayerDues}
-        />
+        <div className="space-y-4">
+          <SearchableSelect 
+            label="Primary Payer"
+            value={primaryPayerId}
+            onChange={handlePrimaryPayerChange}
+            options={players}
+            getPlayerDues={getPlayerDues}
+            placeholder="Select who is paying..."
+          />
 
-        {/* Multi-Allocation Section */}
-        <div className="space-y-4 pt-2">
-          <div className="flex justify-between items-center">
-             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Payment Distribution</label>
-             <button 
-               type="button" 
-               onClick={handleAddAllocation}
-               className="text-emerald-600 text-xs font-bold flex items-center gap-1 hover:bg-emerald-50 px-2 py-1 rounded-lg transition-colors"
-             >
-               <UserPlus className="w-3 h-3" /> Add Player
-             </button>
+          <div className="space-y-3">
+             <div className="flex justify-between items-center px-1">
+               <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Allocation Split</label>
+               <button 
+                 type="button" 
+                 onClick={handleAddAllocation}
+                 className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 uppercase flex items-center gap-1 transition-colors"
+               >
+                 <UserPlus className="w-3 h-3" /> Add Player
+               </button>
+             </div>
+             
+             <div className="space-y-3">
+               {allocations.map((allocation, index) => (
+                 <div key={index} className="flex gap-2 items-end animate-in slide-in-from-left-2 duration-300">
+                   <div className="flex-[1.5] min-w-0">
+                    <SearchableSelect 
+                      value={allocation.playerId}
+                      onChange={(id) => updateAllocation(index, 'playerId', id)}
+                      options={players}
+                      getPlayerDues={getPlayerDues}
+                      placeholder="Player"
+                      small
+                    />
+                   </div>
+                   <div className="flex-1 space-y-1 min-w-0">
+                     <label className="text-[8px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-tighter pl-1">Amount</label>
+                     <div className="relative group">
+                       <IndianRupee className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
+                       <input 
+                         type="number" 
+                         value={allocation.amount || ''}
+                         onChange={(e) => updateAllocation(index, 'amount', Number(e.target.value))}
+                         placeholder="0"
+                         className="w-full bg-gray-50 dark:bg-slate-800 border-2 border-transparent p-3 pl-7 rounded-xl text-sm font-black text-gray-800 dark:text-white outline-none focus:border-emerald-500 transition-all shadow-inner"
+                       />
+                     </div>
+                   </div>
+                   <div className="flex-1 space-y-1 min-w-0">
+                     <label className="text-[8px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-tighter pl-1">Waiver</label>
+                     <div className="relative group">
+                       <Percent className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 group-focus-within:text-amber-500 transition-colors" />
+                       <input 
+                         type="number" 
+                         value={allocation.discount || ''}
+                         onChange={(e) => updateAllocation(index, 'discount', Number(e.target.value))}
+                         placeholder="0"
+                         className="w-full bg-gray-50 dark:bg-slate-800 border-2 border-transparent p-3 pl-7 rounded-xl text-sm font-black text-amber-600 dark:text-amber-400 outline-none focus:border-amber-500 transition-all shadow-inner"
+                       />
+                     </div>
+                   </div>
+                   {allocations.length > 1 && (
+                     <button 
+                       type="button" 
+                       onClick={() => handleRemoveAllocation(index)}
+                       className="p-3.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 dark:text-rose-400 rounded-xl hover:bg-rose-100 transition-colors shadow-sm shrink-0"
+                     >
+                       <Trash2 className="w-4 h-4" />
+                     </button>
+                   )}
+                 </div>
+               ))}
+             </div>
           </div>
-          
-          <div className="space-y-4">
-            {allocations.map((alloc, idx) => (
-              <div key={idx} className="bg-gray-50/50 p-3 rounded-2xl border border-gray-100 space-y-3 animate-in slide-in-from-left-2 duration-200">
-                <div className="flex justify-between items-center gap-2">
-                  <SearchableSelect 
-                    value={alloc.playerId}
-                    onChange={(id) => updateAllocation(idx, 'playerId', id)}
-                    options={players}
-                    placeholder="Recipient..."
-                    small
-                    getPlayerDues={getPlayerDues}
-                    className="flex-grow"
-                  />
-                  {allocations.length > 1 && (
-                    <button 
-                      type="button" 
-                      onClick={() => handleRemoveAllocation(idx)}
-                      className="p-2 text-gray-300 hover:text-rose-500 transition-all shrink-0"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="relative">
-                    <label className="text-[8px] font-black text-gray-400 uppercase absolute -top-2 left-2 bg-white px-1">Amount Paid</label>
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">₹</span>
-                    <input 
-                      type="number" 
-                      value={alloc.amount || ''}
-                      placeholder="0"
-                      onChange={(e) => updateAllocation(idx, 'amount', parseFloat(e.target.value) || 0)}
-                      className="w-full bg-white border-2 border-transparent pl-6 p-2 rounded-xl outline-none focus:border-emerald-500 font-bold text-sm shadow-inner"
-                      required
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="text-[8px] font-black text-amber-500 uppercase absolute -top-2 left-2 bg-white px-1">Discount/Waiver</label>
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 font-bold text-xs">₹</span>
-                    <input 
-                      type="number" 
-                      value={alloc.discount || ''}
-                      placeholder="0"
-                      onChange={(e) => updateAllocation(idx, 'discount', parseFloat(e.target.value) || 0)}
-                      className="w-full bg-white border-2 border-transparent pl-6 p-2 rounded-xl outline-none focus:border-amber-500 font-bold text-sm text-amber-600 shadow-inner"
-                    />
-                  </div>
-                </div>
-              </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">Payment Mode</label>
+          <div className="flex gap-3">
+            {[
+              { id: PaymentMode.CASH, label: 'Cash Payment', icon: <Banknote className="w-5 h-5" /> },
+              { id: PaymentMode.ONLINE, label: 'Online / GPay', icon: <CreditCard className="w-5 h-5" /> }
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setMode(opt.id)}
+                className={`flex-1 py-4 px-2 rounded-2xl border-2 font-black transition-all flex flex-col items-center justify-center gap-1 ${
+                  mode === opt.id 
+                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg scale-105' 
+                    : 'bg-gray-50 dark:bg-slate-800 border-transparent text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {opt.icon}
+                <span className="text-xs">{opt.label}</span>
+              </button>
             ))}
           </div>
         </div>
 
-        {/* Mode & Notes */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Payment Mode</label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setMode(PaymentMode.CASH)}
-                className={`flex-1 py-3 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold transition-all text-sm ${
-                  mode === PaymentMode.CASH ? (editingId ? 'bg-amber-600 border-amber-600' : 'bg-emerald-600 border-emerald-600') + ' text-white shadow-lg' : 'bg-gray-50 border-transparent text-gray-500'
-                }`}
-              >
-                <Banknote className="w-4 h-4" /> Cash
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode(PaymentMode.ONLINE)}
-                className={`flex-1 py-3 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold transition-all text-sm ${
-                  mode === PaymentMode.ONLINE ? (editingId ? 'bg-amber-600 border-amber-600' : 'bg-emerald-600 border-emerald-600') + ' text-white shadow-lg' : 'bg-gray-50 border-transparent text-gray-500'
-                }`}
-              >
-                <CreditCard className="w-4 h-4" /> GPay
-              </button>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Short Note</label>
-            <input 
-              type="text" 
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Friends"
-              className="w-full bg-gray-50 border-2 border-transparent p-3 rounded-2xl outline-none focus:border-emerald-500 text-sm shadow-inner"
-            />
-          </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">Remarks (Optional)</label>
+          <input 
+            type="text" 
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Any extra info..."
+            className="w-full bg-gray-50 dark:bg-slate-800 border-2 border-transparent p-4 rounded-2xl text-sm font-bold text-gray-800 dark:text-white outline-none focus:border-emerald-500 transition-all shadow-inner"
+          />
         </div>
 
-        {/* Summary Footer */}
-        <div className="bg-gray-900 p-5 rounded-3xl flex items-center justify-between text-white shadow-2xl">
-           <div className="flex flex-col gap-1">
-             <div className="flex items-center gap-2">
-               <div className={`${editingId ? 'bg-amber-500' : 'bg-emerald-500'} p-1.5 rounded-lg transition-colors`}>
-                  <Users className="w-4 h-4" />
-               </div>
-               <div className="text-[10px] font-black uppercase tracking-widest opacity-60">
-                 Clearing ₹{totalSettlement} from Dues
-               </div>
+        {totalSettlement > 0 && (
+           <div className="bg-gray-900 dark:bg-slate-800 p-5 rounded-3xl space-y-3 shadow-2xl transition-colors">
+             <div className="flex items-center justify-between">
+                <div>
+                   <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em]">Total Received</p>
+                   <p className="text-3xl font-black italic text-white">₹{totalPaymentAmount}</p>
+                </div>
+                <div className="text-right">
+                   <p className="text-[9px] font-black text-amber-400 uppercase tracking-[0.2em]">Total Waiver</p>
+                   <p className="text-2xl font-black italic text-white opacity-80">₹{totalDiscountAmount}</p>
+                </div>
              </div>
-             <div className="text-[9px] font-bold text-gray-400 ml-1">
-               ₹{totalPaymentAmount} Collection + ₹{totalDiscountAmount} Waived
+             <div className="pt-3 border-t border-white/10 flex justify-between items-center">
+                <p className="text-[10px] font-bold text-gray-400">Total Settlement Value</p>
+                <p className="text-lg font-black text-emerald-400">₹{totalSettlement}</p>
              </div>
            </div>
-           <div className={`text-3xl font-black italic tracking-tighter ${editingId ? 'text-amber-400' : 'text-emerald-400'}`}>₹{totalPaymentAmount}</div>
-        </div>
+        )}
 
         <button 
           type="submit"
-          disabled={!primaryPayerId || (totalPaymentAmount <= 0 && totalDiscountAmount <= 0)}
+          disabled={!primaryPayerId || totalSettlement === 0}
           className={`w-full py-6 rounded-3xl font-black text-xl shadow-2xl transition-all flex items-center justify-center gap-3 ${
-            !primaryPayerId || (totalPaymentAmount <= 0 && totalDiscountAmount <= 0)
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+            !primaryPayerId || totalSettlement === 0
+              ? 'bg-gray-200 dark:bg-slate-800 text-gray-400 dark:text-slate-600 cursor-not-allowed' 
               : editingId
-                ? 'bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-amber-100'
-                : 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-emerald-100'
+                ? 'bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-amber-100 dark:shadow-none'
+                : 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-emerald-200 dark:shadow-none'
           }`}
         >
           {editingId ? <Edit3 className="w-6 h-6" /> : <Check className="w-6 h-6" />}
@@ -372,49 +379,80 @@ export const Payments: React.FC = () => {
         </button>
       </form>
 
-      <section className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm">
-        <h3 className="font-black text-lg text-gray-900 mb-5">Recent Transactions</h3>
-        <div className="space-y-5">
-          {payments.slice(0, 15).map(p => {
-            const payerName = players.find(pl => pl.id === p.primaryPayerId)?.name || 'Unknown';
-            const totalDisc = p.allocations.reduce((s, a) => s + (a.discount || 0), 0);
-            
-            return (
-              <div key={p.id} className={`flex justify-between items-center group p-2 rounded-2xl transition-colors ${editingId === p.id ? 'bg-amber-50' : 'hover:bg-gray-50'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${p.mode === PaymentMode.ONLINE ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                    {p.mode === PaymentMode.ONLINE ? 'GP' : 'CA'}
-                  </div>
-                  <div>
-                    <div className="font-bold text-gray-900 text-sm leading-tight">
-                      {payerName} {p.allocations.length > 1 && <span className="text-emerald-600 font-medium text-[10px]"> + {p.allocations.length - 1} more</span>}
+      {/* History Section */}
+      <section className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm space-y-5 transition-colors">
+        <h3 className="font-black text-lg text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
+          <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          Recent Transactions
+        </h3>
+        <div className="space-y-4">
+          {payments.length > 0 ? (
+            payments.map(p => {
+              const payer = players.find(player => player.id === p.primaryPayerId);
+              const waived = p.allocations.reduce((sum, a) => sum + (a.discount || 0), 0);
+              
+              return (
+                <div key={p.id} className="flex flex-col group p-2 hover:bg-gray-50 dark:hover:bg-slate-800/50 rounded-2xl transition-all">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black text-[10px] ${p.mode === PaymentMode.ONLINE ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
+                        {p.mode === PaymentMode.ONLINE ? <CreditCard className="w-4 h-4 mb-0.5" /> : <Banknote className="w-4 h-4 mb-0.5" />}
+                        {p.mode === PaymentMode.ONLINE ? 'GP' : 'CASH'}
+                      </div>
+                      <div>
+                        <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                          {payer?.name}
+                          {p.allocations.length > 1 && (
+                            <span className="text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                              +{p.allocations.length - 1} OTHERS
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase mt-0.5 flex flex-wrap items-center gap-2">
+                          {p.date} 
+                          {waived > 0 && <span className="text-amber-600 dark:text-amber-500 font-black">• Waived ₹{waived}</span>}
+                          {p.notes && <span className="w-1 h-1 rounded-full bg-gray-200 dark:bg-slate-700"></span>}
+                          {p.notes && <span className="lowercase italic truncate max-w-[120px] dark:text-slate-400">{p.notes}</span>}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-[10px] text-gray-400 font-medium">{p.date} • {p.mode}</div>
-                    {totalDisc > 0 && <div className="text-[9px] text-amber-600 font-bold italic">₹{totalDisc} Waived</div>}
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-lg font-black text-gray-900 dark:text-white tracking-tight">₹{p.totalAmount}</div>
+                        <div className="text-[8px] font-black text-emerald-500 dark:text-emerald-400 uppercase">Verified</div>
+                      </div>
+                      {isAdmin && (
+                        <button 
+                          onClick={() => handleEdit(p)}
+                          className="p-2.5 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 rounded-xl transition-all"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="text-base font-black text-emerald-600 tracking-tight">₹{p.totalAmount}</div>
-                    {p.notes && <div className="text-[8px] text-gray-400 font-bold uppercase">{p.notes}</div>}
-                  </div>
-                  {isAdmin && (
-                    <button 
-                      onClick={() => handleEdit(p)}
-                      className="p-2 bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 rounded-xl transition-all"
-                      title="Edit Payment"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
+                  {p.recordedAt && (
+                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between opacity-50 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1 text-[8px] font-bold text-gray-400 dark:text-slate-500 uppercase">
+                          <Check className="w-2.5 h-2.5 text-emerald-500" />
+                          Logged at {formatTime(p.recordedAt)}
+                        </div>
+                        {p.recordedBy && (
+                          <div className="text-[8px] font-bold text-gray-400 dark:text-slate-500 uppercase">
+                            By {p.recordedBy.name}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
-            );
-          })}
-          {payments.length === 0 && (
-             <div className="py-10 text-center text-gray-300 font-bold italic border-2 border-dashed border-gray-50 rounded-3xl">
-               No payments recorded yet.
-             </div>
+              );
+            })
+          ) : (
+            <div className="py-10 text-center text-gray-300 dark:text-slate-700 font-bold italic border-2 border-dashed border-gray-50 dark:border-slate-800 rounded-3xl">
+              No payments recorded yet...
+            </div>
           )}
         </div>
       </section>

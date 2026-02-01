@@ -31,81 +31,81 @@ export const Expenses: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="bg-gray-800 p-2 rounded-xl">
+          <div className="bg-gray-800 dark:bg-slate-800 p-2 rounded-xl">
             <ShoppingBag className="text-white w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold">Club Expenses</h2>
+          <h2 className="text-2xl font-bold dark:text-white">Club Expenses</h2>
         </div>
         <button 
           onClick={() => setShowAdd(!showAdd)}
-          className="bg-gray-800 text-white p-2 rounded-xl"
+          className="bg-gray-800 dark:bg-slate-800 text-white p-2 rounded-xl active:scale-95 transition-transform"
         >
           <Plus className="w-6 h-6" />
         </button>
       </div>
 
       {showAdd && (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg space-y-4">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-lg space-y-4 transition-colors">
           <div className="space-y-1">
-            <label className="text-xs font-bold text-gray-400 uppercase">Amount (₹)</label>
+            <label className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase">Amount (₹)</label>
             <input 
               type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 p-4 rounded-xl text-xl font-bold outline-none" 
+              className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-4 rounded-xl text-xl font-bold outline-none dark:text-white transition-all" 
               required
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-400 uppercase">Category</label>
+              <label className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase">Category</label>
               <select 
                 value={category} onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-                className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none"
+                className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3 rounded-xl outline-none dark:text-white transition-all"
               >
                 {Object.values(ExpenseCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-400 uppercase">Paid Via</label>
+              <label className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase">Paid Via</label>
               <select 
                 value={mode} onChange={(e) => setMode(e.target.value as PaymentMode)}
-                className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none"
+                className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3 rounded-xl outline-none dark:text-white transition-all"
               >
                 {Object.values(PaymentMode).map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold text-gray-400 uppercase">Notes</label>
+            <label className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase">Notes</label>
             <input 
               type="text" value={notes} onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Electricity bill Jan"
-              className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none"
+              className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3 rounded-xl outline-none dark:text-white transition-all"
             />
           </div>
-          <button type="submit" className="w-full bg-gray-900 text-white py-4 rounded-xl font-bold">Save Expense</button>
+          <button type="submit" className="w-full bg-gray-900 dark:bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-gray-200 dark:shadow-none active:scale-95 transition-all">Save Expense</button>
         </form>
       )}
 
       <div className="space-y-3">
         {expenses.map(ex => (
-          <div key={ex.id} className="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm">
+          <div key={ex.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 flex justify-between items-center shadow-sm transition-colors">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
+              <div className="w-10 h-10 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-gray-400 dark:text-slate-500 transition-colors">
                 <Calendar className="w-5 h-5" />
               </div>
               <div>
-                <div className="font-bold text-gray-900">{ex.category}</div>
-                <div className="text-xs text-gray-400">{ex.date} • {ex.mode}</div>
+                <div className="font-bold text-gray-900 dark:text-white">{ex.category}</div>
+                <div className="text-xs text-gray-400 dark:text-slate-500">{ex.date} • {ex.mode}</div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-lg font-bold text-rose-600">- ₹{ex.amount}</div>
-              {ex.notes && <div className="text-[10px] text-gray-400">{ex.notes}</div>}
+              <div className="text-lg font-bold text-rose-600 dark:text-rose-400">- ₹{ex.amount}</div>
+              {ex.notes && <div className="text-[10px] text-gray-400 dark:text-slate-500">{ex.notes}</div>}
             </div>
           </div>
         ))}
         {expenses.length === 0 && (
-          <div className="text-center py-12 text-gray-400 italic">No expenses recorded yet.</div>
+          <div className="text-center py-12 text-gray-400 dark:text-slate-700 italic border-2 border-dashed border-gray-50 dark:border-slate-800 rounded-2xl">No expenses recorded yet.</div>
         )}
       </div>
     </div>

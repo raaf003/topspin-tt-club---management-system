@@ -76,6 +76,11 @@ export interface Payment {
   mode: PaymentMode;
   date: string;
   notes?: string;
+  recordedAt: number;
+  recordedBy: {
+    role: UserRole;
+    name: string;
+  };
 }
 
 export interface Expense {
@@ -97,4 +102,5 @@ export interface AppState {
     role: UserRole;
     name: string;
   };
+  isDarkMode?: boolean;
 }

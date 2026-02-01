@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { Player, Match, Payment, Expense, AppState, UserRole, PayerOption, PaymentMode, OngoingMatch } from '../types';
 import { generateUUID } from '../utils';
@@ -14,6 +13,7 @@ interface AppContextType extends AppState {
   startOngoingMatch: (match: OngoingMatch) => void;
   clearOngoingMatch: () => void;
   switchRole: (role: UserRole) => void;
+  toggleDarkMode: () => void;
   getPlayerDues: (playerId: string) => number;
   getPlayerStats: (playerId: string) => { games: number; totalSpent: number; totalPaid: number; totalDiscounted: number; pending: number; initialBalance: number };
 }
@@ -51,12 +51,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       payments: [],
       expenses: [],
       ongoingMatch: null,
-      currentUser: { role: UserRole.ADMIN, name: 'Partner 1' }
+      currentUser: { role: UserRole.ADMIN, name: 'Partner 1' },
+      isDarkMode: false
     };
   });
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (state.isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }, [state]);
 
   const addPlayer = useCallback((playerData: Omit<Player, 'id' | 'createdAt'>) => {
@@ -125,6 +131,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setState(prev => ({ ...prev, currentUser: { ...prev.currentUser, role } }));
   }, []);
 
+  const toggleDarkMode = useCallback(() => {
+    setState(prev => ({ ...prev, isDarkMode: !prev.isDarkMode }));
+  }, []);
+
   const getPlayerStats = useCallback((playerId: string) => {
     const player = state.players.find(p => p.id === playerId);
     const playerMatches = state.matches.filter(m => m.playerAId === playerId || m.playerBId === playerId);
@@ -173,9 +183,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     startOngoingMatch,
     clearOngoingMatch,
     switchRole,
+    toggleDarkMode,
     getPlayerDues,
     getPlayerStats
-  }), [state, addPlayer, updatePlayer, addMatch, updateMatch, addPayment, updatePayment, addExpense, startOngoingMatch, clearOngoingMatch, switchRole, getPlayerDues, getPlayerStats]);
+  }), [state, addPlayer, updatePlayer, addMatch, updateMatch, addPayment, updatePayment, addExpense, startOngoingMatch, clearOngoingMatch, switchRole, toggleDarkMode, getPlayerDues, getPlayerStats]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

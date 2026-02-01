@@ -41,17 +41,17 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({ label, value, onCha
       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{label}</label>
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-gray-50 border-2 border-transparent p-4 rounded-2xl cursor-pointer flex justify-between items-center shadow-inner group hover:border-indigo-100 transition-all"
+        className="w-full bg-gray-50 dark:bg-slate-900 border-2 border-transparent p-4 rounded-2xl cursor-pointer flex justify-between items-center shadow-inner group hover:border-indigo-100 dark:hover:border-indigo-900 transition-all"
       >
-        <span className={`font-bold truncate ${selectedPlayer ? 'text-gray-800' : 'text-gray-400'}`}>
+        <span className={`font-bold truncate ${selectedPlayer ? 'text-gray-800 dark:text-white' : 'text-gray-400 dark:text-slate-500'}`}>
           {selectedPlayer ? `${selectedPlayer.name} ${selectedPlayer.nickname ? `(${selectedPlayer.nickname})` : ''}` : placeholder}
         </span>
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <div className="p-3 border-b border-gray-50 flex items-center gap-2">
+        <div className="absolute z-50 mt-2 w-full bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="p-3 border-b border-gray-50 dark:border-slate-800 flex items-center gap-2">
             <Search className="w-4 h-4 text-gray-400" />
             <input 
               autoFocus
@@ -59,7 +59,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({ label, value, onCha
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search..."
-              className="w-full outline-none text-sm font-medium text-gray-800"
+              className="w-full outline-none text-sm font-medium text-gray-800 dark:text-white bg-transparent"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
@@ -73,10 +73,10 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({ label, value, onCha
                     setIsOpen(false);
                     setSearch('');
                   }}
-                  className={`px-4 py-3 text-sm cursor-pointer hover:bg-indigo-50 flex flex-col ${value === p.id ? 'bg-indigo-50 border-r-4 border-indigo-500' : ''}`}
+                  className={`px-4 py-3 text-sm cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex flex-col ${value === p.id ? 'bg-indigo-50 dark:bg-indigo-900/40 border-r-4 border-indigo-500' : ''}`}
                 >
-                  <span className="font-bold text-gray-900">{p.name}</span>
-                  {p.nickname && <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">@{p.nickname}</span>}
+                  <span className="font-bold text-gray-900 dark:text-white">{p.name}</span>
+                  {p.nickname && <span className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-tight">@{p.nickname}</span>}
                 </div>
               ))
             ) : (
@@ -360,7 +360,7 @@ export const Matches: React.FC = () => {
             setPoints(ongoingMatch.points);
             setTable(ongoingMatch.table);
           }}
-          className="bg-gradient-to-r from-rose-500 to-rose-600 p-3 rounded-2xl shadow-lg shadow-rose-200 animate-pulse border border-rose-400 relative overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
+          className="bg-gradient-to-r from-rose-500 to-rose-600 dark:from-rose-600 dark:to-rose-700 p-3 rounded-2xl shadow-lg shadow-rose-200 dark:shadow-rose-900/20 animate-pulse border border-rose-400 dark:border-rose-500 relative overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
         >
           <div className="relative z-10 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -385,13 +385,13 @@ export const Matches: React.FC = () => {
           <div className={`${editingId ? 'bg-amber-500' : 'bg-indigo-600'} p-2 rounded-xl transition-colors`}>
             {editingId ? <Edit3 className="text-white w-6 h-6" /> : <Trophy className="text-white w-6 h-6" />}
           </div>
-          <h2 className="text-2xl font-bold">{editingId ? 'Update Match' : 'Game Entry'}</h2>
+          <h2 className="text-2xl font-bold dark:text-white">{editingId ? 'Update Match' : 'Game Entry'}</h2>
         </div>
         {(playerAId || playerBId) && (
           <button 
             onClick={editingId ? handleCancelEdit : handleClearPlayers}
             className={`text-xs font-bold uppercase flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors ${
-              editingId ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-400 hover:text-rose-500'
+              editingId ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400'
             }`}
           >
             {editingId ? <X className="w-3 h-3" /> : <RefreshCw className="w-3 h-3" />}
@@ -400,14 +400,14 @@ export const Matches: React.FC = () => {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className={`space-y-5 bg-white p-6 rounded-[2.5rem] border shadow-xl relative overflow-hidden transition-all duration-300 ${editingId ? 'border-amber-200 ring-2 ring-amber-100' : 'border-gray-100'}`}>
+      <form onSubmit={handleSubmit} className={`space-y-5 bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border shadow-xl relative overflow-hidden transition-all duration-300 ${editingId ? 'border-amber-200 dark:border-amber-800 ring-2 ring-amber-100 dark:ring-amber-900/20' : 'border-gray-100 dark:border-slate-800'}`}>
         {success && (
-          <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center animate-in fade-in duration-300">
-            <div className="bg-emerald-500 p-4 rounded-full mb-3 shadow-lg shadow-emerald-200">
+          <div className="absolute inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center animate-in fade-in duration-300">
+            <div className="bg-emerald-500 p-4 rounded-full mb-3 shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20">
               <Check className="w-10 h-10 text-white" />
             </div>
-            <p className="text-emerald-800 font-black text-xl">{editingId ? 'Update Saved!' :isCurrentlyLive || isDirectRecord ? 'Match Logged!': 'Live Match Started'}</p>
-            <p className="text-emerald-600 font-medium text-sm">Action successful.</p>
+            <p className="text-emerald-800 dark:text-emerald-400 font-black text-xl">{editingId ? 'Update Saved!' :isCurrentlyLive || isDirectRecord ? 'Match Logged!': 'Live Match Started'}</p>
+            <p className="text-emerald-600 dark:text-emerald-500 font-medium text-sm">Action successful.</p>
           </div>
         )}
 
@@ -415,7 +415,7 @@ export const Matches: React.FC = () => {
           <div className="flex justify-between items-center pr-1">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Point Format</label>
             {isCurrentlyLive && (
-               <div className="text-[10px] font-black text-rose-500 flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-50 border border-rose-100">
+               <div className="text-[10px] font-black text-rose-500 flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-50 dark:bg-rose-900/30 border border-rose-100 dark:border-rose-800">
                  <span className="relative flex h-2 w-2">
                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
@@ -433,11 +433,11 @@ export const Matches: React.FC = () => {
                 className={`flex-1 py-4 px-2 rounded-2xl border-2 font-black transition-all flex flex-col items-center justify-center gap-1 ${
                   points === pts 
                     ? (editingId ? 'bg-amber-500 border-amber-500 text-white' : 'bg-indigo-600 border-indigo-600 text-white') + ' shadow-lg scale-105' 
-                    : 'bg-gray-50 border-transparent text-gray-500 hover:bg-gray-100'
+                    : 'bg-gray-50 dark:bg-slate-800 border-transparent text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
                 }`}
               >
                 <span className="text-lg">{pts} Points</span>
-                <span className={`text-[10px] opacity-80 ${points === pts ? 'text-white/70' : 'text-gray-400'}`}>
+                <span className={`text-[10px] opacity-80 ${points === pts ? 'text-white/70' : 'text-gray-400 dark:text-slate-500'}`}>
                   Match Value: ₹{pts === 20 ? 30 : 20}
                 </span>
               </button>
@@ -488,7 +488,7 @@ export const Matches: React.FC = () => {
                     type="button"
                     onClick={() => setWinnerId(id)}
                     className={`flex-1 py-4 px-4 rounded-2xl border-2 font-black transition-all flex items-center justify-center gap-2 ${
-                      isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg' : 'bg-gray-50 border-transparent text-gray-600'
+                      isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg' : 'bg-gray-50 dark:bg-slate-800 border-transparent text-gray-600 dark:text-slate-400'
                     }`}
                   >
                     {isSelected && <Zap className="w-4 h-4 fill-current" />}
@@ -498,7 +498,7 @@ export const Matches: React.FC = () => {
               })}
             </div>
             {!winnerId && payerOption === PayerOption.LOSER && (
-              <p className="text-[10px] text-amber-600 font-bold mt-1 flex items-center gap-1">
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold mt-1 flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" /> Result pending: Dues will be ₹0 until updated.
               </p>
             )}
@@ -521,7 +521,7 @@ export const Matches: React.FC = () => {
                   type="button"
                   onClick={() => setPayerOption(opt.id)}
                   className={`py-3 px-2 rounded-2xl border-2 text-[11px] font-black transition-all ${
-                    isSelected ? (editingId ? 'bg-amber-600 border-amber-600 text-white' : 'bg-indigo-600 border-indigo-600 text-white') + ' shadow-md' : 'bg-gray-50 border-transparent text-gray-500 hover:bg-gray-100'
+                    isSelected ? (editingId ? 'bg-amber-600 border-amber-600 text-white' : 'bg-indigo-600 border-indigo-600 text-white') + ' shadow-md' : 'bg-gray-50 dark:bg-slate-800 border-transparent text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
                   }`}
                 >
                   {opt.label}
@@ -532,9 +532,9 @@ export const Matches: React.FC = () => {
         </div>
 
         {playerAId && playerBId && (
-          <div className="bg-gray-900 p-5 rounded-3xl flex items-center justify-between text-white shadow-2xl">
+          <div className="bg-gray-900 dark:bg-slate-800 p-5 rounded-3xl flex items-center justify-between text-white shadow-2xl transition-colors">
             <div className="space-y-0.5">
-              <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em]">Add to Dues</p>
+              <p className="text-[9px] font-black text-indigo-400 dark:text-indigo-300 uppercase tracking-[0.2em]">Add to Dues</p>
               <div className="flex gap-4">
                 <div className="flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
@@ -547,7 +547,7 @@ export const Matches: React.FC = () => {
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em]">Game Value</p>
+              <p className="text-[9px] font-black text-indigo-400 dark:text-indigo-300 uppercase tracking-[0.2em]">Game Value</p>
               <p className="text-2xl font-black italic">₹{matchTotal}</p>
             </div>
           </div>
@@ -558,12 +558,12 @@ export const Matches: React.FC = () => {
             disabled={!playerAId || !playerBId}
             className={`w-full py-6 rounded-3xl font-black text-xl shadow-2xl transition-all flex items-center justify-center gap-3 ${
               !playerAId || !playerBId 
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                ? 'bg-gray-200 dark:bg-slate-800 text-gray-400 dark:text-slate-600 cursor-not-allowed' 
                 : editingId 
-                  ? 'bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-amber-100'
+                  ? 'bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-amber-100 dark:shadow-none'
                   : isCurrentlyLive || isDirectRecord
-                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-emerald-200'
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 shadow-indigo-200'
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-emerald-200 dark:shadow-none'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 shadow-indigo-200 dark:shadow-none'
             }`}
           >
             {editingId ? <Edit3 className="w-6 h-6" /> : isCurrentlyLive || isDirectRecord ? <Check className="w-6 h-6" /> : <Play className="w-6 h-6" />}
@@ -574,7 +574,7 @@ export const Matches: React.FC = () => {
             <button 
               type="button"
               onClick={() => setIsDirectRecord(!isDirectRecord)}
-              className="text-center text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700 transition-colors"
+              className="text-center text-[10px] font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
             >
               {isDirectRecord ? '← Switch to Live Entry' : 'Recording a past match? Log result directly →'}
             </button>
@@ -583,19 +583,19 @@ export const Matches: React.FC = () => {
       </form>
 
       {/* History & Filtering Section */}
-      <section className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-5">
+      <section className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm space-y-5 transition-colors">
         <div className="flex flex-col gap-4">
           <div className="flex justify-between items-center">
-            <h3 className="font-black text-lg text-gray-900 tracking-tight flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-indigo-600" />
+            <h3 className="font-black text-lg text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               Session Log
             </h3>
-            <div className="bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 flex items-center gap-2">
+            <div className="bg-gray-50 dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-slate-700 flex items-center gap-2">
                <input 
                  type="date" 
                  value={historyDate} 
                  onChange={(e) => setHistoryDate(e.target.value)}
-                 className="bg-transparent text-xs font-bold outline-none text-indigo-600"
+                 className="bg-transparent text-xs font-bold outline-none text-indigo-600 dark:text-indigo-400"
                />
             </div>
           </div>
@@ -607,7 +607,7 @@ export const Matches: React.FC = () => {
               placeholder="Search player name(s), e.g. Rafaqat, Saqib"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-50 border-none pl-9 p-3 rounded-2xl text-xs font-bold outline-none ring-1 ring-gray-100 focus:ring-indigo-300 transition-all"
+              className="w-full bg-gray-50 dark:bg-slate-800 border-none pl-9 p-3 rounded-2xl text-xs font-bold outline-none ring-1 ring-gray-100 dark:ring-slate-700 focus:ring-indigo-300 dark:focus:ring-indigo-800 transition-all text-gray-800 dark:text-white"
             />
           </div>
 
@@ -623,7 +623,7 @@ export const Matches: React.FC = () => {
                 className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
                   statusFilter === filter.id 
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
-                  : 'bg-white text-gray-400 border-gray-100 hover:bg-gray-50'
+                  : 'bg-white dark:bg-slate-900 text-gray-400 dark:text-slate-500 border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800'
                 }`}
               >
                 {filter.label}
@@ -665,31 +665,31 @@ export const Matches: React.FC = () => {
               };
               
               return (
-                <div key={m.id} className={`flex flex-col group p-3 rounded-2xl transition-colors ${editingId === m.id ? 'bg-amber-50' : 'hover:bg-gray-50'}`}>
+                <div key={m.id} className={`flex flex-col group p-3 rounded-2xl transition-colors ${editingId === m.id ? 'bg-amber-50 dark:bg-amber-900/10' : 'hover:bg-gray-50 dark:hover:bg-slate-800/50'}`}>
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${m.points === 20 ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'}`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${m.points === 20 ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'}`}>
                         {m.points}p
                       </div>
                       <div>
-                        <div className="font-bold text-gray-900 text-sm">
+                        <div className="font-bold text-gray-900 dark:text-white text-sm">
                           {pA?.name} vs {pB?.name}
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                           {m.winnerId ? (
-                            <span className="text-[8px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-md uppercase">
+                            <span className="text-[8px] font-black bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-md uppercase">
                               Winner: {players.find(p => p.id === m.winnerId)?.name}
                             </span>
                           ) : isPendingResult ? (
-                            <span className="text-[8px] font-black bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-md uppercase flex items-center gap-1">
+                            <span className="text-[8px] font-black bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 px-1.5 py-0.5 rounded-md uppercase flex items-center gap-1">
                               <AlertCircle className="w-2 h-2" /> Result Pending
                             </span>
                           ) : (
-                            <span className="text-[8px] font-black bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-md uppercase">
+                            <span className="text-[8px] font-black bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 px-1.5 py-0.5 rounded-md uppercase">
                               Match Ended
                             </span>
                           )}
-                          <span className="text-[8px] font-black bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-md uppercase">
+                          <span className="text-[8px] font-black bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 px-1.5 py-0.5 rounded-md uppercase">
                             {getPayerStatusLabel()}
                           </span>
                         </div>
@@ -697,13 +697,13 @@ export const Matches: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <div className="text-base font-black text-gray-900 tracking-tight">₹{m.totalValue}</div>
+                        <div className="text-base font-black text-gray-900 dark:text-white tracking-tight">₹{m.totalValue}</div>
                         {isPendingResult || playersWithUnpaidBalance.length > 0 ? (
-                           <div className="text-[8px] font-black text-rose-500 uppercase flex items-center justify-end gap-1">
+                           <div className="text-[8px] font-black text-rose-500 dark:text-rose-400 uppercase flex items-center justify-end gap-1">
                              Unpaid
                            </div>
                         ) : (
-                          <div className="text-[8px] font-black text-emerald-500 uppercase flex items-center justify-end gap-1">
+                          <div className="text-[8px] font-black text-emerald-500 dark:text-emerald-400 uppercase flex items-center justify-end gap-1">
                              <Check className="w-2 h-2" /> Cleared
                           </div>
                         )}
@@ -711,20 +711,20 @@ export const Matches: React.FC = () => {
                       {canEdit && (
                         <button 
                           onClick={() => handleEdit(m)}
-                          className="p-2 bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 rounded-xl transition-all"
+                          className="p-2 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 rounded-xl transition-all"
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
                   </div>
-                  <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between opacity-50 group-hover:opacity-100 transition-opacity">
+                  <div className="mt-2 pt-2 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between opacity-50 group-hover:opacity-100 transition-opacity">
                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 text-[8px] font-bold text-gray-400">
+                        <div className="flex items-center gap-1 text-[8px] font-bold text-gray-400 dark:text-slate-500">
                           <Clock className="w-2.5 h-2.5" />
                           {formatTime(m.recordedAt)}
                         </div>
-                        <div className="flex items-center gap-1 text-[8px] font-bold text-gray-400">
+                        <div className="flex items-center gap-1 text-[8px] font-bold text-gray-400 dark:text-slate-500">
                           <User className="w-2.5 h-2.5" />
                           By {m.recordedBy.name} ({m.recordedBy.role})
                         </div>
@@ -734,7 +734,7 @@ export const Matches: React.FC = () => {
               );
             })
           ) : (
-            <div className="py-10 text-center text-gray-300 font-bold italic border-2 border-dashed border-gray-50 rounded-3xl">
+            <div className="py-10 text-center text-gray-300 dark:text-slate-700 font-bold italic border-2 border-dashed border-gray-50 dark:border-slate-800 rounded-3xl">
               No matching games found...
             </div>
           )}
