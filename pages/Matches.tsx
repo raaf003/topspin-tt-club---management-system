@@ -601,15 +601,15 @@ export const Matches: React.FC = () => {
           </div>
 
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Search name(s) separated by comma..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-slate-800 border-none pl-9 p-2.5 md:p-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-bold outline-none ring-1 ring-gray-100 dark:ring-slate-700 focus:ring-indigo-300 dark:focus:ring-indigo-800 transition-all text-gray-800 dark:text-white"
-            />
-          </div>
+                <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search name(s) separated by comma..."
+                  value={searchQuery}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                  className="w-full bg-gray-50 dark:bg-slate-800 border-none pl-9 md:pl-12 p-2.5 md:p-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-bold outline-none ring-1 ring-gray-100 dark:ring-slate-700 focus:ring-indigo-300 dark:focus:ring-indigo-800 transition-all text-gray-800 dark:text-white"
+                />
+                </div>
 
           <div className="flex flex-wrap gap-1.5 md:gap-2">
             {[
