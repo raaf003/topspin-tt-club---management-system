@@ -87,6 +87,7 @@ export const Players: React.FC = () => {
         </div>
         <button 
           onClick={handleOpenAdd}
+          title="Add new player"
           className="bg-orange-500 text-white p-1.5 md:p-2 rounded-lg md:rounded-xl shadow-lg shadow-orange-100 dark:shadow-orange-900/20 active:scale-95 transition-all"
         >
           <Plus className="w-5 h-5 md:w-6 md:h-6" />
@@ -100,7 +101,7 @@ export const Players: React.FC = () => {
               {editingPlayerId ? <UserPen className="w-4 h-4 md:w-5 md:h-5 text-orange-500" /> : <Plus className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />}
               {editingPlayerId ? 'Edit Player' : 'New Player'}
             </h3>
-            <button type="button" onClick={() => setShowAdd(false)} className="text-gray-400 p-1">
+            <button type="button" onClick={() => setShowAdd(false)} className="text-gray-400 p-1" title="Close">
               <X className="w-4 h-4 md:w-5 md:h-5" />
             </button>
           </div>
@@ -110,6 +111,7 @@ export const Players: React.FC = () => {
               <label className="text-[9px] md:text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">Name</label>
               <input 
                 type="text" value={name} onChange={(e) => setName(e.target.value)}
+                placeholder="Full name"
                 className="w-full bg-gray-50 dark:bg-slate-800 border border-transparent focus:border-orange-500 p-2.5 md:p-3 rounded-lg md:rounded-xl outline-none font-bold shadow-inner dark:text-white transition-all text-xs md:text-sm" 
                 required
                 autoFocus
@@ -129,6 +131,7 @@ export const Players: React.FC = () => {
             <label className="text-[9px] md:text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">Phone</label>
             <input 
               type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+              placeholder="Mobile number"
               className="w-full bg-gray-50 dark:bg-slate-800 border border-transparent focus:border-orange-500 p-2.5 md:p-3 rounded-lg md:rounded-xl outline-none shadow-inner dark:text-white transition-all text-xs md:text-sm"
             />
           </div>
@@ -187,7 +190,8 @@ export const Players: React.FC = () => {
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm p-3 md:p-8 overflow-y-auto flex items-start justify-center sm:items-center">
           <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 my-4 sm:my-0 transition-all">
             <button 
-              onClick={() => setSelectedPlayerId(null)} 
+              onClick={() => setSelectedPlayerId(null)}
+              title="Close player details"
               className="absolute top-4 md:top-6 right-4 md:right-6 text-white bg-black/20 p-1.5 md:p-2 rounded-full hover:bg-black/40 transition-colors z-10"
             >
               <X className="w-4 h-4 md:w-5 md:h-5" />
@@ -309,6 +313,7 @@ export const Players: React.FC = () => {
                 {isAdmin && (
                   <button 
                     onClick={(e) => handleOpenEdit(p, e)}
+                    title="Edit player"
                     className="p-2 md:p-3 text-gray-300 dark:text-slate-600 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg md:rounded-xl transition-all"
                   >
                     <Edit3 className="w-4 h-4 md:w-5 md:h-5" />

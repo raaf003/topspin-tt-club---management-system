@@ -131,7 +131,9 @@ export const Reports: React.FC = () => {
                  <label className="text-[8px] md:text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">Start</label>
                  <input 
                    type="date" 
-                   value={startDate} 
+                   value={startDate}
+                   title="Select start date"
+                   aria-label="Select start date"
                    onChange={(e) => setStartDate(e.target.value)}
                    className="w-full bg-gray-50 dark:bg-slate-800 border-none p-2 md:p-3 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold outline-none ring-1 ring-gray-100 dark:ring-slate-700 dark:text-white transition-all"
                  />
@@ -141,7 +143,9 @@ export const Reports: React.FC = () => {
                  <label className="text-[8px] md:text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">End</label>
                  <input 
                    type="date" 
-                   value={endDate} 
+                   value={endDate}
+                   title="Select end date"
+                   aria-label="Select end date"
                    onChange={(e) => setEndDate(e.target.value)}
                    className="w-full bg-gray-50 dark:bg-slate-800 border-none p-2 md:p-3 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold outline-none ring-1 ring-gray-100 dark:ring-slate-700 dark:text-white transition-all"
                  />

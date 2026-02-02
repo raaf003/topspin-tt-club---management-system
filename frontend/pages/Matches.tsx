@@ -593,7 +593,9 @@ export const Matches: React.FC = () => {
             <div className="bg-gray-50 dark:bg-slate-800 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-700 flex items-center gap-1.5 md:gap-2">
                <input 
                  type="date" 
-                 value={historyDate} 
+                 value={historyDate}
+                 title="Select date"
+                 aria-label="Select date for session log"
                  onChange={(e) => setHistoryDate(e.target.value)}
                  className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-indigo-600 dark:text-indigo-400"
                />
@@ -711,6 +713,7 @@ export const Matches: React.FC = () => {
                       {canEdit && (
                         <button 
                           onClick={() => handleEdit(m)}
+                          title="Edit match"
                           className="p-1.5 md:p-2 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg md:rounded-xl transition-all"
                         >
                           <Edit3 className="w-3.5 h-3.5 md:w-4 md:h-4" />

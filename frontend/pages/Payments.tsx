@@ -298,6 +298,7 @@ export const Payments: React.FC = () => {
                      <button 
                        type="button" 
                        onClick={() => handleRemoveAllocation(index)}
+                       title="Remove allocation"
                        className="p-2.5 md:p-3.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 dark:text-rose-400 rounded-lg md:rounded-xl hover:bg-rose-100 transition-colors shadow-sm shrink-0"
                      >
                        <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -424,6 +425,7 @@ export const Payments: React.FC = () => {
                       {isAdmin && (
                         <button 
                           onClick={() => handleEdit(p)}
+                          title="Edit payment"
                           className="p-2 md:p-2.5 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg md:rounded-xl transition-all"
                         >
                           <Edit3 className="w-3.5 h-3.5 md:w-4 md:h-4" />

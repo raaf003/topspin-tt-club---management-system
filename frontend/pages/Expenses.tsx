@@ -38,6 +38,7 @@ export const Expenses: React.FC = () => {
         </div>
         <button 
           onClick={() => setShowAdd(!showAdd)}
+          title="Add new expense"
           className="bg-gray-800 dark:bg-slate-800 text-white p-1.5 md:p-2 rounded-lg md:rounded-xl active:scale-95 transition-all"
         >
           <Plus className="w-5 h-5 md:w-6 md:h-6" />
@@ -50,6 +51,7 @@ export const Expenses: React.FC = () => {
             <label className="text-[10px] md:text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">Amount (₹)</label>
             <input 
               type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter amount"
               className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3 md:p-4 rounded-xl text-lg md:text-xl font-bold outline-none dark:text-white transition-all shadow-inner" 
               required
             />
@@ -59,6 +61,7 @@ export const Expenses: React.FC = () => {
               <label className="text-[10px] md:text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">Category</label>
               <select 
                 value={category} onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
+                title="Select expense category"
                 className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-2.5 md:p-3 rounded-lg md:rounded-xl outline-none dark:text-white transition-all text-xs md:text-sm font-bold"
               >
                 {Object.values(ExpenseCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -68,6 +71,7 @@ export const Expenses: React.FC = () => {
               <label className="text-[10px] md:text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">Via</label>
               <select 
                 value={mode} onChange={(e) => setMode(e.target.value as PaymentMode)}
+                title="Select payment mode"
                 className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-2.5 md:p-3 rounded-lg md:rounded-xl outline-none dark:text-white transition-all text-xs md:text-sm font-bold"
               >
                 {Object.values(PaymentMode).map(m => <option key={m} value={m}>{m}</option>)}

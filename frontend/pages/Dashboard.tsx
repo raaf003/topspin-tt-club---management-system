@@ -105,6 +105,7 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <button 
                   onClick={() => clearOngoingMatch()}
+                  title="Clear ongoing match"
                   className="p-1 hover:bg-white/20 rounded-full transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -176,7 +177,9 @@ export const Dashboard: React.FC = () => {
             <div className={`flex items-center gap-1 px-1.5 py-1 rounded-lg transition-all ${filterType === 'custom' ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800' : ''}`}>
                <input 
                  type="date" 
-                 value={customDate} 
+                 value={customDate}
+                 title="Select date"
+                 aria-label="Select date"
                  onChange={(e) => {
                    setCustomDate(e.target.value);
                    setFilterType('custom');
