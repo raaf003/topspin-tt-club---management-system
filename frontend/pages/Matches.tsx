@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { PayerOption, MatchPoints, UserRole, Player, Match } from '../types';
@@ -360,7 +359,7 @@ export const Matches: React.FC = () => {
             setPoints(ongoingMatch.points);
             setTable(ongoingMatch.table);
           }}
-          className="bg-gradient-to-r from-rose-500 to-rose-600 dark:from-rose-600 dark:to-rose-700 p-3 rounded-2xl shadow-lg shadow-rose-200 dark:shadow-rose-900/20 animate-pulse border border-rose-400 dark:border-rose-500 relative overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
+          className="sticky top-14 md:top-20 z-30 bg-gradient-to-r from-rose-500 to-rose-600 dark:from-rose-600 dark:to-rose-700 p-3 rounded-2xl shadow-lg shadow-rose-200 dark:shadow-rose-900/20 animate-pulse border border-rose-400 dark:border-rose-500 overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
         >
           <div className="relative z-10 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0 flex-1">
