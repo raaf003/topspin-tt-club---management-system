@@ -1,11 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { useNavigate } from 'react-router-dom';
 import { UserRole } from '../types';
 import { Users, Search, Plus, Phone, Award, IndianRupee, Edit3, X, Check, Save, UserPen, Percent } from 'lucide-react';
 
 export const Players: React.FC = () => {
   const { players, addPlayer, updatePlayer, getPlayerStats, matches, payments, currentUser } = useApp();
+  const navigate = useNavigate();
   const isAdmin = currentUser.role === UserRole.ADMIN;
   
   const [showAdd, setShowAdd] = useState(false);
@@ -211,7 +212,7 @@ export const Players: React.FC = () => {
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-1.5 md:gap-2">
-                <StatBox label="Played" value={selectedStats?.games.toString() || '0'} />
+                <StatBox label="Played" value={selectedStats?.gamesPlayed.toString() || '0'} />
                 <StatBox label="Total" value={`₹${selectedStats?.totalSpent}`} />
                 <StatBox label="Waived" value={`₹${selectedStats?.totalDiscounted}`} color="text-amber-400" />
                 <StatBox label="Balance" value={`₹${selectedStats?.pending}`} color={selectedStats!.pending > 0 ? 'text-rose-500' : 'text-emerald-500'} isWhiteBg />
@@ -291,7 +292,7 @@ export const Players: React.FC = () => {
           return (
             <div 
               key={p.id} 
-              onClick={() => setSelectedPlayerId(p.id)}
+              onClick={() => navigate(`/players/${p.id}`)}
               className="bg-white dark:bg-slate-900 p-3.5 md:p-5 rounded-xl md:rounded-[1.5rem] border border-gray-100 dark:border-slate-800 shadow-sm flex justify-between items-center cursor-pointer hover:shadow-md active:scale-[0.98] transition-all group"
             >
               <div className="flex items-center gap-3 md:gap-4 min-w-0">

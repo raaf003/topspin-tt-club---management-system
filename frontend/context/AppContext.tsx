@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { Player, Match, Payment, Expense, AppState, UserRole, PayerOption, PaymentMode, OngoingMatch, ThemeMode } from '../types';
+import { Player, Match, Payment, Expense, AppState, UserRole, PayerOption, PaymentMode, OngoingMatch, ThemeMode, PlayerStats } from '../types';
 import { generateUUID } from '../utils';
 
 interface AppContextType extends AppState {
@@ -16,7 +16,7 @@ interface AppContextType extends AppState {
   setThemeMode: (mode: ThemeMode) => void;
   isDarkMode: boolean;
   getPlayerDues: (playerId: string) => number;
-  getPlayerStats: (playerId: string) => { games: number; totalSpent: number; totalPaid: number; totalDiscounted: number; pending: number; initialBalance: number };
+  getPlayerStats: (playerId: string, dateRange?: { start: string; end: string }) => PlayerStats;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -184,18 +184,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setState(prev => ({ ...prev, themeMode: mode }));
   }, []);
 
-  const getPlayerStats = useCallback((playerId: string) => {
+  const getPlayerStats = useCallback((playerId: string, dateRange?: { start: string; end: string }): PlayerStats => {
     const player = state.players.find(p => p.id === playerId);
-    const playerMatches = state.matches.filter(m => m.playerAId === playerId || m.playerBId === playerId);
+    
+    // Filter matches and payments based on dateRange if provided
+    let filteredMatches = state.matches;
+    let filteredPayments = state.payments;
+
+    if (dateRange) {
+      filteredMatches = state.matches.filter(m => m.date >= dateRange.start && m.date <= dateRange.end);
+      filteredPayments = state.payments.filter(p => p.date >= dateRange.start && p.date <= dateRange.end);
+    }
+
+    const playerMatches = filteredMatches
+      .filter(m => m.playerAId === playerId || m.playerBId === playerId)
+      .sort((a, b) => a.recordedAt - b.recordedAt); // Chronological for trend
     
     // Sum all match charges for this player
-    const totalSpent = state.matches.reduce((sum, m) => sum + (m.charges[playerId] || 0), 0);
+    const totalSpent = playerMatches.reduce((sum, m) => sum + (m.charges[playerId] || 0), 0);
     
     // Sum all payment allocations for this player
     let totalPaid = 0;
     let totalDiscounted = 0;
     
-    state.payments.forEach(p => {
+    filteredPayments.forEach(p => {
       const allocation = p.allocations.find(a => a.playerId === playerId);
       if (allocation) {
         totalPaid += (allocation.amount || 0);
@@ -205,14 +217,124 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     const initialBalance = player?.initialBalance || 0;
     
-    // pending = (what they should have paid) - (what they actually paid) - (what was discounted) - (starting credit)
+    // Performance stats
+    let wins = 0;
+    let losses = 0;
+    const recentForm: ('W' | 'L' | 'N')[] = [];
+    let bestStreak = 0;
+    let tempStreak = 0;
+
+    const performanceTrend: { date: string; rating: number; matchId: string }[] = [];
+    const rivalryMap: Record<string, { name: string; played: number; wins: number; losses: number }> = {};
+    const tableMap: Record<string, number> = {};
+
+    playerMatches.forEach((m) => {
+      const isWinner = m.winnerId === playerId;
+      const hasResult = !!m.winnerId;
+      const opponentId = m.playerAId === playerId ? m.playerBId : m.playerAId;
+      const opponent = state.players.find(p => p.id === opponentId);
+
+      // Preferred Table
+      if (m.table) {
+        tableMap[m.table] = (tableMap[m.table] || 0) + 1;
+      }
+
+      // Rivalries
+      if (opponent) {
+        if (!rivalryMap[opponentId]) rivalryMap[opponentId] = { name: opponent.name, played: 0, wins: 0, losses: 0 };
+        rivalryMap[opponentId].played++;
+      }
+      
+      if (hasResult) {
+        if (isWinner) {
+          wins++;
+          tempStreak++;
+          if (opponent) rivalryMap[opponentId].wins++;
+        } else {
+          losses++;
+          tempStreak = 0;
+          if (opponent) rivalryMap[opponentId].losses++;
+        }
+        if (tempStreak > bestStreak) bestStreak = tempStreak;
+      }
+
+      // Rating/Trend (Cumulative Win Rate)
+      const totalGamesWithResult = wins + losses;
+      performanceTrend.push({
+        date: m.date,
+        rating: totalGamesWithResult > 0 ? (wins / totalGamesWithResult) * 100 : 0,
+        matchId: m.id
+      });
+    });
+
+    // Form from recent matches (last 10)
+    const sortedDescMatches = [...playerMatches].sort((a, b) => b.recordedAt - a.recordedAt);
+    sortedDescMatches.slice(0, 10).forEach(m => {
+      const isWinner = m.winnerId === playerId;
+      const hasResult = !!m.winnerId;
+      recentForm.push(hasResult ? (isWinner ? 'W' : 'L') : 'N');
+    });
+
+    // Current streak
+    let currentStreak = 0;
+    for (const m of sortedDescMatches) {
+      if (!m.winnerId) continue;
+      if (m.winnerId === playerId) currentStreak++;
+      else break;
+    }
+
+    // Daily/Monthly activity
+    const dailyMap: Record<string, { games: number; wins: number }> = {};
+    const monthlyMap: Record<string, { games: number; wins: number }> = {};
+
+    playerMatches.forEach(m => {
+      const dateStr = m.date; 
+      const monthStr = dateStr.substring(0, 7); 
+
+      if (!dailyMap[dateStr]) dailyMap[dateStr] = { games: 0, wins: 0 };
+      if (!monthlyMap[monthStr]) monthlyMap[monthStr] = { games: 0, wins: 0 };
+
+      dailyMap[dateStr].games++;
+      monthlyMap[monthStr].games++;
+
+      if (m.winnerId === playerId) {
+        dailyMap[dateStr].wins++;
+        monthlyMap[monthStr].wins++;
+      }
+    });
+
+    const dailyStats = Object.entries(dailyMap).map(([date, stats]) => ({ date, ...stats })).sort((a, b) => b.date.localeCompare(a.date));
+    const monthlyStats = Object.entries(monthlyMap).map(([month, stats]) => ({ month, ...stats })).sort((a, b) => b.month.localeCompare(a.month));
+
+    // Favorite Opponent
+    let favoriteOpponent = undefined;
+    const sortedRivalries = Object.entries(rivalryMap)
+      .map(([id, stats]) => ({ id, name: stats.name, played: stats.played }))
+      .sort((a, b) => b.played - a.played);
+    
+    if (sortedRivalries.length > 0) {
+      favoriteOpponent = sortedRivalries[0];
+    }
+
     return {
-      games: playerMatches.length,
+      gamesPlayed: playerMatches.length,
+      wins,
+      losses,
+      winRate: (wins + losses) > 0 ? (wins / (wins + losses)) * 100 : 0,
       totalSpent,
       totalPaid,
       totalDiscounted,
       initialBalance,
-      pending: totalSpent - totalPaid - totalDiscounted - initialBalance
+      pending: totalSpent - totalPaid - totalDiscounted - initialBalance,
+      recentForm,
+      currentStreak,
+      bestStreak,
+      dailyStats,
+      monthlyStats,
+      avgSpendPerGame: playerMatches.length > 0 ? totalSpent / playerMatches.length : 0,
+      favoriteOpponent,
+      performanceTrend,
+      rivalries: Object.entries(rivalryMap).map(([id, stats]) => ({ opponentId: id, opponentName: stats.name, ...stats })).sort((a, b) => b.played - a.played)
     };
   }, [state.players, state.matches, state.payments]);
 

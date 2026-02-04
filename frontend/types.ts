@@ -1,4 +1,3 @@
-
 export enum UserRole {
   ADMIN = 'ADMIN',
   STAFF = 'STAFF'
@@ -93,6 +92,49 @@ export interface Expense {
 }
 
 export type ThemeMode = 'light' | 'dark' | 'auto';
+
+export interface PlayerStats {
+  gamesPlayed: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  totalSpent: number;
+  totalPaid: number;
+  totalDiscounted: number;
+  pending: number;
+  initialBalance: number;
+  dailyStats: {
+    date: string;
+    games: number;
+    wins: number;
+  }[];
+  monthlyStats: {
+    month: string;
+    games: number;
+    wins: number;
+  }[];
+  recentForm: ('W' | 'L' | 'N')[];
+  currentStreak: number;
+  bestStreak: number;
+  avgSpendPerGame: number;
+  favoriteOpponent?: {
+    id: string;
+    name: string;
+    played: number;
+  };
+  performanceTrend: {
+    date: string;
+    rating: number; // Cumulative win rate or similar performance metric
+    matchId: string;
+  }[];
+  rivalries: {
+    opponentId: string;
+    opponentName: string;
+    played: number;
+    wins: number;
+    losses: number;
+  }[];
+}
 
 export interface AppState {
   players: Player[];

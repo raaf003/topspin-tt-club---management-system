@@ -76,7 +76,7 @@ export const Reports: React.FC = () => {
   const exportCSV = () => {
     const data = players.map(p => {
       const stats = getPlayerStats(p.id);
-      return `"${p.name}","${p.nickname || ''}",${stats.games},${stats.totalSpent},${stats.totalPaid},${stats.totalDiscounted},${stats.pending}`;
+      return `"${p.name}","${p.nickname || ''}",${stats.gamesPlayed},${stats.totalSpent},${stats.totalPaid},${stats.totalDiscounted},${stats.pending}`;
     });
     const header = "Name,Nickname,Games Played,Lifetime Value,Total Paid,Total Discounted,Current Pending\n";
     const blob = new Blob([header + data.join('\n')], { type: 'text/csv' });
