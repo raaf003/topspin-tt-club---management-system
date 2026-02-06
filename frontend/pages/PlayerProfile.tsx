@@ -1,14 +1,25 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { ChevronLeft, Trophy, Target, TrendingUp, History, Phone, Award, Zap, Calendar, Filter, User, Table as TableIcon, Activity, IndianRupee } from 'lucide-react';
+import { ChevronLeft, Trophy, Target, TrendingUp, History, Phone, Award, Zap, Calendar, Filter, User, Table as TableIcon, Activity, IndianRupee, Info } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { calculatePlayerPerformanceScore, getPlayerTier } from '../rankingUtils';
 
-const HighlightStat: React.FC<{ label: string; value: string; icon: React.ReactNode; subValue?: string }> = ({ label, value, icon, subValue }) => (
-  <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transition-all">
+const HighlightStat: React.FC<{ label: string; value: string; icon: React.ReactNode; subValue?: string; tooltip?: string }> = ({ label, value, icon, subValue, tooltip }) => (
+  <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transition-all relative group/stat">
     <div className="p-2 bg-gray-50 dark:bg-slate-800 rounded-xl">{icon}</div>
     <div className="min-w-0">
-      <div className="text-[9px] font-black text-gray-400 uppercase tracking-wider">{label}</div>
+      <div className="flex items-center gap-1">
+        <div className="text-[9px] font-black text-gray-400 uppercase tracking-wider">{label}</div>
+        {tooltip && (
+          <div className="relative group/tooltip">
+            <Info className="w-2.5 h-2.5 text-gray-300 cursor-help" />
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl border border-white/10">
+              {tooltip}
+            </div>
+          </div>
+        )}
+      </div>
       <div className="text-sm md:text-lg font-black dark:text-white transition-all truncate">{value}</div>
       {subValue && <div className="text-[8px] font-bold text-gray-400 dark:text-slate-500 uppercase">{subValue}</div>}
     </div>
@@ -101,6 +112,16 @@ export const PlayerProfile: React.FC = () => {
   const stats = useMemo(() => id ? getPlayerStats(id, activeRange) : null, [id, getPlayerStats, activeRange]);
   const lifetimeStats = useMemo(() => id ? getPlayerStats(id) : null, [id, getPlayerStats]);
   
+  const performance = useMemo(() => {
+    if (!player || !lifetimeStats) return null;
+    return calculatePlayerPerformanceScore(player, matches, lifetimeStats);
+  }, [player, matches, lifetimeStats]);
+
+  const tier = useMemo(() => {
+    if (!performance) return null;
+    return getPlayerTier(performance.totalScore);
+  }, [performance]);
+
   const [activeTab, setActiveTab] = useState<'matches' | 'payments' | 'rivalries'>('matches');
 
   if (!player || !stats || !lifetimeStats) {
@@ -138,7 +159,7 @@ export const PlayerProfile: React.FC = () => {
     <div className="space-y-6 pb-20">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 px-1">
         <div className="flex items-center gap-4">
-          <button type="button" title="Back to Players" aria-label="Back to Players" onClick={() => navigate('/players')} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-all">
+          <button type="button" title="Go Back" aria-label="Go Back" onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-all">
             <ChevronLeft className="w-6 h-6 text-gray-600 dark:text-slate-400" />
           </button>
           <h2 className="text-2xl font-black dark:text-white transition-all">Player Profile</h2>
@@ -171,14 +192,21 @@ export const PlayerProfile: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-gradient-to-br from-orange-500 to-rose-600 rounded-[2rem] p-6 text-white shadow-xl shadow-orange-500/20 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2rem] p-6 text-white shadow-xl shadow-indigo-500/20 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl animate-pulse"></div>
         <div className="relative z-10 flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left">
           <div className="w-24 h-24 md:w-32 md:h-32 bg-white/20 backdrop-blur-md rounded-[2.5rem] flex items-center justify-center text-4xl md:text-5xl font-black shadow-inner border border-white/30 transition-all hover:scale-105 duration-500">
             {player.name[0]}
           </div>
           <div className="space-y-2">
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none">{player.name}</h1>
+            <div className="flex flex-col md:flex-row items-center gap-3">
+              <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none">{player.name}</h1>
+              {tier && (
+                <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${tier.bg} ${tier.color} ${tier.border}`}>
+                  {tier.name}
+                </div>
+              )}
+            </div>
             <div className="flex flex-wrap justify-center md:justify-start gap-2">
               <span className="bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border border-white/10">@{player.nickname || 'Guest'}</span>
               {player.phone && (
@@ -189,20 +217,49 @@ export const PlayerProfile: React.FC = () => {
             </div>
           </div>
           <div className="md:ml-auto flex flex-col items-center md:items-end justify-center">
-             <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">Lifetime Dues</div>
-             <div className={`text-4xl font-black ${lifetimeStats.pending > 0 ? 'text-white' : 'text-emerald-300'}`}>
-               ₹{Math.abs(lifetimeStats.pending)}
-               <span className="text-sm ml-1 opacity-80">{lifetimeStats.pending > 0 ? 'DUE' : 'CREDIT'}</span>
+             <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">Power Rating</div>
+             <div className="text-4xl md:text-5xl font-black text-white flex items-center gap-2">
+               {performance?.totalScore.toFixed(0)}
+               {performance?.isHot && <Zap className="w-6 h-6 text-amber-400 fill-amber-400 animate-pulse" />}
              </div>
+             {performance && performance.attendanceStreak >= 3 && (
+               <div className="text-[10px] font-black text-amber-300 uppercase tracking-widest mt-1">
+                 {performance.attendanceStreak} Day Streak 🔥
+               </div>
+             )}
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <HighlightStat label="Win Rate" value={`${stats.winRate.toFixed(1)}%`} icon={<Trophy className="w-5 h-5 text-yellow-500" />} subValue={`${stats.wins}W - ${stats.losses}L`} />
-        <HighlightStat label="Period Games" value={stats.gamesPlayed.toString()} icon={<Target className="w-5 h-5 text-blue-500" />} subValue={`Total ${lifetimeStats.gamesPlayed}`} />
-        <HighlightStat label="Streaks" value={`${stats.currentStreak} 🔥`} icon={<TrendingUp className="w-5 h-5 text-emerald-500" />} subValue={`Best: ${stats.bestStreak}`} />
-        <HighlightStat label="Form (Last 10)" value={`${formSummary.w}W - ${formSummary.l}L`} icon={<Zap className="w-5 h-5 text-orange-500" />} />
+        <HighlightStat 
+          label="Win Rate" 
+          value={`${stats.winRate.toFixed(1)}%`} 
+          icon={<Trophy className="w-5 h-5 text-yellow-500" />} 
+          subValue={`${stats.wins}W - ${stats.losses}L`}
+          tooltip="Percentage of games won in the selected period."
+        />
+        <HighlightStat 
+          label="Attendance" 
+          value={`${performance?.attendanceStreak || 0} 🔥`} 
+          icon={<Calendar className="w-5 h-5 text-blue-500" />} 
+          subValue="Day Streak"
+          tooltip="Consecutive days played. Resets after 48 hours of inactivity."
+        />
+        <HighlightStat 
+          label="Momentum" 
+          value={`${stats.currentStreak} ⚡`} 
+          icon={<TrendingUp className="w-5 h-5 text-emerald-500" />} 
+          subValue={`Best: ${stats.bestStreak}`}
+          tooltip="Current winning streak. Boosts your Power Rating!"
+        />
+        <HighlightStat 
+          label="Power Rating" 
+          value={performance?.totalScore.toFixed(0) || '0'} 
+          icon={<Zap className="w-5 h-5 text-orange-500" />} 
+          subValue={tier?.name}
+          tooltip="A combined score of skill, volume, and daily activity. Higher is better!"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

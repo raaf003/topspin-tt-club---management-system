@@ -1,9 +1,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { IndianRupee, TrendingUp, AlertCircle, PlusCircle, CheckCircle2, Calendar, ChevronDown, Filter, Percent, Zap, Clock, X } from 'lucide-react';
+import { IndianRupee, TrendingUp, AlertCircle, PlusCircle, CheckCircle2, Calendar, ChevronDown, Filter, Percent, Zap, Clock, X, Trophy, Star, Info } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserRole, PaymentMode } from '../types';
+import { getTopPerformers, getPlayerTier } from '../rankingUtils';
 
 export const Dashboard: React.FC = () => {
   const { players, matches, payments, getPlayerStats, currentUser, ongoingMatch, clearOngoingMatch } = useApp();
@@ -64,6 +65,10 @@ export const Dashboard: React.FC = () => {
       return sum + (pending > 0 ? pending : 0);
     }, 0);
   }, [players, getPlayerStats]);
+
+  const topPlayers = useMemo(() => {
+    return getTopPerformers(players, matches, getPlayerStats, 3);
+  }, [players, getPlayerStats, matches]);
 
   const liveMatchData = useMemo(() => {
     if (!ongoingMatch) return null;
@@ -197,12 +202,14 @@ export const Dashboard: React.FC = () => {
             icon={<TrendingUp className="text-emerald-500 w-4 h-4 md:w-5 md:h-5" />}
             className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/50"
             subLabel={totalDiscounts > 0 ? `₹${totalDiscounts} waived` : undefined}
+            tooltip="Net revenue for the selected period after discounts."
           />
           <StatCard 
             label="Total Dues" 
             value={`₹${totalDues}`} 
             icon={<AlertCircle className="text-rose-500 w-4 h-4 md:w-5 md:h-5" />}
             className="bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-800/50"
+            tooltip="Total outstanding balance across all players."
           />
         </div>
       </section>
@@ -248,6 +255,26 @@ export const Dashboard: React.FC = () => {
         </div>
       </section>
 
+      <section>
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-bold text-base md:text-lg tracking-tight dark:text-white flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-amber-500" />
+            Top Rated
+          </h3>
+          <Link to="/leaderboard" className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Leaderboard</Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {topPlayers.map((p, idx) => (
+            <TopPlayerItem key={p.id} player={p} rank={idx + 1} />
+          ))}
+          {topPlayers.length === 0 && (
+            <div className="col-span-full text-center py-6 bg-white dark:bg-slate-900 rounded-2xl border-2 border-dashed border-gray-100 dark:border-slate-800">
+              <p className="text-gray-400 dark:text-slate-500 font-bold italic text-xs">Play at least 3 matches to rank!</p>
+            </div>
+          )}
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pb-10">
         <section>
           <div className="flex justify-between items-center mb-3">
@@ -287,10 +314,64 @@ export const Dashboard: React.FC = () => {
   );
 };
 
-const StatCard: React.FC<{ label: string; value: string; icon: React.ReactNode; className?: string; subLabel?: string }> = ({ label, value, icon, className, subLabel }) => (
-  <div className={`p-3.5 md:p-5 rounded-2xl md:rounded-[2rem] shadow-sm transition-all ${className}`}>
+const TopPlayerItem: React.FC<{ player: any; rank: number }> = ({ player, rank }) => {
+  const navigate = useNavigate();
+  const tier = getPlayerTier(player.score);
+  return (
+    <div 
+      onClick={() => navigate(`/players/${player.id}`)}
+      className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl md:rounded-[1.5rem] border border-gray-100 dark:border-slate-800 flex items-center justify-between hover:shadow-md cursor-pointer transition-all active:scale-[0.98] group"
+    >
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-sm ${
+          rank === 1 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800' : 
+          rank === 2 ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700' : 
+          'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800'
+        }`}>
+          {rank === 1 ? <Trophy className="w-5 h-5" /> : `#${rank}`}
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <div className="font-bold text-sm text-gray-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{player.name}</div>
+            {player.isHot && <Zap className="w-3 h-3 text-amber-500 fill-amber-500 animate-pulse" />}
+            {player.attendanceStreak >= 3 && (
+              <span className="flex items-center text-[10px] font-black text-orange-600 dark:text-orange-400">
+                {player.attendanceStreak}🔥
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${tier.bg} ${tier.color} ${tier.border}`}>
+              {tier.name}
+            </span>
+            <div className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-tight">{player.stats.wins} Wins</div>
+          </div>
+        </div>
+      </div>
+      <div className="text-right shrink-0">
+        <div className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+          {player.score.toFixed(0)}
+        </div>
+        <div className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-tighter">Rating</div>
+      </div>
+    </div>
+  );
+};
+
+const StatCard: React.FC<{ label: string; value: string; icon: React.ReactNode; className?: string; subLabel?: string; tooltip?: string }> = ({ label, value, icon, className, subLabel, tooltip }) => (
+  <div className={`p-3.5 md:p-5 rounded-2xl md:rounded-[2rem] shadow-sm transition-all relative group/stat ${className}`}>
     <div className="flex justify-between items-start mb-1.5 md:mb-2">
-      <span className="text-[8px] md:text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-widest">{label}</span>
+      <div className="flex items-center gap-1">
+        <span className="text-[8px] md:text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-widest">{label}</span>
+        {tooltip && (
+          <div className="relative group/tooltip">
+            <Info className="w-2.5 h-2.5 text-gray-400/50 cursor-help" />
+            <div className="absolute bottom-full left-0 mb-2 w-40 p-2 bg-gray-900 text-white text-[9px] rounded-lg opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl border border-white/10 font-bold leading-tight">
+              {tooltip}
+            </div>
+          </div>
+        )}
+      </div>
       <div className="bg-white/50 dark:bg-white/10 p-1 md:p-1.5 rounded-lg shadow-sm">
         {icon}
       </div>

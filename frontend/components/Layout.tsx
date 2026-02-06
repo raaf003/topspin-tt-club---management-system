@@ -12,7 +12,10 @@ import {
   UserCircle,
   Moon,
   Sun,
-  Monitor
+  Monitor,
+  LayoutDashboard,
+  Zap,
+  Table as TableIcon
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { UserRole } from '../types';
@@ -96,13 +99,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* Navigation - Bottom for Mobile, Left for Desktop */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 md:top-0 md:left-0 md:right-auto md:w-20 md:h-full md:border-t-0 md:border-r transition-colors duration-300">
-        <div className="flex md:flex-col justify-around md:justify-start items-center h-16 md:h-full md:py-8 gap-1 md:gap-8">
+        <div className="flex md:flex-col justify-around md:justify-start items-center h-16 md:h-full md:py-8 gap-1 md:gap-8 overflow-x-auto md:overflow-visible">
           <NavItem to="/" icon={<Home className="w-6 h-6" />} label="Home" />
-          <NavItem to="/matches" icon={<Trophy className="w-6 h-6" />} label="Matches" />
+          <NavItem to="/leaderboard" icon={<Trophy className="w-6 h-6" />} label="Rank" />
+          <NavItem to="/matches" icon={<TableIcon className="w-6 h-6" />} label="Matches" />
           <NavItem to="/payments" icon={<IndianRupee className="w-6 h-6" />} label="Pay" />
           <NavItem to="/players" icon={<Users className="w-6 h-6" />} label="Players" />
-          {isAdmin && <NavItem to="/expenses" icon={<ShoppingBag className="w-6 h-6" />} label="Bills" />}
-          {isAdmin && <NavItem to="/reports" icon={<PieChart className="w-6 h-6" />} label="Daily" />}
+          {isAdmin && <NavItem to="/expenses" icon={<ShoppingBag className="w-6 h-6" />} label="Expenses" />}
+          {isAdmin && <NavItem to="/reports" icon={<PieChart className="w-6 h-6" />} label="Reports" />}
         </div>
       </nav>
     </div>

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { UserRole } from '../types';
-import { Users, Search, Plus, Phone, Award, IndianRupee, Edit3, X, Check, Save, UserPen, Percent } from 'lucide-react';
+import { Users, Search, Plus, Phone, Edit3, X, Check, Save, UserPen } from 'lucide-react';
 
 export const Players: React.FC = () => {
-  const { players, addPlayer, updatePlayer, getPlayerStats, matches, payments, currentUser } = useApp();
+  const { players, addPlayer, updatePlayer, getPlayerStats, currentUser } = useApp();
   const navigate = useNavigate();
   const isAdmin = currentUser.role === UserRole.ADMIN;
   
@@ -19,8 +19,6 @@ export const Players: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [balanceType, setBalanceType] = useState<'CREDIT' | 'DUE'>('DUE');
   const [balanceAmount, setBalanceAmount] = useState('');
-
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   const filteredPlayers = players.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -72,13 +70,8 @@ export const Players: React.FC = () => {
     setEditingPlayerId(null);
   };
 
-  const selectedPlayer = players.find(p => p.id === selectedPlayerId);
-  const selectedStats = selectedPlayerId ? getPlayerStats(selectedPlayerId) : null;
-  const playerMatches = selectedPlayerId ? matches.filter(m => m.playerAId === selectedPlayerId || m.playerBId === selectedPlayerId).slice(0, 10) : [];
-  const playerPayments = selectedPlayerId ? payments.filter(p => p.allocations.some(a => a.playerId === selectedPlayerId)).slice(0, 10) : [];
-
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20">
       <div className="flex justify-between items-center px-1">
         <div className="flex items-center gap-2 md:gap-3">
           <div className="bg-orange-500 p-1.5 md:p-2 rounded-lg md:rounded-xl">
@@ -115,7 +108,6 @@ export const Players: React.FC = () => {
                 placeholder="Full name"
                 className="w-full bg-gray-50 dark:bg-slate-800 border border-transparent focus:border-orange-500 p-2.5 md:p-3 rounded-lg md:rounded-xl outline-none font-bold shadow-inner dark:text-white transition-all text-xs md:text-sm" 
                 required
-                autoFocus
               />
             </div>
             <div className="space-y-1">
@@ -182,109 +174,10 @@ export const Players: React.FC = () => {
           type="text" 
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search players..."
+          placeholder="Search registry..."
           className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 pl-11 md:pl-12 pr-4 py-3 md:py-4 rounded-xl md:rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 shadow-sm font-medium dark:text-white transition-all text-sm"
         />
       </div>
-
-      {selectedPlayerId && selectedPlayer && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm p-3 md:p-8 overflow-y-auto flex items-start justify-center sm:items-center">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 my-4 sm:my-0 transition-all">
-            <button 
-              onClick={() => setSelectedPlayerId(null)}
-              title="Close player details"
-              className="absolute top-4 md:top-6 right-4 md:right-6 text-white bg-black/20 p-1.5 md:p-2 rounded-full hover:bg-black/40 transition-colors z-10"
-            >
-              <X className="w-4 h-4 md:w-5 md:h-5" />
-            </button>
-            <div className="bg-orange-500 p-6 md:p-8 pt-8 md:pt-10 text-white relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-              <div className="flex items-center gap-4 md:gap-5 mb-5 md:mb-6">
-                <div className="w-14 h-14 md:w-20 md:h-20 bg-white/20 rounded-2xl md:rounded-3xl flex items-center justify-center text-3xl md:text-4xl font-black shadow-inner">
-                  {selectedPlayer.name[0]}
-                </div>
-                <div>
-                  <h3 className="text-2xl md:text-3xl font-black tracking-tight">{selectedPlayer.name}</h3>
-                  <div className="flex items-center gap-1.5 md:gap-2 opacity-80 font-bold">
-                    <span className="bg-white/20 px-1.5 md:px-2 py-0.5 rounded-lg text-[10px] md:text-xs tracking-wider uppercase">@{selectedPlayer.nickname || 'Guest'}</span>
-                    {selectedPlayer.phone && <span className="flex items-center gap-1 text-[10px] md:text-xs"><Phone className="w-2.5 h-2.5 md:w-3 md:h-3" /> {selectedPlayer.phone}</span>}
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-4 gap-1.5 md:gap-2">
-                <StatBox label="Played" value={selectedStats?.gamesPlayed.toString() || '0'} />
-                <StatBox label="Total" value={`₹${selectedStats?.totalSpent}`} />
-                <StatBox label="Waived" value={`₹${selectedStats?.totalDiscounted}`} color="text-amber-400" />
-                <StatBox label="Balance" value={`₹${selectedStats?.pending}`} color={selectedStats!.pending > 0 ? 'text-rose-500' : 'text-emerald-500'} isWhiteBg />
-              </div>
-            </div>
-
-            <div className="p-5 md:p-8 space-y-6 md:space-y-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
-              {selectedStats?.initialBalance !== 0 && (
-                <div className="bg-gray-50 dark:bg-slate-800 p-3 md:p-4 rounded-xl md:rounded-2xl flex justify-between items-center transition-all">
-                   <div className="flex items-center gap-2">
-                     <Edit3 className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400" />
-                     <span className="text-[10px] md:text-xs font-bold text-gray-500 dark:text-slate-500 uppercase tracking-widest">Adjustment</span>
-                   </div>
-                   <span className={`text-sm md:text-base font-black ${selectedStats!.initialBalance > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                     {selectedStats!.initialBalance > 0 ? '+' : '-'} ₹{Math.abs(selectedStats!.initialBalance)}
-                   </span>
-                </div>
-              )}
-
-              <div>
-                <div className="flex justify-between items-center mb-3 md:mb-4">
-                  <h4 className="font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase text-[10px] md:text-xs tracking-widest">
-                    <Award className="w-3.5 h-3.5 md:w-4 md:h-4 text-orange-500" /> Recent Battles
-                  </h4>
-                  <span className="text-[9px] md:text-[10px] font-black text-gray-400 dark:text-slate-500">{playerMatches.length} Logs</span>
-                </div>
-                <div className="space-y-2">
-                  {playerMatches.map(m => (
-                    <div key={m.id} className="text-xs md:text-sm bg-gray-50 dark:bg-slate-800 p-3 md:p-4 rounded-xl md:rounded-2xl flex justify-between border border-transparent hover:border-orange-100 dark:hover:border-orange-900 transition-all">
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-bold text-gray-900 dark:text-white truncate">vs {m.playerAId === selectedPlayerId ? (players.find(p => p.id === m.playerBId)?.name) : (players.find(p => p.id === m.playerAId)?.name)}</span>
-                        <span className="text-[9px] md:text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase">{m.date} • {m.points}p</span>
-                      </div>
-                      <span className="font-black text-rose-500 dark:text-rose-400 shrink-0 ml-2">₹{m.charges[selectedPlayerId] || 0}</span>
-                    </div>
-                  ))}
-                  {playerMatches.length === 0 && <p className="text-center py-4 text-gray-300 dark:text-slate-700 italic text-xs md:text-sm">No matches yet.</p>}
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex justify-between items-center mb-3 md:mb-4">
-                  <h4 className="font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase text-[10px] md:text-xs tracking-widest">
-                    <IndianRupee className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-500 dark:text-emerald-400" /> Payment History
-                  </h4>
-                  <span className="text-[9px] md:text-[10px] font-black text-gray-400 dark:text-slate-500">{playerPayments.length} Logs</span>
-                </div>
-                <div className="space-y-2">
-                  {playerPayments.map(p => {
-                    const allocation = p.allocations.find(a => a.playerId === selectedPlayerId);
-                    return (
-                      <div key={p.id} className="text-xs md:text-sm bg-emerald-50/50 dark:bg-emerald-900/10 p-3 md:p-4 rounded-xl md:rounded-2xl flex justify-between border border-emerald-100 dark:border-emerald-900/30 transition-all">
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-bold text-emerald-900 dark:text-emerald-400 truncate">{p.mode} RECEIPT</span>
-                          <span className="text-[9px] md:text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase truncate">{p.date} • {p.notes || 'No notes'}</span>
-                          {allocation?.discount ? (
-                             <span className="text-[8px] md:text-[9px] font-black text-amber-600 dark:text-amber-500 flex items-center gap-1 mt-1">
-                               <Percent className="w-2 h-2" /> Waived: ₹{allocation.discount}
-                             </span>
-                          ) : null}
-                        </div>
-                        <span className="font-black text-emerald-600 dark:text-emerald-400 shrink-0 ml-2">₹{allocation?.amount || 0}</span>
-                      </div>
-                    );
-                  })}
-                  {playerPayments.length === 0 && <p className="text-center py-4 text-gray-300 dark:text-slate-700 italic text-xs md:text-sm">No payments yet.</p>}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
         {filteredPlayers.map(p => {
@@ -313,7 +206,10 @@ export const Players: React.FC = () => {
                 </div>
                 {isAdmin && (
                   <button 
-                    onClick={(e) => handleOpenEdit(p, e)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenEdit(p, e);
+                    }}
                     title="Edit player"
                     className="p-2 md:p-3 text-gray-300 dark:text-slate-600 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg md:rounded-xl transition-all"
                   >
@@ -324,14 +220,12 @@ export const Players: React.FC = () => {
             </div>
           );
         })}
+        {filteredPlayers.length === 0 && (
+          <div className="col-span-full text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-gray-100 dark:border-slate-800">
+            <p className="text-gray-400 font-bold italic">No players found match your search...</p>
+          </div>
+        )}
       </div>
     </div>
   );
 };
-
-const StatBox: React.FC<{ label: string; value: string; color?: string; isWhiteBg?: boolean }> = ({ label, value, color = "text-white", isWhiteBg }) => (
-  <div className={`${isWhiteBg ? 'bg-white dark:bg-slate-800' : 'bg-black/10'} p-1.5 md:p-2 rounded-xl md:rounded-2xl text-center backdrop-blur-md transition-all shadow-sm`}>
-    <div className={`text-[7px] md:text-[8px] uppercase font-black ${isWhiteBg ? 'text-orange-500 dark:text-orange-400' : 'opacity-60'} tracking-wider mb-0.5 md:mb-1`}>{label}</div>
-    <div className={`text-base md:text-lg font-black ${color} transition-all`}>{value}</div>
-  </div>
-);
