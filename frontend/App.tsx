@@ -9,6 +9,7 @@ import { Players } from './pages/Players';
 import { PlayerProfile } from './pages/PlayerProfile';
 import { Expenses } from './pages/Expenses';
 import { Reports } from './pages/Reports';
+import { DebugExport } from './pages/DebugExport';
 
 const App: React.FC = () => {
   return (
@@ -23,6 +24,7 @@ const App: React.FC = () => {
             <Route path="/players/:id" element={<PlayerProfile />} />
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/debug-export" element={<DebugExport />} />
           </Routes>
         </Layout>
       </Router>
