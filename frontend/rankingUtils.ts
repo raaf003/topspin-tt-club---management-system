@@ -319,11 +319,18 @@ export const calculateAllPlayerStats = (
       lastMatchDate: uniqueDays[0] || null
     };
     
-    if (ratedMatchesLast30 > 0 || onFire) {
-      console.log(`[calcAllPlayerStats] ${player.name} (${id}): rating=${glickoState[id].rating.toFixed(0)}, rd=${glickoState[id].rd.toFixed(0)}, matches30=${ratedMatchesLast30}, playStreak=${playStreak}, onFire=${onFire}`);
+    // DEBUG: Log every player with their rd value
+    const debugObj = result[id];
+    if (debugObj) {
+      console.log(`[calcAllPlayerStats] Storing ${player.name}: rating=${debugObj.rating}, rd=${debugObj.rd} (type=${typeof debugObj.rd})`);
     }
   });
 
+  console.log('[calcAllPlayerStats] FINAL CHECK - sample players from result:');
+  const sampleKeys = Object.keys(result).slice(0, 3);
+  sampleKeys.forEach(key => {
+    console.log(`  Key '${key}': rd=${result[key]?.rd} (type: ${typeof result[key]?.rd})`);
+  });
   console.log('[calcAllPlayerStats] Calculation complete. Total players:', Object.keys(result).length);
   return result;
 };
@@ -385,23 +392,33 @@ export const getTopPerformers = (
       const stats = getPlayerStats(p.id);
       // Conservative Rating (Rating - RD) for sorting
       // This ensures players with high uncertainty (new players) are ranked below established players
-      const conservativeRating = stats.rating - stats.rd;
-      const debugMsg = `[Top Performers] ${p.name}: stats.rating=${stats.rating}, stats.rd=${stats.rd}, conservative=${conservativeRating}`;
-      console.log(debugMsg);
-      console.log(`  -> stats object keys: ${Object.keys(stats).join(', ')}`);
+      const rating = typeof stats.rating === 'number' ? stats.rating : DEFAULT_RATING;
+      const rd = typeof stats.rd === 'number'? stats.rd : DEFAULT_RD;
+      const conservativeRating = rating - rd;
+      
+      const debugInfo = {
+        playerName: p.name,
+        rating: stats.rating,
+        rd: stats.rd,
+        ratingType: typeof stats.rating,
+        rdType: typeof stats.rd,
+        conservativeRating
+      };
+      console.log('[Top Performers] Player:', debugInfo);
+      
       return { 
         ...p, 
         stats, 
         score: conservativeRating, 
-        displayRating: stats.rating,
-        attendanceStreak: stats.playStreak,
-        isHot: stats.onFire
+        displayRating: rating,
+        attendanceStreak: stats.playStreak ?? 0,
+        isHot: stats.onFire ?? false
       };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
   
-  console.log(`[getTopPerformers] Final ranking (top ${result.length}):`, result.map((p, i) => ({ rank: i + 1, name: p.name, score: p.score })));
+  console.log(`[getTopPerformers] Sorted results:`, result.map((p, i) => ({ rank: i + 1, name: p.name, score: p.score?.toFixed(0) })));
   return result;
 };
 
