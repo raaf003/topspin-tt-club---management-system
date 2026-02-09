@@ -396,21 +396,14 @@ export const getTopPerformers = (
       const rd = typeof stats.rd === 'number'? stats.rd : DEFAULT_RD;
       const conservativeRating = rating - rd;
       
-      const debugInfo = {
-        playerName: p.name,
-        rating: stats.rating,
-        rd: stats.rd,
-        ratingType: typeof stats.rating,
-        rdType: typeof stats.rd,
-        conservativeRating
-      };
-      console.log('[Top Performers] Player:', debugInfo);
+      console.log(`[getTopPerformers] ${p.name}: rating=${rating.toFixed(0)}, rd=${rd.toFixed(0)}, conservative=${conservativeRating.toFixed(0)}, ratedMatches30=${stats.ratedMatchesLast30}`);
       
       return { 
         ...p, 
         stats, 
         score: conservativeRating, 
         displayRating: rating,
+        displayRd: rd,
         attendanceStreak: stats.playStreak ?? 0,
         isHot: stats.onFire ?? false
       };
@@ -418,7 +411,13 @@ export const getTopPerformers = (
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
   
-  console.log(`[getTopPerformers] Sorted results:`, result.map((p, i) => ({ rank: i + 1, name: p.name, score: p.score?.toFixed(0) })));
+  console.log(`[getTopPerformers] Final SORTED ranking:`, result.map((p, i) => ({ 
+    rank: i + 1, 
+    name: p.name, 
+    conservative: p.score?.toFixed(0),
+    rating: p.displayRating?.toFixed(0),
+    rd: p.displayRd?.toFixed(0)
+  })));
   return result;
 };
 
