@@ -103,6 +103,7 @@ export const Matches: React.FC = () => {
   const [table, setTable] = useState('Table 1');
   const [payerOption, setPayerOption] = useState<PayerOption>(PayerOption.LOSER);
   const [winnerId, setWinnerId] = useState('');
+  const [isRated, setIsRated] = useState(true);
   const [success, setSuccess] = useState(false);
 
   // Auto-populate from ongoing match if it exists and we aren't editing something else
@@ -279,7 +280,8 @@ export const Matches: React.FC = () => {
         table,
         payerOption,
         totalValue: matchTotal,
-        charges
+        charges,
+        isRated
       });
       setEditingId(null);
     } else {
@@ -297,7 +299,8 @@ export const Matches: React.FC = () => {
         table,
         payerOption,
         totalValue: matchTotal,
-        charges
+        charges,
+        isRated
       });
       // Clear ongoing match if it matches the recorded one
       if (isCurrentlyLive) {
@@ -325,6 +328,7 @@ export const Matches: React.FC = () => {
     setTable(m.table || 'Table 1');
     setPayerOption(m.payerOption);
     setWinnerId(m.winnerId || '');
+    setIsRated(m.isRated ?? true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -442,6 +446,25 @@ export const Matches: React.FC = () => {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <Zap className={`w-4 h-4 ${isRated ? 'text-amber-500' : 'text-gray-400'}`} />
+            <div>
+              <div className="text-[10px] font-black uppercase dark:text-white">Rated Match</div>
+              <div className="text-[8px] font-bold text-gray-400 uppercase">Affects Skill Rating</div>
+            </div>
+          </div>
+          <button 
+            type="button"
+            onClick={() => setIsRated(!isRated)}
+            title={isRated ? "Disable Rating" : "Enable Rating"}
+            aria-label={isRated ? "Disable Rating" : "Enable Rating"}
+            className={`w-10 h-5 rounded-full transition-colors relative ${isRated ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'}`}
+          >
+            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isRated ? 'right-1' : 'left-1'}`} />
+          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-3 md:gap-4">

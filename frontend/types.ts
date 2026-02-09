@@ -32,6 +32,10 @@ export interface Player {
   nickname?: string;
   initialBalance: number; // Positive = Credit (paid extra), Negative = Initial Dues (manual balance)
   createdAt: number;
+  // Glicko-2 fields
+  rating?: number;
+  ratingDeviation?: number;
+  volatility?: number;
 }
 
 export interface OngoingMatch {
@@ -59,6 +63,8 @@ export interface Match {
   payerOption: PayerOption;
   totalValue: number;
   charges: { [playerId: string]: number };
+  isRated?: boolean;
+  weight?: number;
 }
 
 export interface PaymentAllocation {
@@ -134,6 +140,14 @@ export interface PlayerStats {
     wins: number;
     losses: number;
   }[];
+  // New metrics
+  consistencyScore: number;
+  playStreak: number;
+  onFire: boolean;
+  rating: number;
+  rd: number;
+  volatility: number;
+  ratedMatchesLast30: number;
 }
 
 export interface AppState {

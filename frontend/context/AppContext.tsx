@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { Player, Match, Payment, Expense, AppState, UserRole, PayerOption, PaymentMode, OngoingMatch, ThemeMode, PlayerStats } from '../types';
 import { generateUUID } from '../utils';
+import { calculateAllPlayerStats } from '../rankingUtils';
 
 interface AppContextType extends AppState {
+  globalPlayerStats: Record<string, { rating: number; rd: number; vol: number; playStreak: number; consistencyScore: number; onFire: boolean }>;
   addPlayer: (player: Omit<Player, 'id' | 'createdAt'>) => void;
   updatePlayer: (id: string, player: Partial<Player>) => void;
   addMatch: (match: Omit<Match, 'id'>) => void;
@@ -77,6 +79,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   });
 
+  const globalPlayerStats = useMemo(() => {
+    return calculateAllPlayerStats(state.players, state.matches);
+  }, [state.players, state.matches]);
+
   // Initialize themeMode from storage on mount if not already loaded
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode;
@@ -118,7 +124,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newPlayer: Player = {
       ...playerData,
       id: generateUUID(),
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      rating: 1500,
+      ratingDeviation: 350,
+      volatility: 0.06
     };
     setState(prev => ({ ...prev, players: [newPlayer, ...prev.players] }));
   }, []);
@@ -133,7 +142,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addMatch = useCallback((matchData: Omit<Match, 'id'>) => {
     const newMatch: Match = {
       ...matchData,
-      id: generateUUID()
+      id: generateUUID(),
+      isRated: matchData.isRated ?? true,
+      weight: matchData.weight ?? (matchData.points === 10 ? 0.6 : 1.0)
     };
     setState(prev => ({ ...prev, matches: [newMatch, ...prev.matches] }));
   }, []);
@@ -306,15 +317,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const dailyStats = Object.entries(dailyMap).map(([date, stats]) => ({ date, ...stats })).sort((a, b) => b.date.localeCompare(a.date));
     const monthlyStats = Object.entries(monthlyMap).map(([month, stats]) => ({ month, ...stats })).sort((a, b) => b.month.localeCompare(a.month));
 
-    // Favorite Opponent
-    let favoriteOpponent = undefined;
     const sortedRivalries = Object.entries(rivalryMap)
       .map(([id, stats]) => ({ id, name: stats.name, played: stats.played }))
       .sort((a, b) => b.played - a.played);
-    
-    if (sortedRivalries.length > 0) {
-      favoriteOpponent = sortedRivalries[0];
-    }
+
+    const favoriteOpponent = sortedRivalries.length > 0 ? sortedRivalries[0] : undefined;
+    const gStats = globalPlayerStats[playerId] || { rating: 1500, rd: 350, vol: 0.06, playStreak: 0, consistencyScore: 0, ratedMatchesLast30: 0, onFire: false };
 
     return {
       gamesPlayed: playerMatches.length,
@@ -334,9 +342,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       avgSpendPerGame: playerMatches.length > 0 ? totalSpent / playerMatches.length : 0,
       favoriteOpponent,
       performanceTrend,
-      rivalries: Object.entries(rivalryMap).map(([id, stats]) => ({ opponentId: id, opponentName: stats.name, ...stats })).sort((a, b) => b.played - a.played)
+      rivalries: Object.entries(rivalryMap).map(([id, stats]) => ({ opponentId: id, opponentName: stats.name, ...stats })).sort((a, b) => b.played - a.played),
+      // New metrics
+      rating: gStats.rating,
+      rd: gStats.rd,
+      volatility: gStats.vol,
+      playStreak: gStats.playStreak,
+      consistencyScore: gStats.consistencyScore,
+      ratedMatchesLast30: gStats.ratedMatchesLast30,
+      onFire: gStats.onFire
     };
-  }, [state.players, state.matches, state.payments]);
+  }, [state.players, state.matches, state.payments, globalPlayerStats]);
 
   const getPlayerDues = useCallback((playerId: string) => {
     return getPlayerStats(playerId).pending;
@@ -345,6 +361,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const value = useMemo(() => ({
     ...state,
     isDarkMode: getEffectiveTheme(state.themeMode) === 'dark',
+    globalPlayerStats,
     addPlayer,
     updatePlayer,
     addMatch,
@@ -358,7 +375,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setThemeMode,
     getPlayerDues,
     getPlayerStats
-  }), [state, addPlayer, updatePlayer, addMatch, updateMatch, addPayment, updatePayment, addExpense, startOngoingMatch, clearOngoingMatch, switchRole, setThemeMode, getPlayerDues, getPlayerStats]);
+  }), [state, globalPlayerStats, addPlayer, updatePlayer, addMatch, updateMatch, addPayment, updatePayment, addExpense, startOngoingMatch, clearOngoingMatch, switchRole, setThemeMode, getPlayerDues, getPlayerStats]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Search, Zap, Info, ArrowRight, X, ShieldCheck, Flame } from 'lucide-react';
-import { getTopPerformers, getPlayerTier } from '../rankingUtils';
+import { Trophy, Search, Zap, Info, ArrowRight, X, ShieldCheck, Flame, TrendingUp, Target, Activity, Award } from 'lucide-react';
+import { getTopPerformers, getPlayerTier, getWeeklyHighlights } from '../rankingUtils';
 
 export const Leaderboard: React.FC = () => {
-  const { players, matches, getPlayerStats } = useApp();
+  const { players, matches, getPlayerStats, globalPlayerStats } = useApp();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [showInfo, setShowInfo] = useState(false);
@@ -13,6 +13,10 @@ export const Leaderboard: React.FC = () => {
   const ratedPlayers = useMemo(() => {
     return getTopPerformers(players, matches, getPlayerStats, players.length);
   }, [players, matches, getPlayerStats]);
+
+  const highlights = useMemo(() => {
+    return getWeeklyHighlights(players, matches, globalPlayerStats);
+  }, [players, matches, globalPlayerStats]);
 
   const filteredPlayers = ratedPlayers.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -32,10 +36,38 @@ export const Leaderboard: React.FC = () => {
               onClick={() => setShowInfo(true)}
               className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1 hover:opacity-70 transition-opacity"
             >
-              <Info className="w-3 h-3" /> How it works
+              <Info className="w-3 h-3" /> Glicko-2 System
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Weekly Highlights */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <HighlightCard 
+          icon={<TrendingUp className="w-4 h-4 text-emerald-500" />}
+          label="Most Improved"
+          name={highlights.mostImproved?.name || '-'}
+          sub={`+${highlights.mostImproved?.delta.toFixed(0) || 0} pts`}
+        />
+        <HighlightCard 
+          icon={<Flame className="w-4 h-4 text-orange-500" />}
+          label="Top Streak"
+          name={highlights.longestStreak?.name || '-'}
+          sub={`${globalPlayerStats[highlights.longestStreak?.id || '']?.playStreak || 0} Days`}
+        />
+        <HighlightCard 
+          icon={<Activity className="w-4 h-4 text-indigo-500" />}
+          label="Most Active"
+          name={highlights.mostActive?.name || '-'}
+          sub={`${globalPlayerStats[highlights.mostActive?.id || '']?.consistencyScore || 0}/30 Days`}
+        />
+        <HighlightCard 
+          icon={<Target className="w-4 h-4 text-rose-500" />}
+          label="Giant Killer"
+          name={highlights.giantKiller?.name || '-'}
+          sub="Upsets"
+        />
       </div>
 
       {/* Info Modal */}
@@ -45,13 +77,15 @@ export const Leaderboard: React.FC = () => {
             <div className="bg-indigo-600 p-8 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 -mr-10 -mt-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
               <div className="relative z-10">
-                <h3 className="text-xl font-black uppercase tracking-wider mb-2">Ranking Mechanics</h3>
+                <h3 className="text-xl font-black uppercase tracking-wider mb-2">Glicko-2 Ranking</h3>
                 <p className="text-indigo-100 text-xs leading-relaxed font-medium">
-                  Our Power Rating system evaluates players based on three core performance pillars:
+                  Our system uses the Glicko-2 algorithm to accurately estimate your skill level while preventing manipulation.
                 </p>
               </div>
               <button 
                 onClick={() => setShowInfo(false)}
+                title="Close Info"
+                aria-label="Close Info"
                 className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -61,18 +95,18 @@ export const Leaderboard: React.FC = () => {
             <div className="p-8 space-y-6">
               <MechanicItem 
                 icon={<ShieldCheck className="w-5 h-5 text-indigo-500" />}
-                title="Bayesian Skill Index"
-                description="Unlike raw win rates, our algorithm requires volume to build confidence. A player with 40 wins is rated higher than one with 3 wins."
+                title="Confidence (RD)"
+                description="The system tracks 'Rating Deviation'. Playing more matches increases confidence, making your rating more stable."
               />
               <MechanicItem 
                 icon={<Zap className="w-5 h-5 text-amber-500" />}
-                title="Performance Momentum"
-                description="Triggered by 3+ consecutive wins. Represents a competitive 'peak' and provides a temporary multiplier to your base rating."
+                title="Anti-Manipulation"
+                description="Max 5 rated matches per day. Repeated matches against the same opponent have diminishing rating impact to prevent farming."
               />
               <MechanicItem 
-                icon={<Flame className="w-5 h-5 text-rose-500" />}
-                title="Consistency Multiplier"
-                description="Rewards daily engagement. Competing at least once every 48 hours builds a streak that protects your rating from activity decay."
+                icon={<Award className="w-5 h-5 text-emerald-500" />}
+                title="Match Weighting"
+                description="20-point matches have full weight (1.0). 10-point matches are weighted 0.6. Casual matches don't affect skill rating."
               />
               
               <button 
@@ -106,7 +140,7 @@ export const Leaderboard: React.FC = () => {
 
       <div className="space-y-3">
         {filteredPlayers.map((p: any, idx) => {
-          const tier = getPlayerTier(p.score);
+          const tier = getPlayerTier(p.score, p.stats);
           return (
             <div 
               key={p.id}
@@ -176,5 +210,16 @@ const LegendItem: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, 
   <div className="flex items-center gap-1.5 shrink-0 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-full border border-gray-100 dark:border-slate-800 shadow-sm">
     {icon}
     <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">{label}</span>
+  </div>
+);
+
+const HighlightCard: React.FC<{ icon: React.ReactNode; label: string; name: string; subText?: string; sub?: string }> = ({ icon, label, name, sub }) => (
+  <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm space-y-1">
+    <div className="flex items-center gap-1.5">
+      {icon}
+      <span className="text-[8px] font-black text-gray-400 uppercase tracking-wider">{label}</span>
+    </div>
+    <div className="font-bold text-xs truncate dark:text-white">{name}</div>
+    {sub && <div className="text-[9px] font-black text-indigo-500 uppercase tracking-tighter">{sub}</div>}
   </div>
 );

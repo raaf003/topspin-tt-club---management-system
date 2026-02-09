@@ -118,9 +118,9 @@ export const PlayerProfile: React.FC = () => {
   }, [player, matches, lifetimeStats]);
 
   const tier = useMemo(() => {
-    if (!performance) return null;
-    return getPlayerTier(performance.totalScore);
-  }, [performance]);
+    if (!stats) return null;
+    return getPlayerTier(stats.rating, stats);
+  }, [stats]);
 
   const [activeTab, setActiveTab] = useState<'matches' | 'payments' | 'rivalries'>('matches');
 
@@ -202,8 +202,15 @@ export const PlayerProfile: React.FC = () => {
             <div className="flex flex-col md:flex-row items-center gap-3">
               <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none break-words max-w-full">{player.name}</h1>
               {tier && (
-                <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${tier.bg} ${tier.color} ${tier.border}`}>
-                  {tier.name}
+                <div className="flex flex-col items-center md:items-start gap-1">
+                  <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${tier.bg} ${tier.color} ${tier.border}`}>
+                    {tier.name}
+                  </div>
+                  {tier.pendingPromotion && (
+                    <div className="text-[8px] font-black text-white/70 uppercase tracking-tighter">
+                      Needs {10 - stats.ratedMatchesLast30} more matches for promotion
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -217,14 +224,14 @@ export const PlayerProfile: React.FC = () => {
             </div>
           </div>
           <div className="md:ml-auto flex flex-col items-center md:items-end justify-center">
-             <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">Power Rating</div>
+             <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">Skill Rating</div>
              <div className="text-4xl md:text-5xl font-black text-white flex items-center gap-2">
-               {performance?.totalScore.toFixed(0)}
-               {performance?.isHot && <Zap className="w-6 h-6 text-amber-400 fill-amber-400 animate-pulse" />}
+               {stats.rating.toFixed(0)}
+               {stats.onFire && <Zap className="w-6 h-6 text-amber-400 fill-amber-400 animate-pulse" />}
              </div>
-             {performance && performance.attendanceStreak >= 3 && (
+             {stats.playStreak >= 3 && (
                <div className="text-[10px] font-black text-amber-300 uppercase tracking-widest mt-1">
-                 {performance.attendanceStreak} Day Streak 🔥
+                 {stats.playStreak} Day Streak 🔥
                </div>
              )}
           </div>
@@ -240,25 +247,25 @@ export const PlayerProfile: React.FC = () => {
           tooltip="Percentage of games won in the selected period."
         />
         <HighlightStat 
-          label="Attendance" 
-          value={`${performance?.attendanceStreak || 0} 🔥`} 
+          label="Play Streak" 
+          value={`${stats.playStreak} 🔥`} 
           icon={<Calendar className="w-5 h-5 text-blue-500" />} 
           subValue="Day Streak"
           tooltip="Consecutive days played. Resets after 48 hours of inactivity."
         />
         <HighlightStat 
-          label="Momentum" 
-          value={`${stats.currentStreak} ⚡`} 
-          icon={<TrendingUp className="w-5 h-5 text-emerald-500" />} 
-          subValue={`Best: ${stats.bestStreak}`}
-          tooltip="Current winning streak. Boosts your Power Rating!"
+          label="Consistency" 
+          value={`${stats.consistencyScore}/30`} 
+          icon={<Activity className="w-5 h-5 text-emerald-500" />} 
+          subValue="Active Days"
+          tooltip="Number of days played in the last 30 days."
         />
         <HighlightStat 
-          label="Power Rating" 
-          value={performance?.totalScore.toFixed(0) || '0'} 
-          icon={<Zap className="w-5 h-5 text-orange-500" />} 
-          subValue={tier?.name}
-          tooltip="A combined score of skill, volume, and daily activity. Higher is better!"
+          label="Confidence" 
+          value={`${((1 - stats.rd / 350) * 100).toFixed(0)}%`} 
+          icon={<Target className="w-5 h-5 text-orange-500" />} 
+          subValue="Rating RD"
+          tooltip="How confident the system is in your skill rating. Play more matches to increase this!"
         />
       </div>
 
