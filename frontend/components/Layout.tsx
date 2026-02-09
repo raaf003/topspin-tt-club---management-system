@@ -93,7 +93,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-4xl mx-auto w-full p-4 md:p-8">
+      <main className="flex-1 max-w-4xl mx-auto w-full p-4 md:p-8 overflow-x-hidden">
         {children}
       </main>
 

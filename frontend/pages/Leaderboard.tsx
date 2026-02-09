@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Search, Zap, Info, ArrowRight } from 'lucide-react';
+import { Trophy, Search, Zap, Info, ArrowRight, X, ShieldCheck, Flame } from 'lucide-react';
 import { getTopPerformers, getPlayerTier } from '../rankingUtils';
 
 export const Leaderboard: React.FC = () => {
   const { players, matches, getPlayerStats } = useApp();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [showInfo, setShowInfo] = useState(false);
 
   const ratedPlayers = useMemo(() => {
     return getTopPerformers(players, matches, getPlayerStats, players.length);
@@ -22,51 +23,74 @@ export const Leaderboard: React.FC = () => {
     <div className="space-y-6 pb-20">
       <div className="flex justify-between items-center px-1">
         <div className="flex items-center gap-3">
-          <div className="bg-amber-500 p-2 rounded-xl">
+          <div className="bg-amber-500 p-2 rounded-xl shadow-lg shadow-amber-100 dark:shadow-none">
             <Trophy className="text-white w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold dark:text-white transition-all">Hall of Fame</h2>
+          <div>
+            <h2 className="text-2xl font-black dark:text-white tracking-tight">Hall of Fame</h2>
+            <button 
+              onClick={() => setShowInfo(true)}
+              className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1 hover:opacity-70 transition-opacity"
+            >
+              <Info className="w-3 h-3" /> How it works
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="bg-indigo-600 dark:bg-indigo-700 rounded-[2rem] p-6 text-white relative overflow-hidden shadow-xl shadow-indigo-100 dark:shadow-none">
-        <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
-        <div className="relative z-10">
-          <h3 className="text-lg font-black uppercase tracking-wider mb-2">Power Rating System</h3>
-          <p className="text-indigo-100 text-xs md:text-sm leading-relaxed opacity-90">
-            Ratings are calculated based on skill (win rate), consistency (daily streaks), and recent activity. Keep playing to maintain your "Heat" and climb the tiers!
-          </p>
-          <div className="mt-4 flex flex-col gap-4">
-            <div className="flex flex-wrap gap-2">
-              <span className="bg-white/10 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 border border-white/5">
-                <Zap className="w-3 h-3 text-amber-400 fill-amber-400" /> Momentum Status
-              </span>
-              <span className="bg-white/10 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 border border-white/5">
-                🔥 Retention Streak
-              </span>
+      {/* Info Modal */}
+      {showInfo && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="bg-indigo-600 p-8 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 -mr-10 -mt-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+              <div className="relative z-10">
+                <h3 className="text-xl font-black uppercase tracking-wider mb-2">Ranking Mechanics</h3>
+                <p className="text-indigo-100 text-xs leading-relaxed font-medium">
+                  Our Power Rating system evaluates players based on three core performance pillars:
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowInfo(false)}
+                className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="bg-black/20 rounded-2xl p-3.5 border border-white/5 backdrop-blur-sm">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.15em] mb-1.5 text-amber-400 flex items-center gap-2">
-                  <Zap className="w-3 h-3" /> Performance Momentum
-                </h4>
-                <p className="text-[10px] text-indigo-100/80 leading-relaxed font-medium">
-                  Indicates a player is performing significantly above their baseline. Triggered by a 3+ win streak, providing a temporary boost to the overall Power Rating.
-                </p>
-              </div>
-
-              <div className="bg-black/20 rounded-2xl p-3.5 border border-white/5 backdrop-blur-sm">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.15em] mb-1.5 text-rose-300 flex items-center gap-2">
-                  🔥 Consistency Multiplier
-                </h4>
-                <p className="text-[10px] text-indigo-100/80 leading-relaxed font-medium">
-                  Rewards active participation. Competing daily builds a multiplier that protects your rating from activity decay. Resets if inactive for more than 48 hours.
-                </p>
-              </div>
+            <div className="p-8 space-y-6">
+              <MechanicItem 
+                icon={<ShieldCheck className="w-5 h-5 text-indigo-500" />}
+                title="Bayesian Skill Index"
+                description="Unlike raw win rates, our algorithm requires volume to build confidence. A player with 40 wins is rated higher than one with 3 wins."
+              />
+              <MechanicItem 
+                icon={<Zap className="w-5 h-5 text-amber-500" />}
+                title="Performance Momentum"
+                description="Triggered by 3+ consecutive wins. Represents a competitive 'peak' and provides a temporary multiplier to your base rating."
+              />
+              <MechanicItem 
+                icon={<Flame className="w-5 h-5 text-rose-500" />}
+                title="Consistency Multiplier"
+                description="Rewards daily engagement. Competing at least once every 48 hours builds a streak that protects your rating from activity decay."
+              />
+              
+              <button 
+                onClick={() => setShowInfo(false)}
+                className="w-full bg-gray-900 dark:bg-slate-800 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all"
+              >
+                Got it
+              </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Legend Strip */}
+      <div className="flex gap-4 px-1 overflow-x-auto no-scrollbar">
+        <LegendItem icon={<Zap className="w-3 h-3 text-amber-500 fill-amber-500" />} label="Momentum" />
+        <LegendItem icon={<span className="text-[10px]">🔥</span>} label="Consistency" />
+        <LegendItem icon={<div className="w-2 h-2 rounded-full bg-indigo-500" />} label="Verified Tier" />
       </div>
 
       <div className="relative px-1">
@@ -137,3 +161,20 @@ export const Leaderboard: React.FC = () => {
     </div>
   );
 };
+
+const MechanicItem: React.FC<{ icon: React.ReactNode; title: string; description: string }> = ({ icon, title, description }) => (
+  <div className="flex gap-4">
+    <div className="shrink-0 w-10 h-10 bg-gray-50 dark:bg-slate-800 rounded-xl flex items-center justify-center">{icon}</div>
+    <div className="space-y-1">
+      <h4 className="text-xs font-black uppercase tracking-wider text-gray-900 dark:text-white">{title}</h4>
+      <p className="text-[11px] text-gray-500 dark:text-slate-400 leading-relaxed font-medium">{description}</p>
+    </div>
+  </div>
+);
+
+const LegendItem: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
+  <div className="flex items-center gap-1.5 shrink-0 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-full border border-gray-100 dark:border-slate-800 shadow-sm">
+    {icon}
+    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">{label}</span>
+  </div>
+);

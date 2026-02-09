@@ -14,7 +14,7 @@ const HighlightStat: React.FC<{ label: string; value: string; icon: React.ReactN
         {tooltip && (
           <div className="relative group/tooltip">
             <Info className="w-2.5 h-2.5 text-gray-300 cursor-help" />
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl border border-white/10">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 max-sm:w-32 max-sm:left-auto max-sm:right-0 max-sm:translate-x-0 p-2 bg-gray-900 text-white text-[10px] rounded-lg opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl border border-white/10 whitespace-normal text-center">
               {tooltip}
             </div>
           </div>
@@ -80,9 +80,9 @@ const RivalryProgressBar: React.FC<{ wins: number; losses: number; played: numbe
   }, [wins, losses, played]);
 
   return (
-    <div className="flex gap-2">
-      <div ref={winRef} className="h-2 bg-emerald-500 rounded-full transition-all duration-500"></div>
-      <div ref={lossRef} className="h-2 bg-rose-500 rounded-full transition-all duration-500"></div>
+    <div className="h-2 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
+      <div ref={winRef} className="h-full bg-emerald-500 transition-all duration-500"></div>
+      <div ref={lossRef} className="h-full bg-rose-500 transition-all duration-500"></div>
     </div>
   );
 };
@@ -200,7 +200,7 @@ export const PlayerProfile: React.FC = () => {
           </div>
           <div className="space-y-2">
             <div className="flex flex-col md:flex-row items-center gap-3">
-              <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none">{player.name}</h1>
+              <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none break-words max-w-full">{player.name}</h1>
               {tier && (
                 <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${tier.bg} ${tier.color} ${tier.border}`}>
                   {tier.name}
