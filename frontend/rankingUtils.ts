@@ -148,23 +148,53 @@ export const processRatingPeriod = (
 };
 
 /**
+ * Tier thresholds for the "Climb Only" system
+ * Players can only go UP in tiers, never down
+ * Requires both rating threshold AND total matches played
+ */
+const TIER_THRESHOLDS = [
+  { tier: 5, name: 'Master', rating: 1900, matches: 60 },
+  { tier: 4, name: 'Elite', rating: 1750, matches: 40 },
+  { tier: 3, name: 'Advanced', rating: 1600, matches: 25 },
+  { tier: 2, name: 'Intermediate', rating: 1500, matches: 15 },
+  { tier: 1, name: 'Beginner', rating: 1400, matches: 10 },
+  { tier: 0, name: 'Novice', rating: 0, matches: 0 },
+];
+
+const calculateEarnedTier = (rating: number, totalMatches: number): number => {
+  for (const t of TIER_THRESHOLDS) {
+    if (rating >= t.rating && totalMatches >= t.matches) {
+      return t.tier;
+    }
+  }
+  return 0; // Novice
+};
+
+/**
  * Main function to calculate all ratings and metrics from scratch.
  * This ensures consistency and prevents manipulation.
  */
 export const calculateAllPlayerStats = (
   players: Player[],
   allMatches: Match[]
-): Record<string, { rating: number; rd: number; vol: number; playStreak: number; consistencyScore: number; onFire: boolean; ratedMatchesLast30: number; rating7DaysAgo: number; lastMatchDate: string | null }> => {
+): Record<string, { rating: number; rd: number; vol: number; playStreak: number; consistencyScore: number; onFire: boolean; ratedMatchesLast30: number; rating7DaysAgo: number; lastMatchDate: string | null; earnedTier: number; totalRatedMatches: number; peakRating: number }> => {
   const result: Record<string, any> = {};
   
   // Initialize Glicko state for everyone (Always start from defaults to replay history correctly)
   const glickoState: Record<string, GlickoPlayer> = {};
+  const playerTotalMatches: Record<string, number> = {};
+  const playerEarnedTier: Record<string, number> = {};
+  const playerPeakRating: Record<string, number> = {};
+  
   players.forEach(p => {
     glickoState[p.id] = {
       rating: DEFAULT_RATING,
       rd: DEFAULT_RD,
       vol: DEFAULT_VOLATILITY
     };
+    playerTotalMatches[p.id] = 0;
+    playerEarnedTier[p.id] = 0; // Everyone starts as Novice
+    playerPeakRating[p.id] = DEFAULT_RATING;
   });
 
   // Group matches by date for daily rating periods
@@ -189,7 +219,10 @@ export const calculateAllPlayerStats = (
         ratedMatchesLast30: 0,
         onFire: false,
         rating7DaysAgo: DEFAULT_RATING,
-        lastMatchDate: null
+        lastMatchDate: null,
+        earnedTier: 0,
+        totalRatedMatches: 0,
+        peakRating: DEFAULT_RATING
       };
     });
     return result;
@@ -256,6 +289,28 @@ export const calculateAllPlayerStats = (
       glickoState[id] = { rating, rd, vol: update.vol };
     });
 
+    // Track total rated matches and tier progression for each player who played today
+    dailyMatches.forEach(m => {
+      if (!m.winnerId || m.isRated === false) return;
+      
+      [m.playerAId, m.playerBId].forEach(pid => {
+        if (playerTotalMatches[pid] === undefined) return; // Player not in current roster
+        
+        playerTotalMatches[pid]++;
+        
+        // Track peak rating
+        if (glickoState[pid] && glickoState[pid].rating > playerPeakRating[pid]) {
+          playerPeakRating[pid] = glickoState[pid].rating;
+        }
+        
+        // Check for tier promotion (climb only - can never go down)
+        const newTier = calculateEarnedTier(glickoState[pid]?.rating || DEFAULT_RATING, playerTotalMatches[pid]);
+        if (newTier > playerEarnedTier[pid]) {
+          playerEarnedTier[pid] = newTier;
+        }
+      });
+    });
+
     // Capture history for "Most Improved"
     if (date <= rating7DaysAgoLimit) {
       Object.keys(glickoState).forEach(id => {
@@ -316,7 +371,10 @@ export const calculateAllPlayerStats = (
       ratedMatchesLast30,
       onFire,
       rating7DaysAgo: ratingHistory[id] ?? DEFAULT_RATING,
-      lastMatchDate: uniqueDays[0] || null
+      lastMatchDate: uniqueDays[0] || null,
+      earnedTier: playerEarnedTier[id] || 0,
+      totalRatedMatches: playerTotalMatches[id] || 0,
+      peakRating: playerPeakRating[id] || DEFAULT_RATING
     };
     
     // DEBUG: Log every player with their rd value
@@ -335,45 +393,57 @@ export const calculateAllPlayerStats = (
   return result;
 };
 
+/**
+ * Get player tier based on their EARNED tier (climb-only system)
+ * Players never lose their tier - they can only climb up
+ */
 export const getPlayerTier = (rating: number, stats?: any) => {
-  const ratedMatchesLast30 = stats?.ratedMatchesLast30 || 0;
-  const lastMatchDate = stats?.lastMatchDate;
-  const daysInactive = lastMatchDate ? (Date.now() - new Date(lastMatchDate).getTime()) / (1000 * 3600 * 24) : 99;
-
-  // 6-Tier System with harder Elite/Master thresholds
-  // Promotion Rule: Rating >= Threshold AND 10 matches in 30 days
-  const isMasterEligible = rating >= 1850 && ratedMatchesLast30 >= 10;
-  const isEliteEligible = rating >= 1700 && ratedMatchesLast30 >= 10;
-  const isAdvancedEligible = rating >= 1500 && ratedMatchesLast30 >= 10;
-  const isIntermediateEligible = rating >= 1300 && ratedMatchesLast30 >= 10;
-  const isBeginnerEligible = rating >= 1150;
-
-  // Demotion Rule: Rating < Threshold AND inactivity >= 14 days
-  // This means you keep your tier as long as you are active OR have the rating.
+  const earnedTier = stats?.earnedTier ?? 0;
+  const totalRatedMatches = stats?.totalRatedMatches ?? 0;
   
-  if (isMasterEligible || (rating >= 1850 && daysInactive < 14)) 
-    return { name: 'Master', bg: 'bg-gradient-to-r from-amber-500 to-yellow-400', color: 'text-white', border: 'border-amber-600' };
+  // Find the next tier the player can work towards
+  const getNextTierInfo = () => {
+    for (let i = TIER_THRESHOLDS.length - 1; i >= 0; i--) {
+      const t = TIER_THRESHOLDS[i];
+      if (t.tier > earnedTier) {
+        const needsRating = rating < t.rating;
+        const needsMatches = totalRatedMatches < t.matches;
+        if (needsRating || needsMatches) {
+          return {
+            nextTierName: t.name,
+            ratingNeeded: needsRating ? t.rating - rating : 0,
+            matchesNeeded: needsMatches ? t.matches - totalRatedMatches : 0
+          };
+        }
+      }
+    }
+    return null;
+  };
   
-  if (isEliteEligible || (rating >= 1700 && daysInactive < 14)) 
-    return { name: 'Elite', bg: 'bg-purple-600', color: 'text-white', border: 'border-purple-700', pendingPromotion: rating >= 1850 && ratedMatchesLast30 < 10 };
-    
-  if (isAdvancedEligible || (rating >= 1500 && daysInactive < 14)) 
-    return { name: 'Advanced', bg: 'bg-indigo-500', color: 'text-white', border: 'border-indigo-600', pendingPromotion: rating >= 1700 && ratedMatchesLast30 < 10 };
-    
-  if (isIntermediateEligible || (rating >= 1300 && daysInactive < 14)) 
-    return { name: 'Intermediate', bg: 'bg-emerald-500', color: 'text-white', border: 'border-emerald-600', pendingPromotion: rating >= 1500 && ratedMatchesLast30 < 10 };
-
-  if (isBeginnerEligible)
-    return { name: 'Beginner', bg: 'bg-slate-400', color: 'text-white', border: 'border-slate-500', pendingPromotion: rating >= 1300 && ratedMatchesLast30 < 10 };
-
-  return { 
-    name: 'Novice', 
-    bg: 'bg-gray-300', 
-    color: 'text-gray-700', 
-    border: 'border-gray-400', 
-    pendingPromotion: rating >= 1150 && ratedMatchesLast30 < 10 
+  const nextTier = getNextTierInfo();
+  const pendingPromotion = nextTier && nextTier.ratingNeeded <= 0 && nextTier.matchesNeeded > 0;
+  
+  const tierInfo = {
+    5: { name: 'Master', bg: 'bg-gradient-to-r from-amber-500 to-yellow-400', color: 'text-white', border: 'border-amber-600' },
+    4: { name: 'Elite', bg: 'bg-purple-600', color: 'text-white', border: 'border-purple-700' },
+    3: { name: 'Advanced', bg: 'bg-indigo-500', color: 'text-white', border: 'border-indigo-600' },
+    2: { name: 'Intermediate', bg: 'bg-emerald-500', color: 'text-white', border: 'border-emerald-600' },
+    1: { name: 'Beginner', bg: 'bg-slate-400', color: 'text-white', border: 'border-slate-500' },
+    0: { name: 'Novice', bg: 'bg-gray-300', color: 'text-gray-700', border: 'border-gray-400' }
+  };
+  
+  const tier = tierInfo[earnedTier as keyof typeof tierInfo] || tierInfo[0];
+  
+  return {
+    ...tier,
+    earnedTier,
+    pendingPromotion,
+    nextTier
   };
 };
+
+// Export tier thresholds for UI display
+export { TIER_THRESHOLDS };
 
 
 

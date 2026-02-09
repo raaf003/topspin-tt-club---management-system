@@ -148,6 +148,10 @@ export interface PlayerStats {
   rd: number;
   volatility: number;
   ratedMatchesLast30: number;
+  // Climb-only tier system
+  totalRatedMatches: number;
+  earnedTier: number;
+  peakRating: number;
 }
 
 export interface AppState {

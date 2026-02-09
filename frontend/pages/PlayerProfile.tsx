@@ -355,11 +355,11 @@ export const PlayerProfile: React.FC = () => {
           tooltip="How confident the system is in your skill rating. Low RD = stable rating. High RD = rating may change quickly."
         />
         <HighlightStat 
-          label="Tier Progress" 
-          value={`${stats.ratedMatchesLast30}/10`} 
+          label="Total Matches" 
+          value={`${stats.totalRatedMatches || 0}`} 
           icon={<Award className="w-5 h-5 text-purple-500" />} 
-          subValue="Rated Matches"
-          tooltip="Need 10+ rated matches in 30 days to qualify for tier promotion."
+          subValue="Career Games"
+          tooltip="Total rated matches played. Tiers are climb-only - once earned, you keep them forever!"
         />
       </div>
 
