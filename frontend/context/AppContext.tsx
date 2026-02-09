@@ -12,6 +12,7 @@ interface AppContextType extends AppState {
   addPayment: (payment: Omit<Payment, 'id'>) => void;
   updatePayment: (id: string, payment: Partial<Payment>) => void;
   addExpense: (expense: Omit<Expense, 'id'>) => void;
+  updateExpense: (id: string, expense: Partial<Expense>) => void;
   startOngoingMatch: (match: OngoingMatch) => void;
   clearOngoingMatch: () => void;
   switchRole: (role: UserRole) => void;
@@ -174,9 +175,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addExpense = useCallback((expenseData: Omit<Expense, 'id'>) => {
     const newExpense: Expense = {
       ...expenseData,
-      id: generateUUID()
+      id: generateUUID(),
+      recordedAt: expenseData.recordedAt || Date.now()
     };
     setState(prev => ({ ...prev, expenses: [newExpense, ...prev.expenses] }));
+  }, []);
+
+  const updateExpense = useCallback((id: string, expenseData: Partial<Expense>) => {
+    setState(prev => ({
+      ...prev,
+      expenses: prev.expenses.map(ex => ex.id === id ? { ...ex, ...expenseData } : ex)
+    }));
   }, []);
 
   const startOngoingMatch = useCallback((match: OngoingMatch) => {
@@ -373,13 +382,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addPayment,
     updatePayment,
     addExpense,
+    updateExpense,
     startOngoingMatch,
     clearOngoingMatch,
     switchRole,
     setThemeMode,
     getPlayerDues,
     getPlayerStats
-  }), [state, globalPlayerStats, addPlayer, updatePlayer, addMatch, updateMatch, addPayment, updatePayment, addExpense, startOngoingMatch, clearOngoingMatch, switchRole, setThemeMode, getPlayerDues, getPlayerStats]);
+  }), [state, globalPlayerStats, addPlayer, updatePlayer, addMatch, updateMatch, addPayment, updatePayment, addExpense, updateExpense, startOngoingMatch, clearOngoingMatch, switchRole, setThemeMode, getPlayerDues, getPlayerStats]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

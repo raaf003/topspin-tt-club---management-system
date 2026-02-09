@@ -10,9 +10,10 @@ export enum PaymentMode {
 
 export enum ExpenseCategory {
   RENT = 'RENT',
-  BALLS = 'BALLS',
+  SALARY = 'SALARY',
+  ELECTRICITY = 'ELECTRICITY',
+  BATS = 'BATS',
   MAINTENANCE = 'MAINTENANCE',
-  LIGHTS = 'LIGHTS',
   OTHER = 'OTHER'
 }
 
@@ -95,6 +96,11 @@ export interface Expense {
   amount: number;
   mode: PaymentMode;
   notes?: string;
+  recordedBy: {
+    role: UserRole;
+    name: string;
+  };
+  recordedAt: number;
 }
 
 export type ThemeMode = 'light' | 'dark' | 'auto';
