@@ -340,29 +340,38 @@ export const getPlayerTier = (rating: number, stats?: any) => {
   const lastMatchDate = stats?.lastMatchDate;
   const daysInactive = lastMatchDate ? (Date.now() - new Date(lastMatchDate).getTime()) / (1000 * 3600 * 24) : 99;
 
+  // 6-Tier System with harder Elite/Master thresholds
   // Promotion Rule: Rating >= Threshold AND 10 matches in 30 days
-  const isEliteEligible = rating >= 1600 && ratedMatchesLast30 >= 10;
-  const isAdvancedEligible = rating >= 1400 && ratedMatchesLast30 >= 10;
-  const isIntermediateEligible = rating >= 1200 && ratedMatchesLast30 >= 10;
+  const isMasterEligible = rating >= 1850 && ratedMatchesLast30 >= 10;
+  const isEliteEligible = rating >= 1700 && ratedMatchesLast30 >= 10;
+  const isAdvancedEligible = rating >= 1500 && ratedMatchesLast30 >= 10;
+  const isIntermediateEligible = rating >= 1300 && ratedMatchesLast30 >= 10;
+  const isBeginnerEligible = rating >= 1150;
 
   // Demotion Rule: Rating < Threshold AND inactivity >= 14 days
   // This means you keep your tier as long as you are active OR have the rating.
   
-  if (isEliteEligible || (rating >= 1600 && daysInactive < 14)) 
-    return { name: 'Elite', bg: 'bg-purple-500', color: 'text-white', border: 'border-purple-600' };
+  if (isMasterEligible || (rating >= 1850 && daysInactive < 14)) 
+    return { name: 'Master', bg: 'bg-gradient-to-r from-amber-500 to-yellow-400', color: 'text-white', border: 'border-amber-600' };
+  
+  if (isEliteEligible || (rating >= 1700 && daysInactive < 14)) 
+    return { name: 'Elite', bg: 'bg-purple-600', color: 'text-white', border: 'border-purple-700', pendingPromotion: rating >= 1850 && ratedMatchesLast30 < 10 };
     
-  if (isAdvancedEligible || (rating >= 1400 && daysInactive < 14)) 
-    return { name: 'Advanced', bg: 'bg-indigo-500', color: 'text-white', border: 'border-indigo-600', pendingPromotion: rating >= 1600 && ratedMatchesLast30 < 10 };
+  if (isAdvancedEligible || (rating >= 1500 && daysInactive < 14)) 
+    return { name: 'Advanced', bg: 'bg-indigo-500', color: 'text-white', border: 'border-indigo-600', pendingPromotion: rating >= 1700 && ratedMatchesLast30 < 10 };
     
-  if (isIntermediateEligible || (rating >= 1200 && daysInactive < 14)) 
-    return { name: 'Intermediate', bg: 'bg-emerald-500', color: 'text-white', border: 'border-emerald-600', pendingPromotion: rating >= 1400 && ratedMatchesLast30 < 10 };
+  if (isIntermediateEligible || (rating >= 1300 && daysInactive < 14)) 
+    return { name: 'Intermediate', bg: 'bg-emerald-500', color: 'text-white', border: 'border-emerald-600', pendingPromotion: rating >= 1500 && ratedMatchesLast30 < 10 };
+
+  if (isBeginnerEligible)
+    return { name: 'Beginner', bg: 'bg-slate-400', color: 'text-white', border: 'border-slate-500', pendingPromotion: rating >= 1300 && ratedMatchesLast30 < 10 };
 
   return { 
-    name: 'Beginner', 
-    bg: 'bg-slate-400', 
-    color: 'text-white', 
-    border: 'border-slate-500', 
-    pendingPromotion: rating >= 1200 && ratedMatchesLast30 < 10 
+    name: 'Novice', 
+    bg: 'bg-gray-300', 
+    color: 'text-gray-700', 
+    border: 'border-gray-400', 
+    pendingPromotion: rating >= 1150 && ratedMatchesLast30 < 10 
   };
 };
 

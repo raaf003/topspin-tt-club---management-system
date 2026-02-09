@@ -147,20 +147,28 @@ export const Leaderboard: React.FC = () => {
                 </h4>
                 <div className="space-y-2 text-[11px]">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-purple-500 text-white">Elite</span>
-                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1600+ with 10+ matches/30d</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-gradient-to-r from-amber-500 to-yellow-400 text-white">Master</span>
+                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1850+ with 10+ matches/30d</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-purple-600 text-white">Elite</span>
+                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1700+ with 10+ matches/30d</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-indigo-500 text-white">Advanced</span>
-                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1400+ with 10+ matches/30d</span>
+                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1500+ with 10+ matches/30d</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500 text-white">Intermediate</span>
-                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1200+ with 10+ matches/30d</span>
+                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1300+ with 10+ matches/30d</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-slate-400 text-white">Beginner</span>
-                    <span className="text-gray-600 dark:text-slate-400 font-bold">Starting tier for all players</span>
+                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1150+ (starting tier)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-gray-300 text-gray-700">Novice</span>
+                    <span className="text-gray-600 dark:text-slate-400 font-bold">Below 1150 rating</span>
                   </div>
                   <p className="text-[10px] text-gray-500 dark:text-slate-500 mt-2 italic">
                     You keep your tier during 14 days of inactivity even if you don't meet match requirements.
