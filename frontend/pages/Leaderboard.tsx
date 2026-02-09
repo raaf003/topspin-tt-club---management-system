@@ -74,47 +74,116 @@ export const Leaderboard: React.FC = () => {
           icon={<Target className="w-4 h-4 text-rose-500" />}
           label="Giant Killer"
           name={highlights.giantKiller?.name || '-'}
-          sub="Upsets"
+          sub={highlights.giantKiller ? `${highlights.giantKiller.upsetCount} Upsets` : 'No upsets'}
         />
       </div>
 
       {/* Info Modal */}
       {showInfo && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="bg-indigo-600 p-8 text-white relative overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg max-h-[90vh] rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col">
+            <div className="bg-indigo-600 p-6 text-white relative overflow-hidden shrink-0">
               <div className="absolute top-0 right-0 -mr-10 -mt-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
               <div className="relative z-10">
-                <h3 className="text-xl font-black uppercase tracking-wider mb-2">Glicko-2 Ranking</h3>
+                <h3 className="text-xl font-black uppercase tracking-wider mb-2">How Ranking Works</h3>
                 <p className="text-indigo-100 text-xs leading-relaxed font-medium">
-                  Our system uses the Glicko-2 algorithm to accurately estimate your skill level while preventing manipulation.
+                  Our system uses the Glicko-2 algorithm combined with anti-manipulation rules to fairly rank all players.
                 </p>
               </div>
               <button 
                 onClick={() => setShowInfo(false)}
                 title="Close Info"
                 aria-label="Close Info"
-                className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             
-            <div className="p-8 space-y-6">
+            <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+              {/* Score Breakdown */}
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 p-4 rounded-2xl border border-amber-200 dark:border-amber-800">
+                <h4 className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-3 flex items-center gap-2">
+                  <Trophy className="w-4 h-4" /> Leaderboard Score Formula
+                </h4>
+                <div className="space-y-2 text-[11px] font-bold">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-slate-400">Conservative Rating (Rating - RD)</span>
+                    <span className="text-indigo-600 dark:text-indigo-400 font-black">60%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-slate-400">Opponent Strength (Quality of Wins)</span>
+                    <span className="text-rose-600 dark:text-rose-400 font-black">30%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-slate-400">Activity Bonus (Matches in 30 days)</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-black">10%</span>
+                  </div>
+                </div>
+              </div>
+
               <MechanicItem 
                 icon={<ShieldCheck className="w-5 h-5 text-indigo-500" />}
-                title="Confidence (RD)"
-                description="The system tracks 'Rating Deviation'. Playing more matches increases confidence, making your rating more stable."
+                title="Rating Deviation (RD)"
+                description="Measures how confident the system is in your rating. New/inactive players have high RD (350). Active players get low RD (~50). Your 'Conservative Rating' = Rating - RD, which prevents new players from ranking too high."
               />
+
+              <MechanicItem 
+                icon={<Target className="w-5 h-5 text-rose-500" />}
+                title="Opponent Strength"
+                description="Beating higher-rated opponents earns you more rank. We calculate the average rating of opponents you've beaten, then multiply it by your conservative rating. This rewards quality wins over farming weak opponents."
+              />
+
+              <MechanicItem 
+                icon={<Activity className="w-5 h-5 text-emerald-500" />}
+                title="Activity Bonus"
+                description="Playing more rated matches gives you a bonus (max +100 points from 20+ matches in 30 days). This rewards active players while preventing farming through diminishing returns."
+              />
+              
+              {/* Tier System */}
+              <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                <h4 className="text-xs font-black uppercase tracking-wider text-gray-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-purple-500" /> Tier System
+                </h4>
+                <div className="space-y-2 text-[11px]">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-purple-500 text-white">Elite</span>
+                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1600+ with 10+ matches/30d</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-indigo-500 text-white">Advanced</span>
+                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1400+ with 10+ matches/30d</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500 text-white">Intermediate</span>
+                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1200+ with 10+ matches/30d</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-slate-400 text-white">Beginner</span>
+                    <span className="text-gray-600 dark:text-slate-400 font-bold">Starting tier for all players</span>
+                  </div>
+                  <p className="text-[10px] text-gray-500 dark:text-slate-500 mt-2 italic">
+                    You keep your tier during 14 days of inactivity even if you don't meet match requirements.
+                  </p>
+                </div>
+              </div>
+
               <MechanicItem 
                 icon={<Zap className="w-5 h-5 text-amber-500" />}
-                title="Anti-Manipulation"
-                description="Max 5 rated matches per day. Repeated matches against the same opponent have diminishing rating impact to prevent farming."
+                title="Anti-Manipulation Rules"
+                description="• Max 5 rated matches per day per player. • After 4+ matches vs same opponent, weight reduces to 50%. • After 6+ matches vs same opponent, those matches don't count. • 3 consecutive wins against different opponents = 'On Fire' status."
               />
+
               <MechanicItem 
-                icon={<Award className="w-5 h-5 text-emerald-500" />}
+                icon={<Award className="w-5 h-5 text-blue-500" />}
                 title="Match Weighting"
-                description="20-point matches have full weight (1.0). 10-point matches are weighted 0.6. Casual matches don't affect skill rating."
+                description="• 20-point matches: Full weight (1.0). • 10-point matches: Reduced weight (0.6). • Casual/unrated matches: No rating impact (0.0). Longer matches have more weight because they're more reliable indicators of skill."
+              />
+
+              <MechanicItem 
+                icon={<TrendingUp className="w-5 h-5 text-purple-500" />}
+                title="Volatility"
+                description="Tracks how consistently you perform. If your results are unpredictable (winning and losing to the same people), volatility increases, allowing bigger rating swings. Consistent players have stable ratings."
               />
               
               <button 
@@ -148,7 +217,7 @@ export const Leaderboard: React.FC = () => {
 
       <div className="space-y-3">
         {filteredPlayers.map((p: any, idx) => {
-          const tier = getPlayerTier(p.score, p.stats);
+          const tier = getPlayerTier(p.stats.rating, p.stats);
           return (
             <div 
               key={p.id}

@@ -378,6 +378,122 @@ export const calculatePlayerPerformanceScore = (player: Player, matches: Match[]
 };
 
 /**
+ * Calculate rating history for a specific player.
+ * Returns an array of { date, rating, rd, matchCount } for each day they played.
+ */
+export const calculatePlayerRatingHistory = (
+  playerId: string,
+  players: Player[],
+  allMatches: Match[]
+): { date: string; rating: number; rd: number; matchCount: number; result: 'W' | 'L' | 'mixed' }[] => {
+  const history: { date: string; rating: number; rd: number; matchCount: number; result: 'W' | 'L' | 'mixed' }[] = [];
+  
+  // Initialize Glicko state for everyone
+  const glickoState: Record<string, GlickoPlayer> = {};
+  players.forEach(p => {
+    glickoState[p.id] = {
+      rating: DEFAULT_RATING,
+      rd: DEFAULT_RD,
+      vol: DEFAULT_VOLATILITY
+    };
+  });
+
+  // Group matches by date
+  const matchesByDate: Record<string, Match[]> = {};
+  allMatches.forEach(m => {
+    if (!matchesByDate[m.date]) matchesByDate[m.date] = [];
+    matchesByDate[m.date].push(m);
+  });
+
+  const sortedDates = Object.keys(matchesByDate).sort();
+  if (sortedDates.length === 0) return history;
+
+  // Process each day
+  const firstMatchDate = new Date(sortedDates[0]);
+  const today = new Date();
+  let current = new Date(firstMatchDate);
+
+  while (current <= today) {
+    const date = current.toISOString().split('T')[0];
+    const dailyMatches = matchesByDate[date] || [];
+    const ratedMatchesToProcess: { player1: string; player2: string; winner: string; weight: number }[] = [];
+
+    // Tracks for anti-manipulation
+    const dailyPlayerMatchCount: Record<string, number> = {};
+    const dailyPairCount: Record<string, number> = {};
+
+    dailyMatches.forEach(m => {
+      if (!m.winnerId) return;
+
+      const p1 = m.playerAId;
+      const p2 = m.playerBId;
+      const pairKey = [p1, p2].sort().join(':');
+
+      let baseWeight = m.points === 10 ? 0.6 : 1.0;
+      if (m.isRated === false) baseWeight = 0;
+
+      dailyPlayerMatchCount[p1] = (dailyPlayerMatchCount[p1] || 0) + 1;
+      dailyPlayerMatchCount[p2] = (dailyPlayerMatchCount[p2] || 0) + 1;
+      
+      let weight = baseWeight;
+      if (dailyPlayerMatchCount[p1] > 5 || dailyPlayerMatchCount[p2] > 5) {
+        weight = 0;
+      }
+
+      if (weight > 0) {
+        dailyPairCount[pairKey] = (dailyPairCount[pairKey] || 0) + 1;
+        const count = dailyPairCount[pairKey];
+        if (count >= 6) weight = 0;
+        else if (count >= 4) weight *= 0.5;
+      }
+
+      if (weight > 0) {
+        ratedMatchesToProcess.push({
+          player1: p1,
+          player2: p2,
+          winner: m.winnerId,
+          weight
+        });
+      }
+    });
+
+    const periodUpdates = processRatingPeriod(glickoState, ratedMatchesToProcess);
+    
+    // Apply updates
+    Object.keys(periodUpdates).forEach(id => {
+      const update = periodUpdates[id];
+      const { rating, rd } = glicko2.fromInternal(update.mu, update.phi);
+      glickoState[id] = { rating, rd, vol: update.vol };
+    });
+
+    // Check if this player played today
+    const playerDailyMatches = dailyMatches.filter(m => 
+      (m.playerAId === playerId || m.playerBId === playerId) && m.winnerId
+    );
+    
+    if (playerDailyMatches.length > 0) {
+      const wins = playerDailyMatches.filter(m => m.winnerId === playerId).length;
+      const losses = playerDailyMatches.length - wins;
+      let result: 'W' | 'L' | 'mixed' = 'mixed';
+      if (wins > 0 && losses === 0) result = 'W';
+      else if (losses > 0 && wins === 0) result = 'L';
+      
+      history.push({
+        date,
+        rating: glickoState[playerId].rating,
+        rd: glickoState[playerId].rd,
+        matchCount: playerDailyMatches.length,
+        result
+      });
+    }
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  return history;
+};
+
+/**
  * Calculate average rating of opponents a player has beaten
  * This helps identify if wins are against strong or weak opponents
  */
@@ -478,6 +594,9 @@ export const getWeeklyHighlights = (
   matches: Match[],
   globalStats: Record<string, any>
 ) => {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().split('T')[0];
+  const recentMatches = matches.filter(m => m.date >= sevenDaysAgo && m.winnerId);
+
   // 1. Most Improved (Uses rating7DaysAgo pre-calculated in calculateAllPlayerStats)
   const improvements = players.map(p => {
     const current = globalStats[p.id]?.rating || DEFAULT_RATING;
@@ -486,8 +605,6 @@ export const getWeeklyHighlights = (
   }).sort((a, b) => b.delta - a.delta);
 
   // 2. Giant Killer (Wins vs higher rated opponents in the last 7 days)
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().split('T')[0];
-  const recentMatches = matches.filter(m => m.date >= sevenDaysAgo && m.winnerId);
   const giantKills: Record<string, number> = {};
   recentMatches.forEach(m => {
     const winnerId = m.winnerId!;
@@ -504,11 +621,20 @@ export const getWeeklyHighlights = (
     .filter(p => p.kills > 0)
     .sort((a, b) => b.kills - a.kills);
 
+  // 3. Best Win Rate This Week (minimum 3 games)
+  const weeklyWinRates = players.map(p => {
+    const playerMatches = recentMatches.filter(m => m.playerAId === p.id || m.playerBId === p.id);
+    const wins = playerMatches.filter(m => m.winnerId === p.id).length;
+    const total = playerMatches.length;
+    return { ...p, wins, total, winRate: total >= 3 ? (wins / total) * 100 : 0 };
+  }).filter(p => p.total >= 3).sort((a, b) => b.winRate - a.winRate || b.wins - a.wins);
+
   return {
     mostImproved: improvements[0],
     longestStreak: [...players].sort((a, b) => (globalStats[b.id]?.playStreak || 0) - (globalStats[a.id]?.playStreak || 0))[0],
     mostActive: [...players].sort((a, b) => (globalStats[b.id]?.consistencyScore || 0) - (globalStats[a.id]?.consistencyScore || 0))[0],
-    giantKiller: topGiantKillers[0]
+    giantKiller: topGiantKillers[0] ? { ...topGiantKillers[0], upsetCount: topGiantKillers[0].kills } : undefined,
+    weeklyBestWinRate: weeklyWinRates[0]
   };
 };
 
