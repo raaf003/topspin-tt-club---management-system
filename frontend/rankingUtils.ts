@@ -378,7 +378,32 @@ export const calculatePlayerPerformanceScore = (player: Player, matches: Match[]
 };
 
 /**
- * Returns the top performing players sorted by the performance score.
+ * Calculate average rating of opponents a player has beaten
+ * This helps identify if wins are against strong or weak opponents
+ */
+const getAverageOpponentRating = (
+  playerId: string,
+  matches: Match[],
+  playerStatsLookup: Record<string, PlayerStats>
+) => {
+  // Get all won matches for this player
+  const wonMatches = matches.filter(m => m.winnerId === playerId && m.isRated !== false);
+  
+  if (wonMatches.length === 0) return DEFAULT_RATING;
+  
+  let totalOpponentRating = 0;
+  wonMatches.forEach(m => {
+    const opponentId = m.playerAId === playerId ? m.playerBId : m.playerAId;
+    const opponentRating = playerStatsLookup[opponentId]?.rating || DEFAULT_RATING;
+    totalOpponentRating += opponentRating;
+  });
+  
+  return totalOpponentRating / wonMatches.length;
+};
+
+/**
+ * Returns the top performing players sorted by multi-factor performance score.
+ * Factors: Conservative Rating (60%), Opponent Strength (30%), Activity (10%)
  */
 export const getTopPerformers = (
   players: Player[],
@@ -387,23 +412,46 @@ export const getTopPerformers = (
   limit: number = 3
 ) => {
   console.log(`[getTopPerformers] Called with ${players.length} players, limit=${limit}`);
+  
+  // Build player stats lookup for all players (needed for opponent strength calculation)
+  const allPlayerStats: Record<string, PlayerStats> = {};
+  players.forEach(p => {
+    allPlayerStats[p.id] = getPlayerStats(p.id);
+  });
+  
   const result = players
     .map(p => {
-      const stats = getPlayerStats(p.id);
-      // Conservative Rating (Rating - RD) for sorting
-      // This ensures players with high uncertainty (new players) are ranked below established players
+      const stats = allPlayerStats[p.id];
       const rating = typeof stats.rating === 'number' ? stats.rating : DEFAULT_RATING;
       const rd = typeof stats.rd === 'number'? stats.rd : DEFAULT_RD;
       const conservativeRating = rating - rd;
       
-      console.log(`[getTopPerformers] ${p.name}: rating=${rating.toFixed(0)}, rd=${rd.toFixed(0)}, conservative=${conservativeRating.toFixed(0)}, ratedMatches30=${stats.ratedMatchesLast30}`);
+      // Calculate average rating of opponents this player has beaten
+      // This prevents "lucky streak vs beginners" from inflating ranking
+      const avgOpponentRating = getAverageOpponentRating(p.id, matches, allPlayerStats);
+      const opponentStrengthFactor = Math.min(avgOpponentRating / DEFAULT_RATING, 1.5); // Cap at 1.5x
+      
+      // Activity bonus: reward players who play frequently
+      // Max 100 bonus points from playing 20+ matches in 30 days
+      const activityBonus = Math.min((stats.ratedMatchesLast30 || 0) * 5, 100);
+      
+      // Multi-factor score:
+      // - Conservative Rating: 60% (core skill metric)
+      // - Opponent Strength Adjustment: 30% (quality of wins)
+      // - Activity Bonus: 10% (engagement reward)
+      const score = (conservativeRating * 0.60) + 
+                   (conservativeRating * opponentStrengthFactor * 0.30) +
+                   (activityBonus * 0.10);
+      
+      console.log(`[getTopPerformers] ${p.name}: conservative=${conservativeRating.toFixed(0)}, oppStrength=${avgOpponentRating.toFixed(0)}, activity=${stats.ratedMatchesLast30}, score=${score.toFixed(0)}`);
       
       return { 
         ...p, 
         stats, 
-        score: conservativeRating, 
+        score,
         displayRating: rating,
         displayRd: rd,
+        opponentStrength: avgOpponentRating,
         attendanceStreak: stats.playStreak ?? 0,
         isHot: stats.onFire ?? false
       };
@@ -414,9 +462,10 @@ export const getTopPerformers = (
   console.log(`[getTopPerformers] Final SORTED ranking:`, result.map((p, i) => ({ 
     rank: i + 1, 
     name: p.name, 
-    conservative: p.score?.toFixed(0),
-    rating: p.displayRating?.toFixed(0),
-    rd: p.displayRd?.toFixed(0)
+    score: p.score?.toFixed(0),
+    conservative: p.displayRating ? `${(p.displayRating - p.displayRd)?.toFixed(0)}` : '0',
+    oppStrength: p.opponentStrength?.toFixed(0),
+    activity: p.stats?.ratedMatchesLast30
   })));
   return result;
 };

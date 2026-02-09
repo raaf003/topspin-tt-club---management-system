@@ -182,12 +182,16 @@ export const Leaderboard: React.FC = () => {
                 <div className="text-lg md:text-xl font-black text-gray-900 dark:text-white">{p.score.toFixed(0)}</div>
                 <div className="flex items-center justify-end gap-1">
                   <div className="text-[8px] md:text-[9px] text-gray-400 dark:text-slate-500 font-black uppercase tracking-widest">
-                    {p.displayRating ? `Skill (${p.displayRating.toFixed(0)})` : 'Rating'}
+                    Score
                   </div>
                   <div className="relative group/tooltip">
                     <Info className="w-2.5 h-2.5 text-gray-300 cursor-help" />
-                    <div className="absolute bottom-full right-0 mb-2 w-40 p-2 bg-gray-900 text-white text-[9px] rounded-lg opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl border border-white/10 font-bold leading-tight">
-                      Bayesian Skill Score + Attendance Streak Bonus.
+                    <div className="absolute bottom-full right-0 mb-2 w-56 p-3 bg-gray-900 text-white text-[9px] rounded-lg opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl border border-white/10 font-bold leading-tight">
+                      <div className="space-y-1">
+                        <div>60% Conservative Skill (Rating - RD)</div>
+                        <div>30% Opponent Strength (who you beat)</div>
+                        <div>10% Activity Bonus (matches/30 days)</div>
+                      </div>
                     </div>
                   </div>
                 </div>
