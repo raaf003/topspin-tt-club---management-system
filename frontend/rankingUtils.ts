@@ -106,8 +106,7 @@ export const processRatingPeriod = (
     if (results.length === 0) {
       // Step 6: Player did not compete
       const newPhi = Math.sqrt(phi * phi + sigma * sigma);
-      const { rating, rd } = glicko2.fromInternal(mu, newPhi);
-      updates[id] = { mu: (rating - DEFAULT_RATING) / GLICKO_SCALE, phi: rd / GLICKO_SCALE, vol: sigma };
+      updates[id] = { mu, phi: newPhi, vol: sigma };
       return;
     }
 
@@ -155,16 +154,16 @@ export const processRatingPeriod = (
 export const calculateAllPlayerStats = (
   players: Player[],
   allMatches: Match[]
-): Record<string, { rating: number; rd: number; vol: number; playStreak: number; consistencyScore: number; onFire: boolean }> => {
+): Record<string, { rating: number; rd: number; vol: number; playStreak: number; consistencyScore: number; onFire: boolean; ratedMatchesLast30: number; rating7DaysAgo: number; lastMatchDate: string | null }> => {
   const result: Record<string, any> = {};
   
-  // Initialize Glicko state for everyone
+  // Initialize Glicko state for everyone (Always start from defaults to replay history correctly)
   const glickoState: Record<string, GlickoPlayer> = {};
   players.forEach(p => {
     glickoState[p.id] = {
-      rating: p.rating ?? DEFAULT_RATING,
-      rd: p.ratingDeviation ?? DEFAULT_RD,
-      vol: p.volatility ?? DEFAULT_VOLATILITY
+      rating: DEFAULT_RATING,
+      rd: DEFAULT_RD,
+      vol: DEFAULT_VOLATILITY
     };
   });
 
@@ -176,10 +175,34 @@ export const calculateAllPlayerStats = (
   });
 
   const sortedDates = Object.keys(matchesByDate).sort();
+  const ratingHistory: Record<string, number> = {};
+  const rating7DaysAgoLimit = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().split('T')[0];
 
-  // Process rating periods day by day
-  sortedDates.forEach(date => {
-    const dailyMatches = matchesByDate[date];
+  if (sortedDates.length === 0) {
+    players.forEach(p => {
+      result[p.id] = {
+        rating: DEFAULT_RATING,
+        rd: DEFAULT_RD,
+        vol: DEFAULT_VOLATILITY,
+        playStreak: 0,
+        consistencyScore: 0,
+        ratedMatchesLast30: 0,
+        onFire: false,
+        rating7DaysAgo: DEFAULT_RATING,
+        lastMatchDate: null
+      };
+    });
+    return result;
+  }
+
+  // Process EVERY day from first match to today to ensure RD growth for inactive periods
+  const firstMatchDate = new Date(sortedDates[0]);
+  const today = new Date();
+  let current = new Date(firstMatchDate);
+
+  while (current <= today) {
+    const date = current.toISOString().split('T')[0];
+    const dailyMatches = matchesByDate[date] || [];
     const ratedMatchesToProcess: { player1: string; player2: string; winner: string; weight: number }[] = [];
 
     // Tracks for anti-manipulation
@@ -232,7 +255,16 @@ export const calculateAllPlayerStats = (
       const { rating, rd } = glicko2.fromInternal(update.mu, update.phi);
       glickoState[id] = { rating, rd, vol: update.vol };
     });
-  });
+
+    // Capture history for "Most Improved"
+    if (date <= rating7DaysAgoLimit) {
+      Object.keys(glickoState).forEach(id => {
+        ratingHistory[id] = glickoState[id].rating;
+      });
+    }
+
+    current.setDate(current.getDate() + 1);
+  }
 
   // Calculate final metrics for each player
   players.forEach(player => {
@@ -282,34 +314,49 @@ export const calculateAllPlayerStats = (
       playStreak,
       consistencyScore,
       ratedMatchesLast30,
-      onFire
+      onFire,
+      rating7DaysAgo: ratingHistory[id] ?? DEFAULT_RATING,
+      lastMatchDate: uniqueDays[0] || null
     };
+    
+    if (ratedMatchesLast30 > 0 || onFire) {
+      console.log(`[calcAllPlayerStats] ${player.name} (${id}): rating=${glickoState[id].rating.toFixed(0)}, rd=${glickoState[id].rd.toFixed(0)}, matches30=${ratedMatchesLast30}, playStreak=${playStreak}, onFire=${onFire}`);
+    }
   });
 
+  console.log('[calcAllPlayerStats] Calculation complete. Total players:', Object.keys(result).length);
   return result;
 };
 
 export const getPlayerTier = (rating: number, stats?: any) => {
   const ratedMatchesLast30 = stats?.ratedMatchesLast30 || 0;
+  const lastMatchDate = stats?.lastMatchDate;
+  const daysInactive = lastMatchDate ? (Date.now() - new Date(lastMatchDate).getTime()) / (1000 * 3600 * 24) : 99;
 
-  // Promotion Rule: Rating crosses threshold AND >= 10 rated matches in last 30 days
-  // Demotion Rule: Rating drops below threshold AND inactivity >= 14 days
-  
-  // We'll calculate eligibility for each tier
+  // Promotion Rule: Rating >= Threshold AND 10 matches in 30 days
   const isEliteEligible = rating >= 1600 && ratedMatchesLast30 >= 10;
   const isAdvancedEligible = rating >= 1400 && ratedMatchesLast30 >= 10;
   const isIntermediateEligible = rating >= 1200 && ratedMatchesLast30 >= 10;
 
-  if (isEliteEligible) return { name: 'Elite', bg: 'bg-purple-500', color: 'text-white', border: 'border-purple-600' };
-  if (isAdvancedEligible) return { name: 'Advanced', bg: 'bg-indigo-500', color: 'text-white', border: 'border-indigo-600' };
-  if (isIntermediateEligible) return { name: 'Intermediate', bg: 'bg-emerald-500', color: 'text-white', border: 'border-emerald-600' };
+  // Demotion Rule: Rating < Threshold AND inactivity >= 14 days
+  // This means you keep your tier as long as you are active OR have the rating.
   
-  // Handle "Pending" state for display
-  if (rating >= 1600) return { name: 'Advanced', bg: 'bg-indigo-500', color: 'text-white', border: 'border-indigo-600', pendingPromotion: true };
-  if (rating >= 1400) return { name: 'Intermediate', bg: 'bg-emerald-500', color: 'text-white', border: 'border-emerald-600', pendingPromotion: true };
-  if (rating >= 1200) return { name: 'Beginner', bg: 'bg-slate-400', color: 'text-white', border: 'border-slate-500', pendingPromotion: true };
-  
-  return { name: 'Beginner', bg: 'bg-slate-400', color: 'text-white', border: 'border-slate-500' };
+  if (isEliteEligible || (rating >= 1600 && daysInactive < 14)) 
+    return { name: 'Elite', bg: 'bg-purple-500', color: 'text-white', border: 'border-purple-600' };
+    
+  if (isAdvancedEligible || (rating >= 1400 && daysInactive < 14)) 
+    return { name: 'Advanced', bg: 'bg-indigo-500', color: 'text-white', border: 'border-indigo-600', pendingPromotion: rating >= 1600 && ratedMatchesLast30 < 10 };
+    
+  if (isIntermediateEligible || (rating >= 1200 && daysInactive < 14)) 
+    return { name: 'Intermediate', bg: 'bg-emerald-500', color: 'text-white', border: 'border-emerald-600', pendingPromotion: rating >= 1400 && ratedMatchesLast30 < 10 };
+
+  return { 
+    name: 'Beginner', 
+    bg: 'bg-slate-400', 
+    color: 'text-white', 
+    border: 'border-slate-500', 
+    pendingPromotion: rating >= 1200 && ratedMatchesLast30 < 10 
+  };
 };
 
 
@@ -332,19 +379,30 @@ export const getTopPerformers = (
   getPlayerStats: (id: string) => PlayerStats,
   limit: number = 3
 ) => {
-  return players
+  console.log(`[getTopPerformers] Called with ${players.length} players, limit=${limit}`);
+  const result = players
     .map(p => {
       const stats = getPlayerStats(p.id);
+      // Conservative Rating (Rating - RD) for sorting
+      // This ensures players with high uncertainty (new players) are ranked below established players
+      const conservativeRating = stats.rating - stats.rd;
+      const debugMsg = `[Top Performers] ${p.name}: stats.rating=${stats.rating}, stats.rd=${stats.rd}, conservative=${conservativeRating}`;
+      console.log(debugMsg);
+      console.log(`  -> stats object keys: ${Object.keys(stats).join(', ')}`);
       return { 
         ...p, 
         stats, 
-        score: stats.rating, 
+        score: conservativeRating, 
+        displayRating: stats.rating,
         attendanceStreak: stats.playStreak,
         isHot: stats.onFire
       };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
+  
+  console.log(`[getTopPerformers] Final ranking (top ${result.length}):`, result.map((p, i) => ({ rank: i + 1, name: p.name, score: p.score })));
+  return result;
 };
 
 /**
@@ -355,24 +413,22 @@ export const getWeeklyHighlights = (
   matches: Match[],
   globalStats: Record<string, any>
 ) => {
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().split('T')[0];
-  
-  // 1. Most Improved (Compare current rating with rating 7 days ago)
-  const oldStats = calculateAllPlayerStats(players, matches.filter(m => m.date < sevenDaysAgo));
+  // 1. Most Improved (Uses rating7DaysAgo pre-calculated in calculateAllPlayerStats)
   const improvements = players.map(p => {
-    const current = globalStats[p.id]?.rating || 1500;
-    const old = oldStats[p.id]?.rating || 1500;
+    const current = globalStats[p.id]?.rating || DEFAULT_RATING;
+    const old = globalStats[p.id]?.rating7DaysAgo || DEFAULT_RATING;
     return { ...p, delta: current - old };
   }).sort((a, b) => b.delta - a.delta);
 
   // 2. Giant Killer (Wins vs higher rated opponents in the last 7 days)
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().split('T')[0];
   const recentMatches = matches.filter(m => m.date >= sevenDaysAgo && m.winnerId);
   const giantKills: Record<string, number> = {};
   recentMatches.forEach(m => {
     const winnerId = m.winnerId!;
     const loserId = m.playerAId === winnerId ? m.playerBId : m.playerAId;
-    const winnerRating = globalStats[winnerId]?.rating || 1500;
-    const loserRating = globalStats[loserId]?.rating || 1500;
+    const winnerRating = globalStats[winnerId]?.rating || DEFAULT_RATING;
+    const loserRating = globalStats[loserId]?.rating || DEFAULT_RATING;
     
     if (winnerRating < loserRating - 50) { // Significant underdog win
       giantKills[winnerId] = (giantKills[winnerId] || 0) + 1;

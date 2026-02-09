@@ -4,7 +4,7 @@ import { generateUUID } from '../utils';
 import { calculateAllPlayerStats } from '../rankingUtils';
 
 interface AppContextType extends AppState {
-  globalPlayerStats: Record<string, { rating: number; rd: number; vol: number; playStreak: number; consistencyScore: number; onFire: boolean }>;
+  globalPlayerStats: Record<string, { rating: number; rd: number; vol: number; playStreak: number; consistencyScore: number; onFire: boolean; ratedMatchesLast30: number; rating7DaysAgo: number; lastMatchDate: string | null }>;
   addPlayer: (player: Omit<Player, 'id' | 'createdAt'>) => void;
   updatePlayer: (id: string, player: Partial<Player>) => void;
   addMatch: (match: Omit<Match, 'id'>) => void;
@@ -322,7 +322,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .sort((a, b) => b.played - a.played);
 
     const favoriteOpponent = sortedRivalries.length > 0 ? sortedRivalries[0] : undefined;
-    const gStats = globalPlayerStats[playerId] || { rating: 1500, rd: 350, vol: 0.06, playStreak: 0, consistencyScore: 0, ratedMatchesLast30: 0, onFire: false };
+    const gStats = globalPlayerStats[playerId] || { rating: 1500, rd: 350, vol: 0.06, playStreak: 0, consistencyScore: 0, ratedMatchesLast30: 0, onFire: false, rating7DaysAgo: 1500, lastMatchDate: null };
 
     return {
       gamesPlayed: playerMatches.length,
