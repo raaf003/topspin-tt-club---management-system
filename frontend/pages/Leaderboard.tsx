@@ -26,10 +26,14 @@ export const Leaderboard: React.FC = () => {
     return getWeeklyHighlights(players, matches, globalPlayerStats);
   }, [players, matches, globalPlayerStats]);
 
-  const filteredPlayers = ratedPlayers.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) || 
-    p.nickname?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredPlayers = useMemo(() => {
+    return ratedPlayers
+      .map((p, index) => ({ ...p, rank: index + 1 }))
+      .filter(p => 
+        p.name.toLowerCase().includes(search.toLowerCase()) || 
+        p.nickname?.toLowerCase().includes(search.toLowerCase())
+      );
+  }, [ratedPlayers, search]);
 
   return (
     <div className="space-y-6 pb-20">
@@ -165,7 +169,7 @@ export const Leaderboard: React.FC = () => {
       </div>
 
       <div className="space-y-3">
-        {filteredPlayers.map((p: any, idx) => {
+        {filteredPlayers.map((p: any) => {
           const tier = getPlayerTier(p.stats.rating, p.stats);
           return (
             <div 
@@ -174,12 +178,12 @@ export const Leaderboard: React.FC = () => {
               className="bg-white dark:bg-slate-900 p-4 rounded-2xl md:rounded-3xl border border-gray-100 dark:border-slate-800 flex items-center gap-4 hover:shadow-lg hover:border-amber-200 dark:hover:border-amber-900/40 cursor-pointer transition-all active:scale-[0.98] group"
             >
               <div className={`w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl md:rounded-2xl flex items-center justify-center font-black text-sm md:text-base shadow-sm ${
-                idx === 0 ? 'bg-amber-100 text-amber-600 border border-amber-200' : 
-                idx === 1 ? 'bg-slate-100 text-slate-600 border border-slate-200' : 
-                idx === 2 ? 'bg-orange-100 text-orange-600 border border-orange-200' : 
+                p.rank === 1 ? 'bg-amber-100 text-amber-600 border border-amber-200' : 
+                p.rank === 2 ? 'bg-slate-100 text-slate-600 border border-slate-200' : 
+                p.rank === 3 ? 'bg-orange-100 text-orange-600 border border-orange-200' : 
                 'bg-gray-50 text-gray-400 dark:bg-slate-800 border border-transparent'
               }`}>
-                {idx === 0 ? <Trophy className="w-5 h-5 md:w-6 md:h-6" /> : `#${idx + 1}`}
+                {p.rank === 1 ? <Trophy className="w-5 h-5 md:w-6 md:h-6" /> : `#${p.rank}`}
               </div>
               
               <div className="min-w-0 flex-1">
