@@ -82,124 +82,65 @@ export const Leaderboard: React.FC = () => {
       {showInfo && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 w-full max-w-lg max-h-[90vh] rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col">
-            <div className="bg-indigo-600 p-6 text-white relative overflow-hidden shrink-0">
-              <div className="absolute top-0 right-0 -mr-10 -mt-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+            <div className="bg-indigo-600 p-8 text-white relative overflow-hidden shrink-0">
+              <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/10 rounded-full blur-3xl animate-pulse" />
               <div className="relative z-10">
-                <h3 className="text-xl font-black uppercase tracking-wider mb-2">How Ranking Works</h3>
-                <p className="text-indigo-100 text-xs leading-relaxed font-medium">
-                  Our system uses the Glicko-2 algorithm combined with anti-manipulation rules to fairly rank all players.
+                <h3 className="text-2xl font-black uppercase tracking-wider mb-2">Ranking System</h3>
+                <p className="text-indigo-100 text-[11px] leading-relaxed font-semibold opacity-90 max-w-[80%]">
+                  We use the Glicko-2 algorithm — the gold standard for competitive skill measurement.
                 </p>
               </div>
               <button 
                 onClick={() => setShowInfo(false)}
                 title="Close Info"
                 aria-label="Close Info"
-                className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                className="absolute top-8 right-8 p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-all group active:scale-90 shadow-lg border border-white/10 z-[60]"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5 text-white group-hover:rotate-90 transition-transform duration-300" />
               </button>
             </div>
             
-            <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
-              {/* Score Breakdown */}
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 p-4 rounded-2xl border border-amber-200 dark:border-amber-800">
-                <h4 className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-3 flex items-center gap-2">
-                  <Trophy className="w-4 h-4" /> Leaderboard Score Formula
+            <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar flex-1">
+              {/* Formula Card */}
+              <div className="bg-indigo-50 dark:bg-indigo-900/10 p-6 rounded-[2rem] border border-indigo-100 dark:border-indigo-800/30">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-2">
+                  <Award className="w-4 h-4" /> The Performance Score
                 </h4>
-                <div className="space-y-2 text-[11px] font-bold">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-slate-400">Conservative Rating (Rating - RD)</span>
-                    <span className="text-indigo-600 dark:text-indigo-400 font-black">60%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-slate-400">Opponent Strength (Quality of Wins)</span>
-                    <span className="text-rose-600 dark:text-rose-400 font-black">30%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-slate-400">Activity Bonus (Matches in 30 days)</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-black">10%</span>
-                  </div>
+                <div className="space-y-4">
+                  <FormulaRow label="Conservative Skill" value="60%" sub="Rating minus uncertainty" />
+                  <FormulaRow label="Win Quality" value="30%" sub="Difficulty of opponents" />
+                  <FormulaRow label="Activity Bonus" value="10%" sub="Recent match frequency" />
                 </div>
               </div>
 
-              <MechanicItem 
-                icon={<ShieldCheck className="w-5 h-5 text-indigo-500" />}
-                title="Rating Deviation (RD)"
-                description="Measures how confident the system is in your rating. New/inactive players have high RD (350). Active players get low RD (~50). Your 'Conservative Rating' = Rating - RD, which prevents new players from ranking too high."
-              />
+              <div className="grid gap-4">
+                <MechanicItem 
+                  icon={<ShieldCheck className="w-5 h-5 text-indigo-500" />}
+                  title="Skill Confidence"
+                  description="New players have high uncertainty. Playing more matches reduces this 'RD' value, making your rank more stable and accurate."
+                />
 
-              <MechanicItem 
-                icon={<Target className="w-5 h-5 text-rose-500" />}
-                title="Opponent Strength"
-                description="Beating higher-rated opponents earns you more rank. We calculate the average rating of opponents you've beaten, then multiply it by your conservative rating. This rewards quality wins over farming weak opponents."
-              />
+                <MechanicItem 
+                  icon={<Target className="w-5 h-5 text-rose-500" />}
+                  title="Opponent Strength"
+                  description="Beating high-ranked players grants significantly more points. Losing to them has less impact than losing to a novice."
+                />
 
-              <MechanicItem 
-                icon={<Activity className="w-5 h-5 text-emerald-500" />}
-                title="Activity Bonus"
-                description="Playing more rated matches gives you a bonus (max +100 points from 20+ matches in 30 days). This rewards active players while preventing farming through diminishing returns."
-              />
-              
-              {/* Tier System */}
-              <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl">
-                <h4 className="text-xs font-black uppercase tracking-wider text-gray-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-purple-500" /> Tier System
-                </h4>
-                <div className="space-y-2 text-[11px]">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-gradient-to-r from-amber-500 to-yellow-400 text-white">Master</span>
-                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1900+ &amp; 60 total matches</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-purple-600 text-white">Elite</span>
-                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1750+ &amp; 40 total matches</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-indigo-500 text-white">Advanced</span>
-                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1600+ &amp; 25 total matches</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500 text-white">Intermediate</span>
-                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1500+ &amp; 15 total matches</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-slate-400 text-white">Beginner</span>
-                    <span className="text-gray-600 dark:text-slate-400 font-bold">Rating 1400+ &amp; 10 total matches</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-gray-300 text-gray-700">Novice</span>
-                    <span className="text-gray-600 dark:text-slate-400 font-bold">Starting tier for all players</span>
-                  </div>
-                  <p className="text-[10px] text-gray-500 dark:text-slate-500 mt-2 italic">
-                    Climb-only system: Once you earn a tier, you keep it forever! Rating may fluctuate but your tier never drops.
-                  </p>
-                </div>
+                <MechanicItem 
+                  icon={<Zap className="w-5 h-5 text-amber-500" />}
+                  title="Status Effects"
+                  description="Winning 3+ games vs different opponents triggers 'On Fire' status. Inactive players' ranks gradually become less certain."
+                />
               </div>
 
-              <MechanicItem 
-                icon={<Zap className="w-5 h-5 text-amber-500" />}
-                title="Anti-Manipulation Rules"
-                description="• Max 5 rated matches per day per player. • After 4+ matches vs same opponent, weight reduces to 50%. • After 6+ matches vs same opponent, those matches don't count. • 3 consecutive wins against different opponents = 'On Fire' status."
-              />
-
-              <MechanicItem 
-                icon={<Award className="w-5 h-5 text-blue-500" />}
-                title="Match Weighting"
-                description="• 20-point matches: Full weight (1.0). • 10-point matches: Reduced weight (0.6). • Casual/unrated matches: No rating impact (0.0). Longer matches have more weight because they're more reliable indicators of skill."
-              />
-
-              <MechanicItem 
-                icon={<TrendingUp className="w-5 h-5 text-purple-500" />}
-                title="Volatility"
-                description="Tracks how consistently you perform. If your results are unpredictable (winning and losing to the same people), volatility increases, allowing bigger rating swings. Consistent players have stable ratings."
-              />
-              
-              <button 
-                onClick={() => setShowInfo(false)}
-                className="w-full bg-gray-900 dark:bg-slate-800 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all"
-              >
-                Got it
-              </button>
+              <div className="pt-4">
+                <button 
+                  onClick={() => setShowInfo(false)}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 dark:shadow-none active:scale-95 transition-all"
+                >
+                  Confirm Understanding
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -244,7 +185,7 @@ export const Leaderboard: React.FC = () => {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-0.5">
                   <div className="font-black text-sm md:text-base text-gray-900 dark:text-white truncate group-hover:text-amber-600 transition-colors">{p.name}</div>
-                  {p.isHot && <Zap className="w-3 h-3 text-amber-500 fill-amber-500 animate-pulse" />}
+                  {p.isHot && <Zap className="w-3 h-3 text-amber-500 fill-amber-500 shadow-sm" />}
                   {p.attendanceStreak >= 3 && <span className="text-[10px] font-black text-orange-500">{p.attendanceStreak}🔥</span>}
                 </div>
                 <div className="flex items-center gap-2">
@@ -286,6 +227,16 @@ export const Leaderboard: React.FC = () => {
     </div>
   );
 };
+
+const FormulaRow: React.FC<{ label: string; value: string; sub: string }> = ({ label, value, sub }) => (
+  <div className="flex justify-between items-start">
+    <div className="space-y-0.5">
+      <div className="text-[11px] font-black text-indigo-950 dark:text-indigo-100">{label}</div>
+      <div className="text-[9px] text-indigo-500/70 dark:text-indigo-400/50 font-bold leading-none">{sub}</div>
+    </div>
+    <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{value}</span>
+  </div>
+);
 
 const MechanicItem: React.FC<{ icon: React.ReactNode; title: string; description: string }> = ({ icon, title, description }) => (
   <div className="flex gap-4">
