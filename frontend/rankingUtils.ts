@@ -120,6 +120,14 @@ export const processRatingPeriod = (
       // Incorporate match weight (innovation: weight the contribution to v and delta)
       v_inv += r.weight * g_phi_j * g_phi_j * E * (1 - E);
     });
+
+    // Guard against zero variance (e.g. all matches had zero weight)
+    if (v_inv <= 0) {
+      const newPhi = Math.sqrt(phi * phi + sigma * sigma);
+      updates[id] = { mu, phi: newPhi, vol: sigma };
+      return;
+    }
+
     const v = 1 / v_inv;
 
     // Step 4: Compute delta
