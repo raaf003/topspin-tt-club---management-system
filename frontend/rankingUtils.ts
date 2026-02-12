@@ -618,31 +618,46 @@ export const calculatePlayerRatingHistory = (
 };
 
 /**
- * Calculate average rating of opponents a player has beaten
- * This helps identify if wins are against strong or weak opponents
+ * Calculate average rating of opponents a player has beaten in the last 90 days.
+ * This helps identify if wins are against strong or weak opponents.
  */
 const getAverageOpponentRating = (
   playerId: string,
   matches: Match[],
   playerStatsLookup: Record<string, PlayerStats>
 ) => {
-  // Get all won matches for this player
-  const wonMatches = matches.filter(m => m.winnerId === playerId && m.isRated !== false);
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString().split('T')[0];
   
-  if (wonMatches.length === 0) return DEFAULT_RATING;
+  // Get all won matches for this player in the last 90 days
+  const wonMatches = matches.filter(m => 
+    m.winnerId === playerId && 
+    m.isRated !== false && 
+    m.date >= ninetyDaysAgo
+  );
   
-  let totalOpponentRating = 0;
-  wonMatches.forEach(m => {
+  if (wonMatches.length === 0) {
+    // If no recent wins, we check all-time wins but penalize slightly
+    const allWonMatches = matches.filter(m => m.winnerId === playerId && m.isRated !== false);
+    if (allWonMatches.length === 0) return DEFAULT_RATING * 0.9; // Penalty for zero wins
+    
+    const totalOpponentRating = allWonMatches.reduce((sum, m) => {
+      const opponentId = m.playerAId === playerId ? m.playerBId : m.playerAId;
+      return sum + (playerStatsLookup[opponentId]?.rating || DEFAULT_RATING);
+    }, 0);
+    return (totalOpponentRating / allWonMatches.length) * 0.95; // Small penalty for stale wins
+  }
+  
+  const totalOpponentRating = wonMatches.reduce((sum, m) => {
     const opponentId = m.playerAId === playerId ? m.playerBId : m.playerAId;
-    const opponentRating = playerStatsLookup[opponentId]?.rating || DEFAULT_RATING;
-    totalOpponentRating += opponentRating;
-  });
+    return sum + (playerStatsLookup[opponentId]?.rating || DEFAULT_RATING);
+  }, 0);
   
   return totalOpponentRating / wonMatches.length;
 };
 
 /**
  * Returns the top performing players sorted by multi-factor performance score.
+ * Eligibility: Minimum 5 rated matches (anti-volatility).
  * Factors: Conservative Rating (60%), Opponent Strength (30%), Activity (10%)
  */
 export const getTopPerformers = (
@@ -658,25 +673,24 @@ export const getTopPerformers = (
   });
   
   const result = players
+    .filter(p => (allPlayerStats[p.id]?.totalRatedMatches || 0) >= 5) // Minimum match requirement
     .map(p => {
       const stats = allPlayerStats[p.id];
       const rating = typeof stats.rating === 'number' ? stats.rating : DEFAULT_RATING;
       const rd = typeof stats.rd === 'number'? stats.rd : DEFAULT_RD;
-      const conservativeRating = rating - rd;
+      
+      // Conservative Rating (Rating - 2 * RD) is standard for leaderboards
+      // It represents "we are 95% sure this player is at least this good"
+      const conservativeRating = rating - (2 * rd);
       
       // Calculate average rating of opponents this player has beaten
-      // This prevents "lucky streak vs beginners" from inflating ranking
       const avgOpponentRating = getAverageOpponentRating(p.id, matches, allPlayerStats);
-      const opponentStrengthFactor = Math.min(avgOpponentRating / DEFAULT_RATING, 1.5); // Cap at 1.5x
+      const opponentStrengthFactor = Math.min(avgOpponentRating / DEFAULT_RATING, 1.5);
       
       // Activity bonus: reward players who play frequently
-      // Max 100 bonus points from playing 20+ matches in 30 days
       const activityBonus = Math.min((stats.ratedMatchesLast30 || 0) * 5, 100);
       
       // Multi-factor score:
-      // - Conservative Rating: 60% (core skill metric)
-      // - Opponent Strength Adjustment: 30% (quality of wins)
-      // - Activity Bonus: 10% (engagement reward)
       const score = (conservativeRating * 0.60) + 
                    (conservativeRating * opponentStrengthFactor * 0.30) +
                    (activityBonus * 0.10);
