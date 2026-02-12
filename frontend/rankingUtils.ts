@@ -257,8 +257,8 @@ export const calculateAllPlayerStats = (
         const p = glickoState[id];
         const { phi: phiInternal } = glicko2.toInternal(p.rating, p.rd);
         const newPhiInternal = Math.sqrt(phiInternal * phiInternal + inactiveDays * p.vol * p.vol);
-        const { rd: newRd } = glicko2.fromInternal(p.rating, newPhiInternal);
-        glickoState[id].rd = newRd;
+        const { rd: newRdCalculated } = glicko2.fromInternal(p.rating, newPhiInternal);
+        glickoState[id].rd = Math.min(newRdCalculated, DEFAULT_RD);
       });
     }
 
@@ -280,11 +280,13 @@ export const calculateAllPlayerStats = (
       if (m.isRated === false) baseWeight = 0; // Casual matches don't affect rating
 
       // Rule 3A: Daily Match Cap (Max 5 rated per player)
-      dailyPlayerMatchCount[p1] = (dailyPlayerMatchCount[p1] || 0) + 1;
-      dailyPlayerMatchCount[p2] = (dailyPlayerMatchCount[p2] || 0) + 1;
+      const p1Count = (dailyPlayerMatchCount[p1] || 0) + 1;
+      const p2Count = (dailyPlayerMatchCount[p2] || 0) + 1;
+      dailyPlayerMatchCount[p1] = p1Count;
+      dailyPlayerMatchCount[p2] = p2Count;
       
       let weight = baseWeight;
-      if (dailyPlayerMatchCount[p1] > 5 || dailyPlayerMatchCount[p2] > 5) {
+      if (p1Count > 5 || p2Count > 5) {
         weight = 0;
       }
 
@@ -303,6 +305,12 @@ export const calculateAllPlayerStats = (
           winner: m.winnerId,
           weight
         });
+
+        // Track total rated matches and peak rating updates only for matches that actually counted
+        [p1, p2].forEach(pid => {
+          if (playerTotalMatches[pid] === undefined) return;
+          playerTotalMatches[pid]++;
+        });
       }
     });
 
@@ -313,28 +321,15 @@ export const calculateAllPlayerStats = (
       const update = periodUpdates[id];
       const { rating, rd } = glicko2.fromInternal(update.mu, update.phi);
       glickoState[id] = { rating, rd, vol: update.vol };
-    });
 
-    // Track total rated matches and tier progression for each player who played today
-    dailyMatches.forEach(m => {
-      if (!m.winnerId || m.isRated === false) return;
-      
-      [m.playerAId, m.playerBId].forEach(pid => {
-        if (playerTotalMatches[pid] === undefined) return; // Player not in current roster
-        
-        playerTotalMatches[pid]++;
-        
-        // Track peak rating
-        if (glickoState[pid] && glickoState[pid].rating > playerPeakRating[pid]) {
-          playerPeakRating[pid] = glickoState[pid].rating;
-        }
-        
-        // Check for tier promotion (climb only - can never go down)
-        const newTier = calculateEarnedTier(glickoState[pid]?.rating || DEFAULT_RATING, playerTotalMatches[pid]);
-        if (newTier > playerEarnedTier[pid]) {
-          playerEarnedTier[pid] = newTier;
-        }
-      });
+      // Track peak rating and check for tier promotion
+      if (glickoState[id].rating > playerPeakRating[id]) {
+        playerPeakRating[id] = glickoState[id].rating;
+      }
+      const newTier = calculateEarnedTier(glickoState[id].rating, playerTotalMatches[id]);
+      if (newTier > playerEarnedTier[id]) {
+        playerEarnedTier[id] = newTier;
+      }
     });
 
     // Capture history for "Most Improved"
@@ -357,8 +352,8 @@ export const calculateAllPlayerStats = (
       const p = glickoState[id];
       const { phi: phiInternal } = glicko2.toInternal(p.rating, p.rd);
       const newPhiInternal = Math.sqrt(phiInternal * phiInternal + daysToToday * p.vol * p.vol);
-      const { rd: newRd } = glicko2.fromInternal(p.rating, newPhiInternal);
-      glickoState[id].rd = newRd;
+      const { rd: newRdCalculated } = glicko2.fromInternal(p.rating, newPhiInternal);
+      glickoState[id].rd = Math.min(newRdCalculated, DEFAULT_RD);
     });
   }
 
