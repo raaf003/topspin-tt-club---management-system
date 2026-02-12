@@ -114,6 +114,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <NavItem to="/players" icon={<Users className="w-6 h-6" />} label="Players" />
           {isAdmin && <NavItem to="/expenses" icon={<ShoppingBag className="w-6 h-6" />} label="Expenses" />}
           {isAdmin && <NavItem to="/reports" icon={<PieChart className="w-6 h-6" />} label="Reports" />}
+          {isSuperAdmin && <NavItem to="/admin" icon={<ShieldCheck className="w-6 h-6 text-amber-500" />} label="Admin" />}
         </div>
       </nav>
     </div>

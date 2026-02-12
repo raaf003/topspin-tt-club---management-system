@@ -10,6 +10,7 @@ import { PlayerProfile } from './pages/PlayerProfile';
 import { Leaderboard } from './pages/Leaderboard';
 import { Expenses } from './pages/Expenses';
 import { Reports } from './pages/Reports';
+import { AdminPanel } from './pages/AdminPanel';
 import { DebugExport } from './pages/DebugExport';
 import { Login } from './pages/Login';
 import { Loader2 } from 'lucide-react';
@@ -41,6 +42,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/players/:id" element={<PlayerProfile />} />
         <Route path="/expenses" element={<Expenses />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/admin" element={<AdminPanel />} />
         <Route path="/debug-export" element={<DebugExport />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

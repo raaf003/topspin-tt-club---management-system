@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { DEFAULT_RATING, DEFAULT_RD, DEFAULT_VOLATILITY } from '../utils/ranking';
+import { logAction, AuditAction, AuditResource } from '../utils/logger';
 
 export const getPlayers = async (req: Request, res: Response) => {
   try {
@@ -38,6 +39,9 @@ export const createPlayer = async (req: Request, res: Response) => {
         recordedById: (req as any).user.userId
       }
     });
+
+    await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.PLAYER, player.id, { name });
+
     res.status(201).json(player);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -72,6 +76,9 @@ export const updatePlayer = async (req: Request, res: Response) => {
         initialBalance: initialBalance !== undefined ? parseFloat(initialBalance) : undefined
       }
     });
+
+    await logAction((req as any).user.userId, AuditAction.UPDATE, AuditResource.PLAYER, player.id, { name });
+
     res.json(player);
   } catch (error: any) {
     res.status(500).json({ message: error.message });

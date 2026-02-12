@@ -5,6 +5,7 @@ import { api } from '../api';
 
 interface AppContextType extends AppState {
   globalPlayerStats: Record<string, { rating: number; rd: number; vol: number; playStreak: number; consistencyScore: number; onFire: boolean; ratedMatchesLast30: number; rating7DaysAgo: number; lastMatchDate: string | null; earnedTier: number; totalRatedMatches: number; peakRating: number }>;
+  matchRates: { [key: string]: number };
   addPlayer: (player: Omit<Player, 'id' | 'createdAt'>) => Promise<void>;
   updatePlayer: (id: string, player: Partial<Player>) => Promise<void>;
   addMatch: (match: Omit<Match, 'id'>) => Promise<void>;
@@ -58,12 +59,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoading, setIsLoading] = useState(true);
   const [token, setToken] = useState<string | null>(localStorage.getItem(TOKEN_KEY));
   
-  const [state, setState] = useState<AppState>({
+  const [state, setState] = useState<AppState & { matchRates: { [key: string]: number } }>({
     players: [],
     matches: [],
     payments: [],
     expenses: [],
     ongoingMatch: null,
+    matchRates: { '10_POINTS': 20, '20_POINTS': 30 },
     currentUser: JSON.parse(localStorage.getItem(USER_KEY) || '{"role":"STAFF","name":"Guest"}'),
     themeMode: (localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode) || 'auto'
   });
@@ -92,19 +94,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     setIsLoading(true);
     try {
-      const [players, matches, payments, expenses] = await Promise.all([
+      const isAdminFlag = state.currentUser.role === UserRole.ADMIN || state.currentUser.role === UserRole.SUPER_ADMIN;
+
+      const [players, matches, payments, configs, expenses] = await Promise.all([
         api.get('/players'),
         api.get('/matches'),
         api.get('/finance/payments'),
-        api.get('/finance/expenses'),
+        api.get('/config/game-types'),
+        isAdminFlag ? api.get('/finance/expenses') : Promise.resolve([])
       ]);
+
+      const ratesMap = (configs || []).reduce((acc: any, curr: any) => {
+        acc[curr.type] = curr.price;
+        return acc;
+      }, {});
       
       setState(prev => ({
         ...prev,
         players,
         matches,
         payments,
-        expenses,
+        expenses: expenses || [],
+        matchRates: ratesMap
       }));
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -114,7 +125,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [token, logout]);
+  }, [token, state.currentUser?.role, logout]);
 
   useEffect(() => {
     fetchData();

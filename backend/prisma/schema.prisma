@@ -23,6 +23,7 @@ enum TransactionType {
   EXPENSE
   SALARY
   CAPITAL_DISTRIBUTION
+  PARTNER_PAYOUT
   OTHER_INCOME
 }
 
@@ -32,12 +33,14 @@ model User {
   password  String
   name      String
   role      UserRole
+  isPartner Boolean  @default(false)
   createdAt DateTime @default(now())
   
   recordedMatches   Match[]
   recordedPayments  Payment[]
   recordedExpenses  Expense[]
   recordedPlayers   Player[]
+  auditLogs         AuditLog[]
 }
 
 model Player {
@@ -64,6 +67,18 @@ model Player {
   matchesB          Match[]   @relation("PlayerB")
   wonMatches        Match[]   @relation("Winner")
   payments          Payment[]
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String   // CREATE, UPDATE, DELETE
+  resource  String   // MATCH, PAYMENT, PLAYER, EXPENSE, USER, CONFIG
+  resourceId String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model GameTable {
@@ -94,6 +109,7 @@ model Match {
   payerOption    String?     // e.g., "BOTH", "LOSER", "PLAYER_A", "PLAYER_B"
   totalValue     Float?
   charges        Json?       // Stores {[playerId]: amount}
+  date           String?     // YYYY-MM-DD
   
   recordedById   String
   createdAt      DateTime    @default(now())
@@ -112,6 +128,7 @@ model Payment {
   amount         Float
   description    String?
   mode           PaymentMode @default(CASH)
+  date           String?  // YYYY-MM-DD
   
   allocations    Json?    // Stores PaymentAllocation[]
   
@@ -128,6 +145,7 @@ model Expense {
   category       String
   description    String?
   mode           PaymentMode @default(CASH)
+  date           String?  // YYYY-MM-DD
   recordedById   String
   createdAt      DateTime @default(now())
 
@@ -139,6 +157,7 @@ model FinancialTransaction {
   type        TransactionType
   amount      Float
   description String?
+  date        String?         // YYYY-MM-DD
   recordedById String
   createdAt    DateTime       @default(now())
 }

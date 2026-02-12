@@ -113,6 +113,7 @@ export const Payments: React.FC = () => {
   const [allocations, setAllocations] = useState<PaymentAllocation[]>([{ playerId: '', amount: 0, discount: 0 }]);
   const [mode, setMode] = useState<PaymentMode>(PaymentMode.CASH);
   const [notes, setNotes] = useState('');
+  const [paymentDate, setPaymentDate] = useState(getLocalTodayStr());
   const [success, setSuccess] = useState(false);
 
   // History & Filter State
@@ -159,6 +160,7 @@ export const Payments: React.FC = () => {
 
     if (editingId) {
       updatePayment(editingId, {
+        date: paymentDate,
         primaryPayerId,
         totalAmount: totalPaymentAmount,
         allocations: validAllocations,
@@ -173,7 +175,7 @@ export const Payments: React.FC = () => {
         allocations: validAllocations,
         mode,
         notes,
-        date: todayStr,
+        date: paymentDate,
         recordedAt: Date.now(),
         recordedBy: {
           role: currentUser.role,
@@ -197,6 +199,7 @@ export const Payments: React.FC = () => {
     setAllocations(p.allocations.map((a: any) => ({ ...a, discount: a.discount || 0 })));
     setMode(p.mode);
     setNotes(p.notes || '');
+    setPaymentDate(p.date);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -248,6 +251,18 @@ export const Payments: React.FC = () => {
         )}
 
         <div className="space-y-3 md:space-y-4">
+          <div className="space-y-1 md:space-y-1.5">
+            <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1 mb-1 md:mb-1.5 block">Payment Date</label>
+            <div className="bg-gray-50 dark:bg-slate-900 border-2 border-transparent rounded-xl md:rounded-2xl shadow-inner group hover:border-emerald-100 dark:hover:border-emerald-900 transition-all p-1">
+              <input 
+                type="date" 
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                className="w-full bg-transparent p-2 md:p-3 text-xs md:text-sm font-bold text-gray-800 dark:text-white outline-none"
+              />
+            </div>
+          </div>
+
           <SearchableSelect 
             label="Primary Payer"
             value={primaryPayerId}

@@ -91,7 +91,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({ label, value, onCha
 };
 
 export const Matches: React.FC = () => {
-  const { players, addMatch, updateMatch, matches, currentUser, getPlayerStats, getPlayerDues, ongoingMatch, startOngoingMatch, clearOngoingMatch } = useApp();
+  const { players, addMatch, updateMatch, matches, currentUser, getPlayerStats, getPlayerDues, ongoingMatch, startOngoingMatch, clearOngoingMatch, matchRates } = useApp();
   const canEdit = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.STAFF || currentUser.role === UserRole.SUPER_ADMIN;
   
   // Form State
@@ -104,6 +104,7 @@ export const Matches: React.FC = () => {
   const [payerOption, setPayerOption] = useState<PayerOption>(PayerOption.LOSER);
   const [winnerId, setWinnerId] = useState('');
   const [isRated, setIsRated] = useState(true);
+  const [matchDate, setMatchDate] = useState(getLocalTodayStr());
   const [success, setSuccess] = useState(false);
 
   // Auto-populate from ongoing match if it exists and we aren't editing something else
@@ -156,7 +157,10 @@ export const Matches: React.FC = () => {
     return `${mins}m ${secs}s`;
   };
 
-  const matchTotal = points === 20 ? 30 : 20;
+  const matchTotal = useMemo(() => {
+    const type = points === 20 ? '20_POINTS' : '10_POINTS';
+    return matchRates[type] || (points === 20 ? 30 : 20);
+  }, [points, matchRates]);
 
   /**
    * FIFO Logic: Determine if a specific match is "Paid" for a player.
@@ -256,6 +260,12 @@ export const Matches: React.FC = () => {
     setTimeout(() => setSuccess(false), 1200);
   };
 
+  useEffect(() => {
+    if (matchDate !== todayStr && !isDirectRecord) {
+      setIsDirectRecord(true);
+    }
+  }, [matchDate, todayStr, isDirectRecord]);
+
   const handleSubmit = (e?: React.FormEvent) => {
     if(e) e.preventDefault();
     if (!playerAId || !playerBId) return;
@@ -273,6 +283,7 @@ export const Matches: React.FC = () => {
 
     if (editingId) {
       updateMatch(editingId, {
+        date: matchDate,
         points,
         playerAId,
         playerBId,
@@ -286,7 +297,7 @@ export const Matches: React.FC = () => {
       setEditingId(null);
     } else {
       addMatch({
-        date: todayStr,
+        date: matchDate,
         recordedAt: Date.now(),
         recordedBy: {
           role: currentUser.role,
@@ -329,6 +340,7 @@ export const Matches: React.FC = () => {
     setPayerOption(m.payerOption);
     setWinnerId(m.winnerId || '');
     setIsRated(m.isRated ?? true);
+    setMatchDate(m.date);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -452,23 +464,40 @@ export const Matches: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <Zap className={`w-4 h-4 ${isRated ? 'text-amber-500' : 'text-gray-400'}`} />
-            <div>
-              <div className="text-[10px] font-black uppercase dark:text-white">Rated Match</div>
-              <div className="text-[8px] font-bold text-gray-400 uppercase">Affects Skill Rating</div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1 md:space-y-1.5">
+            <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Match Date</label>
+            <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-800 p-1 md:p-1.5 h-[48px] md:h-[56px] flex items-center">
+              <input 
+                type="date" 
+                value={matchDate}
+                onChange={(e) => setMatchDate(e.target.value)}
+                className="w-full bg-transparent px-2 text-[10px] md:text-xs font-bold text-gray-800 dark:text-white outline-none"
+              />
             </div>
           </div>
-          <button 
-            type="button"
-            onClick={() => setIsRated(!isRated)}
-            title={isRated ? "Disable Rating" : "Enable Rating"}
-            aria-label={isRated ? "Disable Rating" : "Enable Rating"}
-            className={`w-10 h-5 rounded-full transition-colors relative ${isRated ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'}`}
-          >
-            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isRated ? 'right-1' : 'left-1'}`} />
-          </button>
+
+          <div className="space-y-1 md:space-y-1.5">
+            <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Ranked</label>
+            <div className="flex items-center justify-between px-3 p-1 md:p-1.5 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-800 h-[48px] md:h-[56px]">
+              <div className="flex items-center gap-1.5 md:gap-2">
+                <Zap className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isRated ? 'text-amber-500' : 'text-gray-400'}`} />
+                <div>
+                   <div className="text-[9px] md:text-[10px] font-black uppercase dark:text-white">Rated</div>
+                   <div className="text-[7px] font-bold text-gray-400 uppercase hidden md:block">Affects Skill</div>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setIsRated(!isRated)}
+                title={isRated ? "Disable Rating" : "Enable Rating"}
+                aria-label={isRated ? "Disable Rating" : "Enable Rating"}
+                className={`w-8 h-4 md:w-9 md:h-5 rounded-full transition-colors relative ${isRated ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'}`}
+              >
+                <div className={`absolute top-0.5 md:top-1 w-3 h-3 bg-white rounded-full transition-all ${isRated ? 'right-0.5 md:right-1' : 'left-0.5 md:left-1'}`} />
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 md:gap-4">

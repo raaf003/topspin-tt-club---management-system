@@ -6,6 +6,7 @@ import playerRoutes from './routes/playerRoutes';
 import matchRoutes from './routes/matchRoutes';
 import financeRoutes from './routes/financeRoutes';
 import configRoutes from './routes/configRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use('/api/players', playerRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });

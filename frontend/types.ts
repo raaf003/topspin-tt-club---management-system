@@ -173,3 +173,26 @@ export interface AppState {
   };
   themeMode: ThemeMode;
 }
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  isPartner: boolean;
+  createdAt: number;
+}
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  userId: string;
+  user?: {
+    name: string;
+    role: UserRole;
+  };
+  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  resource: string;
+  resourceId: string;
+  details?: any;
+}

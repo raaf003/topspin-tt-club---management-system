@@ -1,12 +1,16 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { calculateAllPlayerStats } from '../utils/ranking';
+import { logAction, AuditAction, AuditResource } from '../utils/logger';
 
 export const createMatch = async (req: Request, res: Response) => {
   try {
     const { playerAId, playerBId, winnerId, points, tableId, typeId, isRated, payerOption, totalValue, charges, date, recordedAt } = req.body;
 
     const createdAt = recordedAt ? new Date(recordedAt) : (date ? new Date(date) : new Date());
+    
+    // Determine the date string: use provided date or derive from local-ish createdAt
+    const matchDate = date || createdAt.toISOString().split('T')[0];
 
     // 1. Create the match
     const match = await prisma.match.create({
@@ -21,10 +25,13 @@ export const createMatch = async (req: Request, res: Response) => {
         payerOption,
         totalValue: parseFloat(totalValue),
         charges,
+        date: matchDate,
         createdAt,
         recordedById: (req as any).user.userId
       }
     });
+
+    await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.MATCH, match.id, { playerAId, playerBId });
 
     // 2. Recalculate rankings
     const allPlayers = await prisma.player.findMany();
@@ -34,7 +41,7 @@ export const createMatch = async (req: Request, res: Response) => {
 
     // Convert matches to the format ranking util expects
     const formattedMatches = allMatches.map((m: any) => {
-      const dateStr = m.createdAt.toISOString().split('T')[0];
+      const dateStr = m.date || m.createdAt.toISOString().split('T')[0];
       return {
         ...m,
         date: dateStr,
@@ -77,13 +84,13 @@ export const createMatch = async (req: Request, res: Response) => {
     });
 
     const finalCreatedAt = fullMatch?.createdAt ? new Date(fullMatch.createdAt) : createdAt;
-    const dateStr = finalCreatedAt.toISOString().split('T')[0];
+    const dateStr = fullMatch?.date || finalCreatedAt.toISOString().split('T')[0];
     res.status(201).json({ 
       ...fullMatch, 
       recordedBy: fullMatch?.recorder,
       recordedAt: finalCreatedAt.getTime(),
       date: dateStr
-    }); 
+    });
   } catch (error: any) {
     console.error(error);
     res.status(500).json({ message: error.message });
@@ -93,7 +100,7 @@ export const createMatch = async (req: Request, res: Response) => {
 export const updateMatch = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { playerAId, playerBId, winnerId, points, tableId, typeId, isRated, payerOption, totalValue, charges } = req.body;
+    const { playerAId, playerBId, winnerId, points, tableId, typeId, isRated, payerOption, totalValue, charges, date } = req.body;
 
     await prisma.match.update({
       where: { id },
@@ -107,9 +114,12 @@ export const updateMatch = async (req: Request, res: Response) => {
         isRated,
         payerOption,
         totalValue: totalValue ? parseFloat(totalValue) : undefined,
-        charges
+        charges,
+        date
       }
     });
+
+    await logAction((req as any).user.userId, AuditAction.UPDATE, AuditResource.MATCH, id, { playerAId, playerBId });
 
     // Recalculate rankings for all players since a match in the past might have changed
     const allPlayers = await prisma.player.findMany();
@@ -119,7 +129,7 @@ export const updateMatch = async (req: Request, res: Response) => {
 
     const formattedMatches = allMatches.map((m: any) => ({
       ...m,
-      date: m.createdAt.toISOString().split('T')[0],
+      date: m.date || m.createdAt.toISOString().split('T')[0],
       charges: (m.charges as any) || {}
     }));
 
@@ -159,7 +169,7 @@ export const updateMatch = async (req: Request, res: Response) => {
       ...updatedMatch,
       recordedBy: updatedMatch.recorder,
       recordedAt: updatedMatch.createdAt.getTime(),
-      date: updatedMatch.createdAt.toISOString().split('T')[0]
+      date: updatedMatch.date || updatedMatch.createdAt.toISOString().split('T')[0]
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -194,7 +204,8 @@ export const getMatches = async (req: Request, res: Response) => {
         ...m,
         recordedBy: m.recorder, // Map 'recorder' to 'recordedBy' for frontend compatibility
         recordedAt: createdAt.getTime(),
-        date: createdAt.toISOString().split('T')[0]
+        // Priority: stored date field > derived date
+        date: m.date || createdAt.toISOString().split('T')[0]
       };
     });
 
