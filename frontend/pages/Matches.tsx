@@ -103,6 +103,7 @@ export const Matches: React.FC = () => {
   const [table, setTable] = useState('Table 1');
   const [payerOption, setPayerOption] = useState<PayerOption>(PayerOption.LOSER);
   const [winnerId, setWinnerId] = useState('');
+  const [isRated, setIsRated] = useState(true);
   const [success, setSuccess] = useState(false);
 
   // Auto-populate from ongoing match if it exists and we aren't editing something else
@@ -279,7 +280,8 @@ export const Matches: React.FC = () => {
         table,
         payerOption,
         totalValue: matchTotal,
-        charges
+        charges,
+        isRated
       });
       setEditingId(null);
     } else {
@@ -297,7 +299,8 @@ export const Matches: React.FC = () => {
         table,
         payerOption,
         totalValue: matchTotal,
-        charges
+        charges,
+        isRated
       });
       // Clear ongoing match if it matches the recorded one
       if (isCurrentlyLive) {
@@ -325,6 +328,7 @@ export const Matches: React.FC = () => {
     setTable(m.table || 'Table 1');
     setPayerOption(m.payerOption);
     setWinnerId(m.winnerId || '');
+    setIsRated(m.isRated ?? true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -350,7 +354,7 @@ export const Matches: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-xl mx-auto">
+    <div className="max-w-xl mx-auto pb-8">
       {ongoingMatch && (
         <div 
           onClick={() => {
@@ -359,7 +363,7 @@ export const Matches: React.FC = () => {
             setPoints(ongoingMatch.points);
             setTable(ongoingMatch.table);
           }}
-          className="sticky top-14 md:top-20 z-30 bg-gradient-to-r from-rose-500 to-rose-600 dark:from-rose-600 dark:to-rose-700 p-3 rounded-2xl shadow-lg shadow-rose-200 dark:shadow-rose-900/20 animate-pulse border border-rose-400 dark:border-rose-500 overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
+          className="sticky top-[60px] md:top-[76px] z-30 bg-gradient-to-r from-rose-500 to-rose-600 dark:from-rose-600 dark:to-rose-700 p-3 rounded-2xl shadow-lg shadow-rose-200 dark:shadow-rose-900/20 animate-pulse border border-rose-400 dark:border-rose-500 overflow-hidden cursor-pointer hover:shadow-xl transition-shadow mb-8 md:-mx-2"
         >
           <div className="relative z-10 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -379,25 +383,26 @@ export const Matches: React.FC = () => {
         </div>
       )}
 
-      <div className="flex justify-between items-center px-1">
-        <div className="flex items-center gap-2 md:gap-3">
-          <div className={`${editingId ? 'bg-amber-500' : 'bg-indigo-600'} p-1.5 md:p-2 rounded-lg md:rounded-xl transition-colors`}>
-            {editingId ? <Edit3 className="text-white w-5 h-5 md:w-6 md:h-6" /> : <Trophy className="text-white w-5 h-5 md:w-6 md:h-6" />}
+      <div className="space-y-6">
+        <div className="flex justify-between items-center px-1">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className={`${editingId ? 'bg-amber-500' : 'bg-indigo-600'} p-1.5 md:p-2 rounded-lg md:rounded-xl transition-colors`}>
+              {editingId ? <Edit3 className="text-white w-5 h-5 md:w-6 md:h-6" /> : <Trophy className="text-white w-5 h-5 md:w-6 md:h-6" />}
+            </div>
+            <h2 className="text-xl md:text-2xl font-bold dark:text-white transition-all">{editingId ? 'Update Match' : 'Game Entry'}</h2>
           </div>
-          <h2 className="text-xl md:text-2xl font-bold dark:text-white transition-all">{editingId ? 'Update Match' : 'Game Entry'}</h2>
+          {(playerAId || playerBId) && (
+            <button 
+              onClick={editingId ? handleCancelEdit : handleClearPlayers}
+              className={`text-[9px] md:text-xs font-bold uppercase flex items-center gap-1 px-2.5 py-1.5 rounded-full transition-colors ${
+                editingId ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400'
+              }`}
+            >
+              {editingId ? <X className="w-3 h-3" /> : <RefreshCw className="w-3 h-3" />}
+              {editingId ? 'Cancel' : 'Clear'}
+            </button>
+          )}
         </div>
-        {(playerAId || playerBId) && (
-          <button 
-            onClick={editingId ? handleCancelEdit : handleClearPlayers}
-            className={`text-[9px] md:text-xs font-bold uppercase flex items-center gap-1 px-2.5 py-1.5 rounded-full transition-colors ${
-              editingId ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400'
-            }`}
-          >
-            {editingId ? <X className="w-3 h-3" /> : <RefreshCw className="w-3 h-3" />}
-            {editingId ? 'Cancel' : 'Clear'}
-          </button>
-        )}
-      </div>
 
       <form onSubmit={handleSubmit} className={`space-y-4 md:space-y-5 bg-white dark:bg-slate-900 p-4 md:p-6 rounded-3xl md:rounded-[2.5rem] border shadow-xl relative overflow-hidden transition-all duration-300 ${editingId ? 'border-amber-200 dark:border-amber-800 ring-2 ring-amber-100 dark:ring-amber-900/20' : 'border-gray-100 dark:border-slate-800'}`}>
         {success && (
@@ -442,6 +447,25 @@ export const Matches: React.FC = () => {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <Zap className={`w-4 h-4 ${isRated ? 'text-amber-500' : 'text-gray-400'}`} />
+            <div>
+              <div className="text-[10px] font-black uppercase dark:text-white">Rated Match</div>
+              <div className="text-[8px] font-bold text-gray-400 uppercase">Affects Skill Rating</div>
+            </div>
+          </div>
+          <button 
+            type="button"
+            onClick={() => setIsRated(!isRated)}
+            title={isRated ? "Disable Rating" : "Enable Rating"}
+            aria-label={isRated ? "Disable Rating" : "Enable Rating"}
+            className={`w-10 h-5 rounded-full transition-colors relative ${isRated ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'}`}
+          >
+            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isRated ? 'right-1' : 'left-1'}`} />
+          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-3 md:gap-4">
@@ -742,6 +766,7 @@ export const Matches: React.FC = () => {
           )}
         </div>
       </section>
+      </div>
     </div>
   );
 };

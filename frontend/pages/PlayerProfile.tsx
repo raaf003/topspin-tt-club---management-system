@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { ChevronLeft, Trophy, Target, TrendingUp, History, Phone, Award, Zap, Calendar, Filter, User, Table as TableIcon, Activity, IndianRupee, Info } from 'lucide-react';
+import { ChevronLeft, Trophy, Target, TrendingUp, History, Phone, Award, Zap, Calendar, Filter, User, Table as TableIcon, Activity, IndianRupee, Info, BarChart3, Users, Gauge } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { calculatePlayerPerformanceScore, getPlayerTier } from '../rankingUtils';
+import { calculatePlayerPerformanceScore, getPlayerTier, getTopPerformers, calculatePlayerRatingHistory } from '../rankingUtils';
 
 const HighlightStat: React.FC<{ label: string; value: string; icon: React.ReactNode; subValue?: string; tooltip?: string }> = ({ label, value, icon, subValue, tooltip }) => (
   <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transition-all relative group/stat">
@@ -118,9 +118,60 @@ export const PlayerProfile: React.FC = () => {
   }, [player, matches, lifetimeStats]);
 
   const tier = useMemo(() => {
-    if (!performance) return null;
-    return getPlayerTier(performance.totalScore);
-  }, [performance]);
+    if (!stats) return null;
+    return getPlayerTier(stats.rating, stats);
+  }, [stats]);
+
+  // Calculate the same ranking metrics as the leaderboard
+  const rankingMetrics = useMemo(() => {
+    if (!stats || !id) return null;
+    
+    const rating = stats.rating || 1500;
+    const rd = stats.rd || 350;
+    const conservativeRating = rating - rd;
+    
+    // Calculate average opponent rating (same as leaderboard)
+    const wonMatches = matches.filter(m => m.winnerId === id && m.isRated !== false);
+    let avgOpponentRating = 1500;
+    if (wonMatches.length > 0) {
+      let totalOppRating = 0;
+      wonMatches.forEach(m => {
+        const oppId = m.playerAId === id ? m.playerBId : m.playerAId;
+        const oppStats = getPlayerStats(oppId);
+        totalOppRating += oppStats?.rating || 1500;
+      });
+      avgOpponentRating = totalOppRating / wonMatches.length;
+    }
+    const opponentStrengthFactor = Math.min(avgOpponentRating / 1500, 1.5);
+    
+    // Activity bonus
+    const activityBonus = Math.min((stats.ratedMatchesLast30 || 0) * 5, 100);
+    
+    // Score calculation (same as leaderboard)
+    const score = (conservativeRating * 0.60) + 
+                 (conservativeRating * opponentStrengthFactor * 0.30) +
+                 (activityBonus * 0.10);
+    
+    // Find rank position
+    const topPerformers = getTopPerformers(players, matches, getPlayerStats, players.length);
+    const rank = topPerformers.findIndex(p => p.id === id) + 1;
+    
+    return {
+      conservativeRating,
+      avgOpponentRating,
+      opponentStrengthFactor,
+      activityBonus,
+      score,
+      rank,
+      totalPlayers: players.length
+    };
+  }, [stats, id, matches, players, getPlayerStats]);
+
+  // Calculate actual rating history for the performance graph
+  const ratingHistory = useMemo(() => {
+    if (!id) return [];
+    return calculatePlayerRatingHistory(id, players, matches);
+  }, [id, players, matches]);
 
   const [activeTab, setActiveTab] = useState<'matches' | 'payments' | 'rivalries'>('matches');
 
@@ -202,8 +253,15 @@ export const PlayerProfile: React.FC = () => {
             <div className="flex flex-col md:flex-row items-center gap-3">
               <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none break-words max-w-full">{player.name}</h1>
               {tier && (
-                <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${tier.bg} ${tier.color} ${tier.border}`}>
-                  {tier.name}
+                <div className="flex flex-col items-center md:items-start gap-1">
+                  <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${tier.bg} ${tier.color} ${tier.border}`}>
+                    {tier.name}
+                  </div>
+                  {tier.pendingPromotion && (
+                    <div className="text-[8px] font-black text-white/70 uppercase tracking-tighter">
+                      Needs {10 - stats.ratedMatchesLast30} more matches for promotion
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -217,14 +275,26 @@ export const PlayerProfile: React.FC = () => {
             </div>
           </div>
           <div className="md:ml-auto flex flex-col items-center md:items-end justify-center">
-             <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">Power Rating</div>
-             <div className="text-4xl md:text-5xl font-black text-white flex items-center gap-2">
-               {performance?.totalScore.toFixed(0)}
-               {performance?.isHot && <Zap className="w-6 h-6 text-amber-400 fill-amber-400 animate-pulse" />}
+             <div className="flex items-center gap-4">
+               <div className="text-center">
+                 <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">Rank</div>
+                 <div className="text-2xl md:text-3xl font-black text-white">#{rankingMetrics?.rank || '-'}</div>
+               </div>
+               <div className="text-center">
+                 <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">Score</div>
+                 <div className="text-2xl md:text-3xl font-black text-amber-300 flex items-center gap-1">
+                   {rankingMetrics?.score.toFixed(0) || '-'}
+                   {stats.onFire && <Zap className="w-5 h-5 text-amber-400 fill-amber-400 animate-pulse" />}
+                 </div>
+               </div>
+               <div className="text-center">
+                 <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">Rating</div>
+                 <div className="text-2xl md:text-3xl font-black text-white">{stats.rating.toFixed(0)}</div>
+               </div>
              </div>
-             {performance && performance.attendanceStreak >= 3 && (
-               <div className="text-[10px] font-black text-amber-300 uppercase tracking-widest mt-1">
-                 {performance.attendanceStreak} Day Streak 🔥
+             {stats.playStreak >= 3 && (
+               <div className="text-[10px] font-black text-amber-300 uppercase tracking-widest mt-2">
+                 {stats.playStreak} Day Streak 🔥
                </div>
              )}
           </div>
@@ -240,25 +310,56 @@ export const PlayerProfile: React.FC = () => {
           tooltip="Percentage of games won in the selected period."
         />
         <HighlightStat 
-          label="Attendance" 
-          value={`${performance?.attendanceStreak || 0} 🔥`} 
+          label="Conservative" 
+          value={`${rankingMetrics?.conservativeRating.toFixed(0) || '-'}`} 
+          icon={<Gauge className="w-5 h-5 text-indigo-500" />} 
+          subValue="Rating - RD"
+          tooltip="Conservative Rating = Skill Rating minus Rating Deviation. This is 60% of your leaderboard score."
+        />
+        <HighlightStat 
+          label="Opp. Strength" 
+          value={`${rankingMetrics?.avgOpponentRating.toFixed(0) || '-'}`} 
+          icon={<Users className="w-5 h-5 text-rose-500" />} 
+          subValue={`×${rankingMetrics?.opponentStrengthFactor.toFixed(2) || '1.00'}`}
+          tooltip="Average rating of opponents you've beaten. Higher = quality wins. This is 30% of your score."
+        />
+        <HighlightStat 
+          label="Activity" 
+          value={`+${rankingMetrics?.activityBonus.toFixed(0) || 0}`} 
+          icon={<BarChart3 className="w-5 h-5 text-emerald-500" />} 
+          subValue={`${stats.ratedMatchesLast30} rated/30d`}
+          tooltip="Bonus from playing matches. Max +100 from 20+ rated matches in 30 days. This is 10% of your score."
+        />
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <HighlightStat 
+          label="Play Streak" 
+          value={`${stats.playStreak} 🔥`} 
           icon={<Calendar className="w-5 h-5 text-blue-500" />} 
           subValue="Day Streak"
           tooltip="Consecutive days played. Resets after 48 hours of inactivity."
         />
         <HighlightStat 
-          label="Momentum" 
-          value={`${stats.currentStreak} ⚡`} 
-          icon={<TrendingUp className="w-5 h-5 text-emerald-500" />} 
-          subValue={`Best: ${stats.bestStreak}`}
-          tooltip="Current winning streak. Boosts your Power Rating!"
+          label="Consistency" 
+          value={`${stats.consistencyScore}/30`} 
+          icon={<Activity className="w-5 h-5 text-emerald-500" />} 
+          subValue="Active Days"
+          tooltip="Number of days played in the last 30 days."
         />
         <HighlightStat 
-          label="Power Rating" 
-          value={performance?.totalScore.toFixed(0) || '0'} 
-          icon={<Zap className="w-5 h-5 text-orange-500" />} 
-          subValue={tier?.name}
-          tooltip="A combined score of skill, volume, and daily activity. Higher is better!"
+          label="Confidence" 
+          value={`${((1 - stats.rd / 350) * 100).toFixed(0)}%`} 
+          icon={<Target className="w-5 h-5 text-orange-500" />} 
+          subValue={`RD: ${stats.rd.toFixed(0)}`}
+          tooltip="How confident the system is in your skill rating. Low RD = stable rating. High RD = rating may change quickly."
+        />
+        <HighlightStat 
+          label="Total Matches" 
+          value={`${stats.totalRatedMatches || 0}`} 
+          icon={<Award className="w-5 h-5 text-purple-500" />} 
+          subValue="Career Games"
+          tooltip="Total rated matches played. Tiers are climb-only - once earned, you keep them forever!"
         />
       </div>
 
@@ -303,54 +404,85 @@ export const PlayerProfile: React.FC = () => {
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          {/* Performance Graph */}
+          {/* Rating History Graph */}
           <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm transition-all h-[300px] md:h-[400px]">
             <h3 className="font-black text-gray-900 dark:text-white uppercase text-xs tracking-[0.2em] flex items-center gap-2 mb-6">
-              <Activity className="w-4 h-4 text-indigo-500" /> Performance Trend
+              <TrendingUp className="w-4 h-4 text-indigo-500" /> Rating History
             </h3>
             <div className="h-[calc(100%-3rem)]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={stats.performanceTrend}>
-                  <defs>
-                    <linearGradient id="colorRating" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
-                  <XAxis 
-                    dataKey="date" 
-                    hide 
-                  />
-                  <YAxis 
-                    domain={[0, 100]} 
-                    tickFormatter={(v) => `${v}%`}
-                    tick={{ fontSize: 10, fontWeight: 'bold' }}
-                    axisLine={false}
-                    tickLine={false}
-                    stroke={isDarkMode ? '#64748b' : '#94a3b8'}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: isDarkMode ? '#0f172a' : '#fff', 
-                      borderRadius: '16px', 
-                      border: 'none', 
-                      boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' 
-                    }}
-                    labelStyle={{ fontWeight: 'black', color: '#6366f1', fontSize: '12px' }}
-                    formatter={(value: any) => [`${Number(value).toFixed(1)}%`, 'Performance Rating']}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="rating" 
-                    stroke="#6366f1" 
-                    strokeWidth={4} 
-                    fillOpacity={1} 
-                    fill="url(#colorRating)" 
-                    animationDuration={1500}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {ratingHistory.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={ratingHistory}>
+                    <defs>
+                      <linearGradient id="colorRating" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 9, fontWeight: 'bold' }}
+                      tickFormatter={(v) => v.slice(5)} // Show MM-DD
+                      axisLine={false}
+                      tickLine={false}
+                      stroke={isDarkMode ? '#64748b' : '#94a3b8'}
+                    />
+                    <YAxis 
+                      domain={['auto', 'auto']}
+                      tickFormatter={(v) => v.toFixed(0)}
+                      tick={{ fontSize: 10, fontWeight: 'bold' }}
+                      axisLine={false}
+                      tickLine={false}
+                      stroke={isDarkMode ? '#64748b' : '#94a3b8'}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: isDarkMode ? '#0f172a' : '#fff', 
+                        borderRadius: '16px', 
+                        border: 'none', 
+                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' 
+                      }}
+                      labelStyle={{ fontWeight: 'black', color: '#6366f1', fontSize: '12px' }}
+                      labelFormatter={(label) => label}
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload || !payload.length) return null;
+                        const entry = payload[0].payload;
+                        return (
+                          <div className="bg-white dark:bg-slate-900 p-3 rounded-xl shadow-xl border border-gray-100 dark:border-slate-800">
+                            <div className="text-xs font-black text-indigo-600 mb-1">{label}</div>
+                            <div className="text-lg font-black dark:text-white">{entry.rating?.toFixed(0)} Rating</div>
+                            <div className="text-[10px] text-gray-500 dark:text-slate-400 font-bold">
+                              RD: {entry.rd?.toFixed(0)} | {entry.matchCount} match{entry.matchCount > 1 ? 'es' : ''} 
+                              <span className={`ml-1 ${entry.result === 'W' ? 'text-emerald-500' : entry.result === 'L' ? 'text-rose-500' : 'text-gray-400'}`}>
+                                ({entry.result})
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="rating" 
+                      stroke="#6366f1" 
+                      strokeWidth={4} 
+                      fillOpacity={1} 
+                      fill="url(#colorRating)" 
+                      animationDuration={1500}
+                      dot={(props: any) => {
+                        const { cx, cy, payload } = props;
+                        const color = payload.result === 'W' ? '#10b981' : payload.result === 'L' ? '#ef4444' : '#6366f1';
+                        return <circle cx={cx} cy={cy} r={4} fill={color} stroke="white" strokeWidth={2} />;
+                      }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-400 text-sm font-medium">
+                  No rating history yet. Play some matches!
+                </div>
+              )}
             </div>
           </div>
 

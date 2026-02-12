@@ -10,9 +10,10 @@ export enum PaymentMode {
 
 export enum ExpenseCategory {
   RENT = 'RENT',
-  BALLS = 'BALLS',
+  SALARY = 'SALARY',
+  ELECTRICITY = 'ELECTRICITY',
+  BATS = 'BATS',
   MAINTENANCE = 'MAINTENANCE',
-  LIGHTS = 'LIGHTS',
   OTHER = 'OTHER'
 }
 
@@ -32,6 +33,10 @@ export interface Player {
   nickname?: string;
   initialBalance: number; // Positive = Credit (paid extra), Negative = Initial Dues (manual balance)
   createdAt: number;
+  // Glicko-2 fields
+  rating?: number;
+  ratingDeviation?: number;
+  volatility?: number;
 }
 
 export interface OngoingMatch {
@@ -59,6 +64,8 @@ export interface Match {
   payerOption: PayerOption;
   totalValue: number;
   charges: { [playerId: string]: number };
+  isRated?: boolean;
+  weight?: number;
 }
 
 export interface PaymentAllocation {
@@ -89,6 +96,11 @@ export interface Expense {
   amount: number;
   mode: PaymentMode;
   notes?: string;
+  recordedBy: {
+    role: UserRole;
+    name: string;
+  };
+  recordedAt: number;
 }
 
 export type ThemeMode = 'light' | 'dark' | 'auto';
@@ -134,6 +146,18 @@ export interface PlayerStats {
     wins: number;
     losses: number;
   }[];
+  // New metrics
+  consistencyScore: number;
+  playStreak: number;
+  onFire: boolean;
+  rating: number;
+  rd: number;
+  volatility: number;
+  ratedMatchesLast30: number;
+  // Climb-only tier system
+  totalRatedMatches: number;
+  earnedTier: number;
+  peakRating: number;
 }
 
 export interface AppState {

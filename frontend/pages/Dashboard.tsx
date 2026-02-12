@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { IndianRupee, TrendingUp, AlertCircle, PlusCircle, CheckCircle2, Calendar, ChevronDown, Filter, Percent, Zap, Clock, X, Trophy, Star, Info } from 'lucide-react';
+import { IndianRupee, TrendingUp, AlertCircle, PlusCircle, CheckCircle2, Calendar, ChevronDown, Filter, Percent, Zap, Clock, X, Trophy, Star, Info, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserRole, PaymentMode } from '../types';
 import { getTopPerformers, getPlayerTier } from '../rankingUtils';
@@ -316,7 +316,7 @@ export const Dashboard: React.FC = () => {
 
 const TopPlayerItem: React.FC<{ player: any; rank: number }> = ({ player, rank }) => {
   const navigate = useNavigate();
-  const tier = getPlayerTier(player.score);
+  const tier = getPlayerTier(player.score, player.stats);
   return (
     <div 
       onClick={() => navigate(`/players/${player.id}`)}

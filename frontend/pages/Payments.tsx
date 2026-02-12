@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { PaymentMode, PaymentAllocation, UserRole, Player } from '../types';
-import { IndianRupee, CreditCard, Banknote, Check, UserPlus, Trash2, Users, Edit3, X, Search, ChevronDown, Percent } from 'lucide-react';
+import { IndianRupee, CreditCard, Banknote, Check, UserPlus, Trash2, Edit3, X, Search, ChevronDown, Percent, Calendar } from 'lucide-react';
 
 interface SearchableSelectProps {
   label?: string;
@@ -113,6 +113,16 @@ export const Payments: React.FC = () => {
   const [mode, setMode] = useState<PaymentMode>(PaymentMode.CASH);
   const [notes, setNotes] = useState('');
   const [success, setSuccess] = useState(false);
+
+  // History & Filter State
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [historyDate, setHistoryDate] = useState(todayStr);
+
+  const filteredPayments = useMemo(() => {
+    return payments
+      .filter(p => !historyDate || p.date === historyDate)
+      .sort((a, b) => b.recordedAt - a.recordedAt);
+  }, [payments, historyDate]);
 
   const totalPaymentAmount = allocations.reduce((sum, a) => sum + (a.amount || 0), 0);
   const totalDiscountAmount = allocations.reduce((sum, a) => sum + (a.discount || 0), 0);
@@ -382,13 +392,25 @@ export const Payments: React.FC = () => {
 
       {/* History Section */}
       <section className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-3xl md:rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm space-y-4 md:space-y-5 transition-all">
-        <h3 className="font-black text-base md:text-lg text-gray-900 dark:text-white tracking-tight flex items-center gap-2 px-1">
-          <Users className="w-4 h-4 md:w-5 md:h-5 text-emerald-600 dark:text-emerald-400" />
-          Recent Transactions
-        </h3>
+        <div className="flex justify-between items-center px-1">
+          <h3 className="font-black text-base md:text-lg text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
+            <Calendar className="w-4 h-4 md:w-5 md:h-5 text-emerald-600 dark:text-emerald-400" />
+            Recent Transactions
+          </h3>
+          <div className="bg-gray-50 dark:bg-slate-800 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-700 flex items-center gap-1.5 md:gap-2">
+            <input 
+              type="date" 
+              value={historyDate}
+              title="Select date"
+              onChange={(e) => setHistoryDate(e.target.value)}
+              className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-emerald-600 dark:text-emerald-400"
+            />
+          </div>
+        </div>
+
         <div className="space-y-3 md:space-y-4">
-          {payments.length > 0 ? (
-            payments.map(p => {
+          {filteredPayments.length > 0 ? (
+            filteredPayments.map(p => {
               const payer = players.find(player => player.id === p.primaryPayerId);
               const waived = p.allocations.reduce((sum, a) => sum + (a.discount || 0), 0);
               

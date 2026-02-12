@@ -1,23 +1,39 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Search, Zap, Info, ArrowRight, X, ShieldCheck, Flame } from 'lucide-react';
-import { getTopPerformers, getPlayerTier } from '../rankingUtils';
+import { Trophy, Search, Zap, Info, ArrowRight, X, ShieldCheck, Flame, TrendingUp, Target, Activity, Award } from 'lucide-react';
+import { getTopPerformers, getPlayerTier, getWeeklyHighlights } from '../rankingUtils';
 
 export const Leaderboard: React.FC = () => {
-  const { players, matches, getPlayerStats } = useApp();
+  const { players, matches, getPlayerStats, globalPlayerStats } = useApp();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [showInfo, setShowInfo] = useState(false);
 
   const ratedPlayers = useMemo(() => {
-    return getTopPerformers(players, matches, getPlayerStats, players.length);
+    const topPerformers = getTopPerformers(players, matches, getPlayerStats, players.length);
+    console.log('[Leaderboard] Top performers received:',  topPerformers.slice(0, 5).map(p => ({
+      name: p.name,
+      score: p.score,
+      displayRating: p.displayRating,
+      statsRating: p.stats?.rating,
+      statsRd: p.stats?.rd
+    })));
+    return topPerformers;
   }, [players, matches, getPlayerStats]);
 
-  const filteredPlayers = ratedPlayers.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) || 
-    p.nickname?.toLowerCase().includes(search.toLowerCase())
-  );
+  const highlights = useMemo(() => {
+    return getWeeklyHighlights(players, matches, globalPlayerStats);
+  }, [players, matches, globalPlayerStats]);
+
+  const filteredPlayers = useMemo(() => {
+    return ratedPlayers
+      .map((p, index) => ({ ...p, rank: index + 1 }))
+      .filter(p => 
+        p.name.toLowerCase().includes(search.toLowerCase()) || 
+        p.nickname?.toLowerCase().includes(search.toLowerCase())
+      );
+  }, [ratedPlayers, search]);
 
   return (
     <div className="space-y-6 pb-20">
@@ -32,55 +48,103 @@ export const Leaderboard: React.FC = () => {
               onClick={() => setShowInfo(true)}
               className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1 hover:opacity-70 transition-opacity"
             >
-              <Info className="w-3 h-3" /> How it works
+              <Info className="w-3 h-3" /> Glicko-2 System
             </button>
           </div>
         </div>
       </div>
 
+      {/* Weekly Highlights */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <HighlightCard 
+          icon={<TrendingUp className="w-4 h-4 text-emerald-500" />}
+          label="Most Improved"
+          name={highlights.mostImproved?.name || '-'}
+          sub={`+${highlights.mostImproved?.delta.toFixed(0) || 0} pts`}
+        />
+        <HighlightCard 
+          icon={<Flame className="w-4 h-4 text-orange-500" />}
+          label="Top Streak"
+          name={highlights.longestStreak?.name || '-'}
+          sub={`${globalPlayerStats[highlights.longestStreak?.id || '']?.playStreak || 0} Days`}
+        />
+        <HighlightCard 
+          icon={<Activity className="w-4 h-4 text-indigo-500" />}
+          label="Most Active"
+          name={highlights.mostActive?.name || '-'}
+          sub={`${globalPlayerStats[highlights.mostActive?.id || '']?.consistencyScore || 0}/30 Days`}
+        />
+        <HighlightCard 
+          icon={<Target className="w-4 h-4 text-rose-500" />}
+          label="Giant Killer"
+          name={highlights.giantKiller?.name || '-'}
+          sub={highlights.giantKiller ? `${highlights.giantKiller.upsetCount} Upsets` : 'No upsets'}
+        />
+      </div>
+
       {/* Info Modal */}
       {showInfo && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="bg-indigo-600 p-8 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 -mr-10 -mt-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg max-h-[90vh] rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col">
+            <div className="bg-indigo-600 p-8 text-white relative overflow-hidden shrink-0">
+              <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/10 rounded-full blur-3xl animate-pulse" />
               <div className="relative z-10">
-                <h3 className="text-xl font-black uppercase tracking-wider mb-2">Ranking Mechanics</h3>
-                <p className="text-indigo-100 text-xs leading-relaxed font-medium">
-                  Our Power Rating system evaluates players based on three core performance pillars:
+                <h3 className="text-2xl font-black uppercase tracking-wider mb-2">Ranking System</h3>
+                <p className="text-indigo-100 text-[11px] leading-relaxed font-semibold opacity-90 max-w-[80%]">
+                  We use the Glicko-2 algorithm — the gold standard for competitive skill measurement.
                 </p>
               </div>
               <button 
                 onClick={() => setShowInfo(false)}
-                className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                title="Close Info"
+                aria-label="Close Info"
+                className="absolute top-8 right-8 p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-all group active:scale-90 shadow-lg border border-white/10 z-[60]"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5 text-white group-hover:rotate-90 transition-transform duration-300" />
               </button>
             </div>
             
-            <div className="p-8 space-y-6">
-              <MechanicItem 
-                icon={<ShieldCheck className="w-5 h-5 text-indigo-500" />}
-                title="Bayesian Skill Index"
-                description="Unlike raw win rates, our algorithm requires volume to build confidence. A player with 40 wins is rated higher than one with 3 wins."
-              />
-              <MechanicItem 
-                icon={<Zap className="w-5 h-5 text-amber-500" />}
-                title="Performance Momentum"
-                description="Triggered by 3+ consecutive wins. Represents a competitive 'peak' and provides a temporary multiplier to your base rating."
-              />
-              <MechanicItem 
-                icon={<Flame className="w-5 h-5 text-rose-500" />}
-                title="Consistency Multiplier"
-                description="Rewards daily engagement. Competing at least once every 48 hours builds a streak that protects your rating from activity decay."
-              />
-              
-              <button 
-                onClick={() => setShowInfo(false)}
-                className="w-full bg-gray-900 dark:bg-slate-800 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all"
-              >
-                Got it
-              </button>
+            <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar flex-1">
+              {/* Formula Card */}
+              <div className="bg-indigo-50 dark:bg-indigo-900/10 p-6 rounded-[2rem] border border-indigo-100 dark:border-indigo-800/30">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-2">
+                  <Award className="w-4 h-4" /> The Performance Score
+                </h4>
+                <div className="space-y-4">
+                  <FormulaRow label="Conservative Skill" value="60%" sub="Rating minus uncertainty" />
+                  <FormulaRow label="Win Quality" value="30%" sub="Difficulty of opponents" />
+                  <FormulaRow label="Activity Bonus" value="10%" sub="Recent match frequency" />
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                <MechanicItem 
+                  icon={<ShieldCheck className="w-5 h-5 text-indigo-500" />}
+                  title="Skill Confidence"
+                  description="New players have high uncertainty. Playing more matches reduces this 'RD' value, making your rank more stable and accurate."
+                />
+
+                <MechanicItem 
+                  icon={<Target className="w-5 h-5 text-rose-500" />}
+                  title="Opponent Strength"
+                  description="Beating high-ranked players grants significantly more points. Losing to them has less impact than losing to a novice."
+                />
+
+                <MechanicItem 
+                  icon={<Zap className="w-5 h-5 text-amber-500" />}
+                  title="Status Effects"
+                  description="Winning 3+ games vs different opponents triggers 'On Fire' status. Inactive players' ranks gradually become less certain."
+                />
+              </div>
+
+              <div className="pt-4">
+                <button 
+                  onClick={() => setShowInfo(false)}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 dark:shadow-none active:scale-95 transition-all"
+                >
+                  Confirm Understanding
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -105,8 +169,8 @@ export const Leaderboard: React.FC = () => {
       </div>
 
       <div className="space-y-3">
-        {filteredPlayers.map((p: any, idx) => {
-          const tier = getPlayerTier(p.score);
+        {filteredPlayers.map((p: any) => {
+          const tier = getPlayerTier(p.stats.rating, p.stats);
           return (
             <div 
               key={p.id}
@@ -114,18 +178,18 @@ export const Leaderboard: React.FC = () => {
               className="bg-white dark:bg-slate-900 p-4 rounded-2xl md:rounded-3xl border border-gray-100 dark:border-slate-800 flex items-center gap-4 hover:shadow-lg hover:border-amber-200 dark:hover:border-amber-900/40 cursor-pointer transition-all active:scale-[0.98] group"
             >
               <div className={`w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl md:rounded-2xl flex items-center justify-center font-black text-sm md:text-base shadow-sm ${
-                idx === 0 ? 'bg-amber-100 text-amber-600 border border-amber-200' : 
-                idx === 1 ? 'bg-slate-100 text-slate-600 border border-slate-200' : 
-                idx === 2 ? 'bg-orange-100 text-orange-600 border border-orange-200' : 
+                p.rank === 1 ? 'bg-amber-100 text-amber-600 border border-amber-200' : 
+                p.rank === 2 ? 'bg-slate-100 text-slate-600 border border-slate-200' : 
+                p.rank === 3 ? 'bg-orange-100 text-orange-600 border border-orange-200' : 
                 'bg-gray-50 text-gray-400 dark:bg-slate-800 border border-transparent'
               }`}>
-                {idx === 0 ? <Trophy className="w-5 h-5 md:w-6 md:h-6" /> : `#${idx + 1}`}
+                {p.rank === 1 ? <Trophy className="w-5 h-5 md:w-6 md:h-6" /> : `#${p.rank}`}
               </div>
               
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-0.5">
                   <div className="font-black text-sm md:text-base text-gray-900 dark:text-white truncate group-hover:text-amber-600 transition-colors">{p.name}</div>
-                  {p.isHot && <Zap className="w-3 h-3 text-amber-500 fill-amber-500 animate-pulse" />}
+                  {p.isHot && <Zap className="w-3 h-3 text-amber-500 fill-amber-500 shadow-sm" />}
                   {p.attendanceStreak >= 3 && <span className="text-[10px] font-black text-orange-500">{p.attendanceStreak}🔥</span>}
                 </div>
                 <div className="flex items-center gap-2">
@@ -139,11 +203,17 @@ export const Leaderboard: React.FC = () => {
               <div className="text-right shrink-0">
                 <div className="text-lg md:text-xl font-black text-gray-900 dark:text-white">{p.score.toFixed(0)}</div>
                 <div className="flex items-center justify-end gap-1">
-                  <div className="text-[8px] md:text-[9px] text-gray-400 dark:text-slate-500 font-black uppercase tracking-widest">Rating</div>
+                  <div className="text-[8px] md:text-[9px] text-gray-400 dark:text-slate-500 font-black uppercase tracking-widest">
+                    Score
+                  </div>
                   <div className="relative group/tooltip">
                     <Info className="w-2.5 h-2.5 text-gray-300 cursor-help" />
-                    <div className="absolute bottom-full right-0 mb-2 w-40 p-2 bg-gray-900 text-white text-[9px] rounded-lg opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl border border-white/10 font-bold leading-tight">
-                      Bayesian Skill Score + Attendance Streak Bonus.
+                    <div className="absolute bottom-full right-0 mb-2 w-56 p-3 bg-gray-900 text-white text-[9px] rounded-lg opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl border border-white/10 font-bold leading-tight">
+                      <div className="space-y-1">
+                        <div>60% Conservative Skill (Rating - RD)</div>
+                        <div>30% Opponent Strength (who you beat)</div>
+                        <div>10% Activity Bonus (matches/30 days)</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -162,6 +232,16 @@ export const Leaderboard: React.FC = () => {
   );
 };
 
+const FormulaRow: React.FC<{ label: string; value: string; sub: string }> = ({ label, value, sub }) => (
+  <div className="flex justify-between items-start">
+    <div className="space-y-0.5">
+      <div className="text-[11px] font-black text-indigo-950 dark:text-indigo-100">{label}</div>
+      <div className="text-[9px] text-indigo-500/70 dark:text-indigo-400/50 font-bold leading-none">{sub}</div>
+    </div>
+    <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{value}</span>
+  </div>
+);
+
 const MechanicItem: React.FC<{ icon: React.ReactNode; title: string; description: string }> = ({ icon, title, description }) => (
   <div className="flex gap-4">
     <div className="shrink-0 w-10 h-10 bg-gray-50 dark:bg-slate-800 rounded-xl flex items-center justify-center">{icon}</div>
@@ -176,5 +256,16 @@ const LegendItem: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, 
   <div className="flex items-center gap-1.5 shrink-0 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-full border border-gray-100 dark:border-slate-800 shadow-sm">
     {icon}
     <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">{label}</span>
+  </div>
+);
+
+const HighlightCard: React.FC<{ icon: React.ReactNode; label: string; name: string; subText?: string; sub?: string }> = ({ icon, label, name, sub }) => (
+  <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm space-y-1">
+    <div className="flex items-center gap-1.5">
+      {icon}
+      <span className="text-[8px] font-black text-gray-400 uppercase tracking-wider">{label}</span>
+    </div>
+    <div className="font-bold text-xs truncate dark:text-white">{name}</div>
+    {sub && <div className="text-[9px] font-black text-indigo-500 uppercase tracking-tighter">{sub}</div>}
   </div>
 );
