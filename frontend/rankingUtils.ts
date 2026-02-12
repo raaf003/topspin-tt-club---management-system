@@ -214,7 +214,6 @@ export const calculateAllPlayerStats = (
 
   const sortedDates = Object.keys(matchesByDate).sort();
   const ratingHistory: Record<string, number> = {};
-  const rating7DaysAgoLimit = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().split('T')[0];
 
   if (sortedDates.length === 0) {
     players.forEach(p => {
@@ -236,14 +235,33 @@ export const calculateAllPlayerStats = (
     return result;
   }
 
-  // Process EVERY day from first match to today to ensure RD growth for inactive periods
-  const firstMatchDate = new Date(sortedDates[0]);
+  // Process only days where matches occurred, and apply RD growth for gaps in between
   const today = new Date();
-  let current = new Date(firstMatchDate);
+  const rating7DaysAgoLimit = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().split('T')[0];
+  let rating7DaysAgoCaptured = false;
+  let lastProcessedDateStr = sortedDates[0];
 
-  while (current <= today) {
-    const date = current.toISOString().split('T')[0];
+  sortedDates.forEach((date) => {
     const dailyMatches = matchesByDate[date] || [];
+    
+    // 1. Calculate gap since last processed match day to apply skipping growth
+    const currentDate = new Date(date);
+    const lastDate = new Date(lastProcessedDateStr);
+    const daysGap = Math.floor((currentDate.getTime() - lastDate.getTime()) / (24 * 3600 * 1000));
+
+    // 2. Apply RD growth for inactive days (Step 6)
+    // processRatingPeriod handles 1 day of growth, so we handle (daysGap - 1) days
+    if (daysGap > 1) {
+      const inactiveDays = daysGap - 1;
+      Object.keys(glickoState).forEach(id => {
+        const p = glickoState[id];
+        const { phi: phiInternal } = glicko2.toInternal(p.rating, p.rd);
+        const newPhiInternal = Math.sqrt(phiInternal * phiInternal + inactiveDays * p.vol * p.vol);
+        const { rd: newRd } = glicko2.fromInternal(p.rating, newPhiInternal);
+        glickoState[id].rd = newRd;
+      });
+    }
+
     const ratedMatchesToProcess: { player1: string; player2: string; winner: string; weight: number }[] = [];
 
     // Tracks for anti-manipulation
@@ -320,13 +338,28 @@ export const calculateAllPlayerStats = (
     });
 
     // Capture history for "Most Improved"
-    if (date <= rating7DaysAgoLimit) {
+    if (!rating7DaysAgoCaptured && date >= rating7DaysAgoLimit) {
       Object.keys(glickoState).forEach(id => {
         ratingHistory[id] = glickoState[id].rating;
       });
+      rating7DaysAgoCaptured = true;
     }
 
-    current.setDate(current.getDate() + 1);
+    lastProcessedDateStr = date;
+  });
+
+  // Final growth from last match to today
+  const lastMatchDateStr = sortedDates[sortedDates.length - 1];
+  const lastMatchDate = new Date(lastMatchDateStr);
+  const daysToToday = Math.floor((today.getTime() - lastMatchDate.getTime()) / (24 * 3600 * 1000));
+  if (daysToToday > 0) {
+    Object.keys(glickoState).forEach(id => {
+      const p = glickoState[id];
+      const { phi: phiInternal } = glicko2.toInternal(p.rating, p.rd);
+      const newPhiInternal = Math.sqrt(phiInternal * phiInternal + daysToToday * p.vol * p.vol);
+      const { rd: newRd } = glicko2.fromInternal(p.rating, newPhiInternal);
+      glickoState[id].rd = newRd;
+    });
   }
 
   // Calculate final metrics for each player
@@ -384,20 +417,8 @@ export const calculateAllPlayerStats = (
       totalRatedMatches: playerTotalMatches[id] || 0,
       peakRating: playerPeakRating[id] || DEFAULT_RATING
     };
-    
-    // DEBUG: Log every player with their rd value
-    const debugObj = result[id];
-    if (debugObj) {
-      console.log(`[calcAllPlayerStats] Storing ${player.name}: rating=${debugObj.rating}, rd=${debugObj.rd} (type=${typeof debugObj.rd})`);
-    }
   });
 
-  console.log('[calcAllPlayerStats] FINAL CHECK - sample players from result:');
-  const sampleKeys = Object.keys(result).slice(0, 3);
-  sampleKeys.forEach(key => {
-    console.log(`  Key '${key}': rd=${result[key]?.rd} (type: ${typeof result[key]?.rd})`);
-  });
-  console.log('[calcAllPlayerStats] Calculation complete. Total players:', Object.keys(result).length);
   return result;
 };
 
@@ -495,14 +516,30 @@ export const calculatePlayerRatingHistory = (
   const sortedDates = Object.keys(matchesByDate).sort();
   if (sortedDates.length === 0) return history;
 
-  // Process each day
-  const firstMatchDate = new Date(sortedDates[0]);
+  // Process only days where matches occurred, and apply RD growth for gaps in between
   const today = new Date();
-  let current = new Date(firstMatchDate);
+  let lastProcessedDateStr = sortedDates[0];
 
-  while (current <= today) {
-    const date = current.toISOString().split('T')[0];
+  sortedDates.forEach((date) => {
     const dailyMatches = matchesByDate[date] || [];
+
+    // 1. Calculate gap since last processed match day to apply skipping growth
+    const currentDate = new Date(date);
+    const lastDate = new Date(lastProcessedDateStr);
+    const daysGap = Math.floor((currentDate.getTime() - lastDate.getTime()) / (24 * 3600 * 1000));
+
+    // 2. Apply RD growth for inactive days (Step 6)
+    if (daysGap > 1) {
+      const inactiveDays = daysGap - 1;
+      Object.keys(glickoState).forEach(id => {
+        const p = glickoState[id];
+        const { phi: phiInternal } = glicko2.toInternal(p.rating, p.rd);
+        const newPhiInternal = Math.sqrt(phiInternal * phiInternal + inactiveDays * p.vol * p.vol);
+        const { rd: newRd } = glicko2.fromInternal(p.rating, newPhiInternal);
+        glickoState[id].rd = newRd;
+      });
+    }
+
     const ratedMatchesToProcess: { player1: string; player2: string; winner: string; weight: number }[] = [];
 
     // Tracks for anti-manipulation
@@ -574,8 +611,8 @@ export const calculatePlayerRatingHistory = (
       });
     }
 
-    current.setDate(current.getDate() + 1);
-  }
+    lastProcessedDateStr = date;
+  });
 
   return history;
 };
@@ -614,8 +651,6 @@ export const getTopPerformers = (
   getPlayerStats: (id: string) => PlayerStats,
   limit: number = 3
 ) => {
-  console.log(`[getTopPerformers] Called with ${players.length} players, limit=${limit}`);
-  
   // Build player stats lookup for all players (needed for opponent strength calculation)
   const allPlayerStats: Record<string, PlayerStats> = {};
   players.forEach(p => {
@@ -646,8 +681,6 @@ export const getTopPerformers = (
                    (conservativeRating * opponentStrengthFactor * 0.30) +
                    (activityBonus * 0.10);
       
-      console.log(`[getTopPerformers] ${p.name}: conservative=${conservativeRating.toFixed(0)}, oppStrength=${avgOpponentRating.toFixed(0)}, activity=${stats.ratedMatchesLast30}, score=${score.toFixed(0)}`);
-      
       return { 
         ...p, 
         stats, 
@@ -662,14 +695,6 @@ export const getTopPerformers = (
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
   
-  console.log(`[getTopPerformers] Final SORTED ranking:`, result.map((p, i) => ({ 
-    rank: i + 1, 
-    name: p.name, 
-    score: p.score?.toFixed(0),
-    conservative: p.displayRating ? `${(p.displayRating - p.displayRd)?.toFixed(0)}` : '0',
-    oppStrength: p.opponentStrength?.toFixed(0),
-    activity: p.stats?.ratedMatchesLast30
-  })));
   return result;
 };
 
