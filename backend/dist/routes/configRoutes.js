@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const configController_1 = require("../controllers/configController");
+const auth_1 = require("../middleware/auth");
+const client_1 = require("@prisma/client");
+const router = (0, express_1.Router)();
+router.get('/tables', auth_1.authenticate, configController_1.getTables);
+router.post('/tables', auth_1.authenticate, (0, auth_1.authorize)(client_1.UserRole.ADMIN, client_1.UserRole.SUPER_ADMIN), configController_1.createTable);
+router.get('/game-types', auth_1.authenticate, configController_1.getGameConfigs);
+router.patch('/game-types/:id', auth_1.authenticate, (0, auth_1.authorize)(client_1.UserRole.SUPER_ADMIN), configController_1.updateGameConfig);
+exports.default = router;

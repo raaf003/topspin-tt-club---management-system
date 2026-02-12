@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { ExpenseCategory, PaymentMode, Expense } from '../types';
 import { ShoppingBag, Plus, Trash2, Calendar, Edit2, PieChart as PieChartIcon, ChevronDown, ChevronUp, Filter, IndianRupee } from 'lucide-react';
+import { getLocalTodayStr } from '../utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 const ADMINS = ['Partner 1', 'Partner 2', 'Partner 3'];
@@ -18,13 +19,15 @@ export const Expenses: React.FC = () => {
   const [category, setCategory] = useState<ExpenseCategory>(ExpenseCategory.OTHER);
   const [mode, setMode] = useState<PaymentMode>(PaymentMode.CASH);
   const [notes, setNotes] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getLocalTodayStr());
   const [adminName, setAdminName] = useState(currentUser.name);
 
   // Filter State - Default to current month
   const today = new Date();
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const firstDayOfMonth = `${year}-${month}-01`;
+  const lastDayOfMonth = new Date(year, today.getMonth() + 1, 0).toISOString().split('T')[0];
   
   const [startDate, setStartDate] = useState(firstDayOfMonth);
   const [endDate, setEndDate] = useState(lastDayOfMonth);

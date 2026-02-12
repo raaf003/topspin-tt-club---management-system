@@ -15,15 +15,17 @@ import {
   Monitor,
   LayoutDashboard,
   Zap,
-  Table as TableIcon
+  Table as TableIcon,
+  LogOut
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { UserRole } from '../types';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, switchRole, isDarkMode, themeMode, setThemeMode } = useApp();
+  const { currentUser, logout, isDarkMode, themeMode, setThemeMode } = useApp();
   const [showThemeMenu, setShowThemeMenu] = useState(false);
-  const isAdmin = currentUser.role === UserRole.ADMIN;
+  const isSuperAdmin = currentUser.role === UserRole.SUPER_ADMIN;
+  const isAdmin = currentUser.role === UserRole.ADMIN || isSuperAdmin;
 
   const themeOptions: { mode: 'light' | 'dark' | 'auto'; icon: React.ReactNode; label: string }[] = [
     { mode: 'light', icon: <Sun className="w-4 h-4" />, label: 'Light' },
@@ -78,16 +80,21 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             )}
           </div>
           
-          <button 
-            onClick={() => switchRole(isAdmin ? UserRole.STAFF : UserRole.ADMIN)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-              isAdmin 
-                ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' 
-                : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400'
-            }`}
-          >
-            {isAdmin ? <ShieldCheck className="w-3.5 h-3.5" /> : <UserCircle className="w-3.5 h-3.5" />}
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+            isAdmin 
+              ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' 
+              : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400'
+          }`}>
+            {isSuperAdmin ? <ShieldCheck className="w-3.5 h-3.5 text-amber-500" /> : isAdmin ? <ShieldCheck className="w-3.5 h-3.5" /> : <UserCircle className="w-3.5 h-3.5" />}
             {currentUser.role}
+          </div>
+
+          <button
+            onClick={logout}
+            className="p-2 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+            title="Logout"
+          >
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>

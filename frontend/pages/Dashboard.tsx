@@ -4,14 +4,15 @@ import { useApp } from '../context/AppContext';
 import { IndianRupee, TrendingUp, AlertCircle, PlusCircle, CheckCircle2, Calendar, ChevronDown, Filter, Percent, Zap, Clock, X, Trophy, Star, Info, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserRole, PaymentMode } from '../types';
+import { getLocalTodayStr } from '../utils';
 import { getTopPerformers, getPlayerTier } from '../rankingUtils';
 
 export const Dashboard: React.FC = () => {
   const { players, matches, payments, getPlayerStats, currentUser, ongoingMatch, clearOngoingMatch } = useApp();
-  const isAdmin = currentUser.role === UserRole.ADMIN;
+  const isAdmin = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPER_ADMIN;
   const navigate = useNavigate();
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalTodayStr();
   const currentMonthStr = todayStr.substring(0, 7); // YYYY-MM
 
   // Period Filtering State for Admins
@@ -120,9 +121,9 @@ export const Dashboard: React.FC = () => {
               <div className="flex items-center justify-between relative z-10 gap-2 md:gap-4">
                 <div className="flex-1 text-center min-w-0">
                   <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 rounded-xl md:rounded-2xl mx-auto flex items-center justify-center text-xl md:text-2xl font-black mb-1 md:mb-2 shadow-inner border border-white/10">
-                    {liveMatchData.pA?.name[0]}
+                    {liveMatchData.pA?.name?.[0] || '?'}
                   </div>
-                  <div className="font-bold text-xs md:text-sm truncate">{liveMatchData.pA?.name}</div>
+                  <div className="font-bold text-xs md:text-sm truncate">{liveMatchData.pA?.name || 'Unknown'}</div>
                   <div className="text-[7px] md:text-[8px] font-black uppercase opacity-60">Player A</div>
                 </div>
 
@@ -135,9 +136,9 @@ export const Dashboard: React.FC = () => {
 
                 <div className="flex-1 text-center min-w-0">
                   <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 rounded-xl md:rounded-2xl mx-auto flex items-center justify-center text-xl md:text-2xl font-black mb-1 md:mb-2 shadow-inner border border-white/10">
-                    {liveMatchData.pB?.name[0]}
+                    {liveMatchData.pB?.name?.[0] || '?'}
                   </div>
-                  <div className="font-bold text-xs md:text-sm truncate">{liveMatchData.pB?.name}</div>
+                  <div className="font-bold text-xs md:text-sm truncate">{liveMatchData.pB?.name || 'Unknown'}</div>
                   <div className="text-[7px] md:text-[8px] font-black uppercase opacity-60">Player B</div>
                 </div>
               </div>
@@ -150,7 +151,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                    {new Date(liveMatchData.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {liveMatchData.startTime ? new Date(liveMatchData.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                   </div>
                 </div>
                 <button 

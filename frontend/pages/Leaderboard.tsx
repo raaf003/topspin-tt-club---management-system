@@ -59,26 +59,26 @@ export const Leaderboard: React.FC = () => {
         <HighlightCard 
           icon={<TrendingUp className="w-4 h-4 text-emerald-500" />}
           label="Most Improved"
-          name={highlights.mostImproved?.name || '-'}
-          sub={`+${highlights.mostImproved?.delta.toFixed(0) || 0} pts`}
+          name={highlights.mostImproved?.name || 'Awaiting Data'}
+          sub={highlights.mostImproved ? `+${highlights.mostImproved.delta.toFixed(0)} pts` : 'Calculating gains...'}
         />
         <HighlightCard 
           icon={<Flame className="w-4 h-4 text-orange-500" />}
           label="Top Streak"
-          name={highlights.longestStreak?.name || '-'}
-          sub={`${globalPlayerStats[highlights.longestStreak?.id || '']?.playStreak || 0} Days`}
+          name={highlights.longestStreak?.name || 'Unclaimed'}
+          sub={highlights.longestStreak ? `${globalPlayerStats[highlights.longestStreak.id]?.playStreak || 0} Days` : 'Min. 2 day streak'}
         />
         <HighlightCard 
           icon={<Activity className="w-4 h-4 text-indigo-500" />}
           label="Most Active"
-          name={highlights.mostActive?.name || '-'}
-          sub={`${globalPlayerStats[highlights.mostActive?.id || '']?.consistencyScore || 0}/30 Days`}
+          name={highlights.mostActive?.name || 'In Training'}
+          sub={highlights.mostActive ? `${globalPlayerStats[highlights.mostActive.id]?.consistencyScore || 0}/30 Days` : 'New session data...'}
         />
         <HighlightCard 
           icon={<Target className="w-4 h-4 text-rose-500" />}
           label="Giant Killer"
-          name={highlights.giantKiller?.name || '-'}
-          sub={highlights.giantKiller ? `${highlights.giantKiller.upsetCount} Upsets` : 'No upsets'}
+          name={highlights.giantKiller?.name || 'Spot Open'}
+          sub={highlights.giantKiller ? `${highlights.giantKiller.upsetCount} Upsets` : 'Looking for upsets...'}
         />
       </div>
 
@@ -265,7 +265,7 @@ const HighlightCard: React.FC<{ icon: React.ReactNode; label: string; name: stri
       {icon}
       <span className="text-[8px] font-black text-gray-400 uppercase tracking-wider">{label}</span>
     </div>
-    <div className="font-bold text-xs truncate dark:text-white">{name}</div>
-    {sub && <div className="text-[9px] font-black text-indigo-500 uppercase tracking-tighter">{sub}</div>}
+    <div className={`font-bold text-xs truncate ${name === 'Awaiting Data' || name === 'Unclaimed' || name === 'In Training' || name === 'Spot Open' || name === '-' ? 'text-gray-300 italic' : 'dark:text-white'}`}>{name}</div>
+    {sub && <div className={`text-[9px] font-black uppercase tracking-tighter ${name === 'Awaiting Data' || name === 'Unclaimed' || name === 'In Training' || name === 'Spot Open' || name === '-' ? 'text-gray-300' : 'text-indigo-500'}`}>{sub}</div>}
   </div>
 );

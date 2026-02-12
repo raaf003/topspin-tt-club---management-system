@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { PayerOption, MatchPoints, UserRole, Player, Match } from '../types';
 import { Trophy, Check, RefreshCw, Zap, Table as TableIcon, Edit3, X, Clock, User, AlertCircle, Search, ChevronDown, Calendar, Filter, Activity, Play } from 'lucide-react';
-import { generateUUID } from '../utils';
+import { generateUUID, getLocalTodayStr } from '../utils';
 
 interface SearchableSelectProps {
   label: string;
@@ -92,7 +92,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({ label, value, onCha
 
 export const Matches: React.FC = () => {
   const { players, addMatch, updateMatch, matches, currentUser, getPlayerStats, getPlayerDues, ongoingMatch, startOngoingMatch, clearOngoingMatch } = useApp();
-  const canEdit = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.STAFF;
+  const canEdit = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.STAFF || currentUser.role === UserRole.SUPER_ADMIN;
   
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -124,7 +124,7 @@ export const Matches: React.FC = () => {
   }, [ongoingMatch, playerAId, playerBId]);
 
   // History & Filter State
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalTodayStr();
   const [historyDate, setHistoryDate] = useState(todayStr);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING_RESULT' | 'PENDING_PAYMENT'>('ALL');
@@ -167,12 +167,12 @@ export const Matches: React.FC = () => {
 
     // Get all matches where this player was charged, sorted chronologically
     const playerMatchHistory = matches
-      .filter(m => m.charges[playerId] !== undefined)
+      .filter(m => ((m.charges as any)?.[playerId] || 0) > 0)
       .sort((a, b) => a.recordedAt - b.recordedAt);
     
     let cumulativeCharge = 0;
     for (const m of playerMatchHistory) {
-      cumulativeCharge += m.charges[playerId] || 0;
+      cumulativeCharge += (m.charges as any)?.[playerId] || 0;
       if (m.id === match.id) break;
     }
     
@@ -286,7 +286,7 @@ export const Matches: React.FC = () => {
       setEditingId(null);
     } else {
       addMatch({
-        date: new Date().toISOString().split('T')[0],
+        date: todayStr,
         recordedAt: Date.now(),
         recordedBy: {
           role: currentUser.role,
@@ -349,8 +349,11 @@ export const Matches: React.FC = () => {
     setSuccess(false);
   };
 
-  const formatTime = (ts: number) => {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatTime = (ts: any) => {
+    if (!ts) return '';
+    const date = new Date(ts);
+    if (isNaN(date.getTime())) return 'N/A';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -665,7 +668,8 @@ export const Matches: React.FC = () => {
               const isPendingResult = !m.winnerId && m.payerOption === PayerOption.LOSER;
               // NEW FIFO LOGIC: Determine if any involved player has not cleared their charge for THIS match
               const playersWithUnpaidBalance = [m.playerAId, m.playerBId].filter(id => {
-                if ((m.charges[id] || 0) === 0) return false;
+                const playerCharges = (m.charges as any) || {};
+                if ((playerCharges[id] || 0) === 0) return false;
                 return !checkIsMatchPaid(m, id);
               });
 
@@ -752,7 +756,7 @@ export const Matches: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-1 text-[7px] md:text-[8px] font-bold text-gray-400 dark:text-slate-500">
                           <User className="w-2 md:w-2.5 h-2 md:h-2.5" />
-                          {m.recordedBy.name}
+                          {m.recordedBy?.name || 'System'}
                         </div>
                      </div>
                   </div>

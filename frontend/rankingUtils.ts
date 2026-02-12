@@ -751,9 +751,11 @@ export const getWeeklyHighlights = (
   }).filter(p => p.total >= 3).sort((a, b) => b.winRate - a.winRate || b.wins - a.wins);
 
   return {
-    mostImproved: improvements[0],
-    longestStreak: [...players].sort((a, b) => (globalStats[b.id]?.playStreak || 0) - (globalStats[a.id]?.playStreak || 0))[0],
-    mostActive: [...players].sort((a, b) => (globalStats[b.id]?.consistencyScore || 0) - (globalStats[a.id]?.consistencyScore || 0))[0],
+    mostImproved: (improvements[0]?.delta > 0) ? improvements[0] : undefined,
+    longestStreak: players.filter(p => (globalStats[p.id]?.playStreak || 0) >= 2)
+      .sort((a, b) => (globalStats[b.id]?.playStreak || 0) - (globalStats[a.id]?.playStreak || 0))[0],
+    mostActive: players.filter(p => (globalStats[p.id]?.consistencyScore || 0) > 0)
+      .sort((a, b) => (globalStats[b.id]?.consistencyScore || 0) - (globalStats[a.id]?.consistencyScore || 0))[0],
     giantKiller: topGiantKillers[0] ? { ...topGiantKillers[0], upsetCount: topGiantKillers[0].kills } : undefined,
     weeklyBestWinRate: weeklyWinRates[0]
   };

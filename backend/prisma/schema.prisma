@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  STAFF
+}
+
+enum PaymentMode {
+  CASH
+  ONLINE
+}
+
+enum TransactionType {
+  MATCH_PAYMENT
+  EXPENSE
+  SALARY
+  CAPITAL_DISTRIBUTION
+  OTHER_INCOME
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole
+  createdAt DateTime @default(now())
+  
+  recordedMatches   Match[]
+  recordedPayments  Payment[]
+  recordedExpenses  Expense[]
+  recordedPlayers   Player[]
+}
+
+model Player {
+  id                String    @id @default(uuid())
+  name              String
+  nickname          String?   @unique
+  avatarUrl         String?
+  phone             String?
+  initialBalance    Float     @default(0)
+  
+  // Glicko-2 Persisted State
+  rating            Float     @default(1500)
+  rd                Float     @default(350)
+  volatility        Float     @default(0.06)
+  totalRatedMatches Int       @default(0)
+  earnedTier        Int       @default(0)
+  peakRating        Float     @default(1500)
+  
+  recordedById      String
+  createdAt         DateTime  @default(now())
+  
+  recorder          User      @relation(fields: [recordedById], references: [id])
+  matchesA          Match[]   @relation("PlayerA")
+  matchesB          Match[]   @relation("PlayerB")
+  wonMatches        Match[]   @relation("Winner")
+  payments          Payment[]
+}
+
+model GameTable {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  matches     Match[]
+}
+
+model GameConfig {
+  id      String   @id @default(uuid())
+  type    String   @unique // e.g., "10_POINTS", "21_POINTS"
+  price   Float
+  matches Match[]
+}
+
+model Match {
+  id             String      @id @default(uuid())
+  playerAId      String
+  playerBId      String
+  winnerId       String?
+  points         Int
+  isRated        Boolean     @default(true)
+  tableId        String?
+  typeId         String?
+  
+  payerOption    String?     // e.g., "BOTH", "LOSER", "PLAYER_A", "PLAYER_B"
+  totalValue     Float?
+  charges        Json?       // Stores {[playerId]: amount}
+  
+  recordedById   String
+  createdAt      DateTime    @default(now())
+
+  playerA        Player      @relation("PlayerA", fields: [playerAId], references: [id])
+  playerB        Player      @relation("PlayerB", fields: [playerBId], references: [id])
+  winner         Player?     @relation("Winner", fields: [winnerId], references: [id])
+  table          GameTable?  @relation(fields: [tableId], references: [id])
+  type           GameConfig? @relation(fields: [typeId], references: [id])
+  recorder       User        @relation(fields: [recordedById], references: [id])
+}
+
+model Payment {
+  id             String   @id @default(uuid())
+  playerId       String   // Primary payer
+  amount         Float
+  description    String?
+  mode           PaymentMode @default(CASH)
+  
+  allocations    Json?    // Stores PaymentAllocation[]
+  
+  recordedById   String
+  createdAt      DateTime @default(now())
+
+  player         Player   @relation(fields: [playerId], references: [id])
+  recorder       User     @relation(fields: [recordedById], references: [id])
+}
+
+model Expense {
+  id             String   @id @default(uuid())
+  amount         Float
+  category       String
+  description    String?
+  mode           PaymentMode @default(CASH)
+  recordedById   String
+  createdAt      DateTime @default(now())
+
+  recorder       User     @relation(fields: [recordedById], references: [id])
+}
+
+model FinancialTransaction {
+  id          String          @id @default(uuid())
+  type        TransactionType
+  amount      Float
+  description String?
+  recordedById String
+  createdAt    DateTime       @default(now())
+}

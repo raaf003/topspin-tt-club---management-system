@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { PaymentMode, PaymentAllocation, UserRole, Player } from '../types';
+import { getLocalTodayStr } from '../utils';
 import { IndianRupee, CreditCard, Banknote, Check, UserPlus, Trash2, Edit3, X, Search, ChevronDown, Percent, Calendar } from 'lucide-react';
 
 interface SearchableSelectProps {
@@ -104,7 +105,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
 export const Payments: React.FC = () => {
   const { players, addPayment, updatePayment, getPlayerStats, payments, currentUser, getPlayerDues } = useApp();
-  const isAdmin = currentUser.role === UserRole.ADMIN;
+  const isAdmin = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPER_ADMIN;
   
   // State for system
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -115,7 +116,7 @@ export const Payments: React.FC = () => {
   const [success, setSuccess] = useState(false);
 
   // History & Filter State
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalTodayStr();
   const [historyDate, setHistoryDate] = useState(todayStr);
 
   const filteredPayments = useMemo(() => {
@@ -128,8 +129,11 @@ export const Payments: React.FC = () => {
   const totalDiscountAmount = allocations.reduce((sum, a) => sum + (a.discount || 0), 0);
   const totalSettlement = totalPaymentAmount + totalDiscountAmount;
 
-  const formatTime = (ts: number) => {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatTime = (ts: any) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const handleAddAllocation = () => {
@@ -169,7 +173,7 @@ export const Payments: React.FC = () => {
         allocations: validAllocations,
         mode,
         notes,
-        date: new Date().toISOString().split('T')[0],
+        date: todayStr,
         recordedAt: Date.now(),
         recordedBy: {
           role: currentUser.role,

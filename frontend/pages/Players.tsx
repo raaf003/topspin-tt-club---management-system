@@ -7,7 +7,7 @@ import { Users, Search, Plus, Phone, Edit3, X, Check, Save, UserPen } from 'luci
 export const Players: React.FC = () => {
   const { players, addPlayer, updatePlayer, getPlayerStats, currentUser } = useApp();
   const navigate = useNavigate();
-  const isAdmin = currentUser.role === UserRole.ADMIN;
+  const isAdmin = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPER_ADMIN;
   
   const [showAdd, setShowAdd] = useState(false);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
@@ -190,10 +190,10 @@ export const Players: React.FC = () => {
             >
               <div className="flex items-center gap-3 md:gap-4 min-w-0">
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-gray-50 dark:bg-slate-800 rounded-lg md:rounded-2xl shrink-0 flex items-center justify-center font-black text-lg md:text-xl text-orange-400 shadow-inner group-hover:bg-orange-50 dark:group-hover:bg-orange-900/20 transition-all">
-                  {p.name[0]}
+                  {p.name?.[0] || '?'}
                 </div>
                 <div className="min-w-0">
-                  <div className="font-black text-gray-900 dark:text-white text-sm md:text-lg leading-tight group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors truncate">{p.name}</div>
+                  <div className="font-black text-gray-900 dark:text-white text-sm md:text-lg leading-tight group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors truncate">{p.name || 'Anonymous'}</div>
                   <div className="text-[8px] md:text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mt-0.5 truncate">@{p.nickname || 'GUEST'}</div>
                 </div>
               </div>

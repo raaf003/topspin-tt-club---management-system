@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const financeController_1 = require("../controllers/financeController");
+const auth_1 = require("../middleware/auth");
+const client_1 = require("@prisma/client");
+const router = (0, express_1.Router)();
+router.get('/payments', auth_1.authenticate, financeController_1.getPayments);
+router.get('/expenses', auth_1.authenticate, financeController_1.getExpenses);
+router.post('/payment', auth_1.authenticate, financeController_1.createPayment);
+router.post('/expense', auth_1.authenticate, financeController_1.createExpense);
+router.post('/special', auth_1.authenticate, (0, auth_1.authorize)(client_1.UserRole.SUPER_ADMIN), financeController_1.recordSpecialTransaction);
+router.get('/report', auth_1.authenticate, (0, auth_1.authorize)(client_1.UserRole.SUPER_ADMIN), financeController_1.getFinancialReport);
+exports.default = router;

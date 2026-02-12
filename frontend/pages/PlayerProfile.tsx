@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { getLocalTodayStr } from '../utils';
 import { ChevronLeft, Trophy, Target, TrendingUp, History, Phone, Award, Zap, Calendar, Filter, User, Table as TableIcon, Activity, IndianRupee, Info, BarChart3, Users, Gauge } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { calculatePlayerPerformanceScore, getPlayerTier, getTopPerformers, calculatePlayerRatingHistory } from '../rankingUtils';
@@ -95,7 +96,7 @@ export const PlayerProfile: React.FC = () => {
   const player = players.find(p => p.id === id);
 
   // Range Selection
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalTodayStr();
   const lastMonthStr = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   
   const [range, setRange] = useState<'30d' | '90d' | 'all' | 'custom'>('30d');
@@ -105,7 +106,9 @@ export const PlayerProfile: React.FC = () => {
   const activeRange = useMemo(() => {
     if (range === 'all') return undefined;
     if (range === '30d') return { start: lastMonthStr, end: todayStr };
-    if (range === '90d') return { start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], end: todayStr };
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const ninetyDaysAgoStr = `${ninetyDaysAgo.getFullYear()}-${String(ninetyDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(ninetyDaysAgo.getDate()).padStart(2, '0')}`;
+    if (range === '90d') return { start: ninetyDaysAgoStr, end: todayStr };
     return { start: customStart, end: customEnd };
   }, [range, customStart, customEnd, lastMonthStr, todayStr]);
 
@@ -247,11 +250,11 @@ export const PlayerProfile: React.FC = () => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl animate-pulse"></div>
         <div className="relative z-10 flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left">
           <div className="w-24 h-24 md:w-32 md:h-32 bg-white/20 backdrop-blur-md rounded-[2.5rem] flex items-center justify-center text-4xl md:text-5xl font-black shadow-inner border border-white/30 transition-all hover:scale-105 duration-500">
-            {player.name[0]}
+            {player.name?.[0] || '?'}
           </div>
           <div className="space-y-2">
             <div className="flex flex-col md:flex-row items-center gap-3">
-              <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none break-words max-w-full">{player.name}</h1>
+              <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none break-words max-w-full">{player.name || 'Anonymous'}</h1>
               {tier && (
                 <div className="flex flex-col items-center md:items-start gap-1">
                   <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${tier.bg} ${tier.color} ${tier.border}`}>
