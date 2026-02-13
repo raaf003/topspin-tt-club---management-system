@@ -25,6 +25,7 @@ export const AdminPanel: React.FC = () => {
   // Form states
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: UserRole.STAFF as UserRole, profitPercentage: 0 });
   const [editingUser, setEditingUser] = useState<{ id: string, name: string, email: string, password?: string, role: UserRole, profitPercentage?: number } | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [rates, setRates] = useState({ rate10: 10, rate20: 20 });
   const [profitDetails, setProfitDetails] = useState({ 
     amount: 0, 
@@ -90,6 +91,7 @@ export const AdminPanel: React.FC = () => {
       });
       setMessage({ type: 'success', text: 'User created successfully' });
       setNewUser({ name: '', email: '', password: '', role: UserRole.STAFF, profitPercentage: 0 });
+      setShowAddForm(false);
       fetchUsers();
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to create user' });
@@ -202,7 +204,11 @@ export const AdminPanel: React.FC = () => {
         <div className={`p-3.5 rounded-2xl md:rounded-[1.5rem] flex items-center gap-3 animate-in slide-in-from-top-4 duration-300 shadow-lg ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800' : 'bg-rose-50 text-rose-700 dark:bg-rose-900/20 dark:text-rose-400 border border-rose-100 dark:border-rose-800'}`}>
           {message.type === 'success' ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
           <span className="text-xs font-bold flex-1">{message.text}</span>
-          <button onClick={() => setMessage(null)} className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-full">
+      <button 
+        title="Close notification"
+        onClick={() => setMessage(null)} 
+        className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-full"
+      >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -239,192 +245,224 @@ export const AdminPanel: React.FC = () => {
       {/* Content wrapper */}
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
         {activeTab === 'users' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pb-8">
-            {/* Form Section */}
-            <div className="lg:col-span-5 space-y-4">
-              <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
-                <div className="flex items-center justify-between mb-5 relative z-10">
+          <div className="space-y-8 pb-8">
+            {/* Form Section - Wider and centered for better balance */}
+            <div className="max-w-3xl mx-auto">
+              <div className={`bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 relative overflow-hidden group transition-all duration-300 ${(!showAddForm && !editingUser) ? 'p-3' : 'p-4 md:p-6'}`}>
+                <div className={`flex items-center justify-between relative z-10 ${(!showAddForm && !editingUser) ? 'mb-0' : 'mb-5'}`}>
                   <div>
-                    <h3 className="text-lg font-black text-slate-900 dark:text-white italic tracking-tight">
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white italic tracking-tight flex items-center gap-2">
                       {editingUser ? 'Update Profile' : 'New Identity'}
                     </h3>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">
-                      {editingUser ? 'Modifying existing account' : 'Register system actor'}
-                    </p>
-                  </div>
-                  {editingUser && (
-                    <button 
-                      onClick={() => setEditingUser(null)}
-                      className="p-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-all border border-rose-100 dark:border-rose-800"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                <form onSubmit={editingUser ? handleUpdateUserDetails : handleCreateUser} className="space-y-3 relative z-10">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Display Name</label>
-                    <div className="relative group/input">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors">
-                        <Users className="w-4 h-4" />
-                      </div>
-                      <input
-                        type="text"
-                        required
-                        value={editingUser ? editingUser.name : newUser.name}
-                        placeholder="e.g., John Doe"
-                        onChange={e => editingUser 
-                          ? setEditingUser({...editingUser, name: e.target.value})
-                          : setNewUser({...newUser, name: e.target.value})}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 focus:bg-white dark:focus:bg-slate-800/50 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white transition-all outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Email / ID</label>
-                    <div className="relative group/input">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors">
-                        <Mail className="w-4 h-4" />
-                      </div>
-                      <input
-                        type="text"
-                        required
-                        value={editingUser ? editingUser.email : newUser.email}
-                        placeholder="john@topspin.com"
-                        onChange={e => editingUser
-                          ? setEditingUser({...editingUser, email: e.target.value})
-                          : setNewUser({...newUser, email: e.target.value})}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 focus:bg-white dark:focus:bg-slate-800/50 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white transition-all outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1 font-bold uppercase tracking-widest">
-                       <label className="text-[9px] text-slate-400 pl-1">Secret Key</label>
-                       <input
-                        type="password"
-                        required={!editingUser}
-                        value={editingUser ? (editingUser.password || '') : newUser.password}
-                        placeholder={editingUser ? "Leave blank" : "••••••••"}
-                        onChange={e => editingUser
-                          ? setEditingUser({...editingUser, password: e.target.value})
-                          : setNewUser({...newUser, password: e.target.value})}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-900 dark:text-white transition-all outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1 uppercase font-bold tracking-widest">
-                      <label className="text-[9px] text-slate-400 pl-1">Level</label>
-                      <select
-                        title="Role"
-                        value={editingUser ? editingUser.role : newUser.role}
-                        onChange={e => editingUser
-                          ? setEditingUser({...editingUser, role: e.target.value as UserRole})
-                          : setNewUser({...newUser, role: e.target.value as UserRole})}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 rounded-xl px-4 py-2.5 text-sm font-black text-slate-900 dark:text-white transition-all outline-none appearance-none"
-                      >
-                        <option value={UserRole.STAFF}>STAFF</option>
-                        <option value={UserRole.ADMIN}>ADMIN</option>
-                        <option value={UserRole.SUPER_ADMIN}>ROOT</option>
-                      </select>
-                    </div>
+                    {(!showAddForm && !editingUser) ? (
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5 whitespace-nowrap">
+                        Register a new system actor
+                      </p>
+                    ) : (
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">
+                        {editingUser ? 'Modifying existing account' : 'Register system actor'}
+                      </p>
+                    )}
                   </div>
                   
-                  <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30">
-                    <div className="flex items-center justify-between mb-2">
-                       <label className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                         <PieChart className="w-3 h-3" /> Profit Cut
-                       </label>
-                       <span className="text-lg font-black text-indigo-700 dark:text-indigo-300">
-                         {editingUser ? (editingUser.profitPercentage || 0) : newUser.profitPercentage}%
-                       </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="0.5"
-                      value={editingUser ? (editingUser.profitPercentage || 0) : newUser.profitPercentage}
-                      onChange={e => {
-                        const val = parseFloat(e.target.value);
-                        editingUser 
-                          ? setEditingUser({...editingUser, profitPercentage: val})
-                          : setNewUser({...newUser, profitPercentage: val});
-                      }}
-                      className="w-full h-1 bg-indigo-200 dark:bg-indigo-900 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                    />
-                    <p className="mt-1.5 text-[8px] text-indigo-500/70 dark:text-indigo-400/50 font-bold uppercase italic leading-tight">Cut only activates for PARTNER-enabled users.</p>
+                  <div className="flex items-center gap-2">
+                    {editingUser ? (
+                      <button 
+                        title="Cancel Edit"
+                        onClick={() => setEditingUser(null)}
+                        className="p-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-all border border-rose-100 dark:border-rose-800"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => setShowAddForm(!showAddForm)}
+                        className={`p-1.5 rounded-lg transition-all border flex items-center gap-2 px-3 ${
+                          showAddForm 
+                            ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500 border-rose-100 dark:border-rose-800' 
+                            : 'bg-indigo-600 dark:bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-700'
+                        }`}
+                      >
+                        {showAddForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                        <span className="text-[10px] font-black uppercase tracking-tight">{showAddForm ? 'Close' : 'Add User'}</span>
+                      </button>
+                    )}
                   </div>
+                </div>
 
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className={`w-full text-white font-black py-3 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-xl active:scale-[0.98] ${editingUser ? 'shadow-none' : ''} ${editingUser ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-200 dark:shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none'}`}
-                  >
-                    {editingUser ? <Save className="w-4 h-4 md:w-5 md:h-5" /> : <Plus className="w-4 h-4 md:w-5 md:h-5" />}
-                    <span className="text-base uppercase tracking-tighter">{loading ? 'Processing...' : (editingUser ? 'Commit Changes' : 'Initialize Account')}</span>
-                  </button>
-                </form>
-              </div>
+                {(showAddForm || editingUser) && (
+                  <form onSubmit={editingUser ? handleUpdateUserDetails : handleCreateUser} className="relative z-10 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Display Name</label>
+                          <div className="relative group/input">
+                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors">
+                              <Users className="w-4 h-4" />
+                            </div>
+                            <input
+                              type="text"
+                              required
+                              value={editingUser ? editingUser.name : newUser.name}
+                              placeholder="e.g., John Doe"
+                              onChange={e => editingUser 
+                                ? setEditingUser({...editingUser, name: e.target.value})
+                                : setNewUser({...newUser, name: e.target.value})}
+                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 focus:bg-white dark:focus:bg-slate-800/50 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white transition-all outline-none"
+                            />
+                          </div>
+                        </div>
 
-              {/* Extra Info Card */}
-              <div className="bg-slate-900 dark:bg-slate-800 p-5 rounded-3xl text-white shadow-xl relative overflow-hidden hidden md:block">
-                 <Shield className="absolute -right-4 -bottom-4 w-24 h-24 opacity-10 rotate-12" />
-                 <h4 className="text-xs font-black uppercase tracking-widest text-indigo-400 mb-1.5">Notice</h4>
-                 <p className="text-[10px] text-slate-300 leading-relaxed font-medium">
-                   User creation allows access to club management. <span className="text-amber-400">STAFF</span> can log matches and payments. <span className="text-indigo-400">ADMIN</span> can manage players and configs. <span className="text-rose-400">SUPER ADMIN</span> has full fiscal control.
-                 </p>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Email / ID</label>
+                          <div className="relative group/input">
+                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors">
+                              <Mail className="w-4 h-4" />
+                            </div>
+                            <input
+                              type="text"
+                              required
+                              value={editingUser ? editingUser.email : newUser.email}
+                              placeholder="john@topspin.com"
+                              onChange={e => editingUser
+                                ? setEditingUser({...editingUser, email: e.target.value})
+                                : setNewUser({...newUser, email: e.target.value})}
+                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 focus:bg-white dark:focus:bg-slate-800/50 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white transition-all outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1 font-bold uppercase tracking-widest">
+                             <label className="text-[9px] text-slate-400 pl-1">Secret Key</label>
+                             <input
+                              type="password"
+                              required={!editingUser}
+                              value={editingUser ? (editingUser.password || '') : newUser.password}
+                              placeholder={editingUser ? "Leave blank" : "••••••••"}
+                              onChange={e => editingUser
+                                ? setEditingUser({...editingUser, password: e.target.value})
+                                : setNewUser({...newUser, password: e.target.value})}
+                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-900 dark:text-white transition-all outline-none"
+                            />
+                          </div>
+                          <div className="space-y-1 uppercase font-bold tracking-widest">
+                            <label className="text-[9px] text-slate-400 pl-1">Level</label>
+                            <select
+                              title="Role"
+                              value={editingUser ? editingUser.role : newUser.role}
+                              onChange={e => editingUser
+                                ? setEditingUser({...editingUser, role: e.target.value as UserRole})
+                                : setNewUser({...newUser, role: e.target.value as UserRole})}
+                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 rounded-xl px-4 py-2.5 text-sm font-black text-slate-900 dark:text-white transition-all outline-none appearance-none"
+                            >
+                              <option value={UserRole.STAFF}>STAFF</option>
+                              <option value={UserRole.ADMIN}>ADMIN</option>
+                              <option value={UserRole.SUPER_ADMIN}>SUPER ADMIN</option>
+                            </select>
+                          </div>
+                        </div>
+                        
+                        <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30">
+                          <div className="flex items-center justify-between mb-2">
+                             <label className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                               <PieChart className="w-3 h-3" /> Profit Cut %
+                             </label>
+                          </div>
+                          <div className="relative">
+                            <input
+                              title="Profit Percentage"
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.1"
+                              value={editingUser ? (editingUser.profitPercentage || 0) : newUser.profitPercentage}
+                              onChange={e => {
+                                const val = parseFloat(e.target.value) || 0;
+                                const clamped = Math.min(100, Math.max(0, val));
+                                editingUser 
+                                  ? setEditingUser({...editingUser, profitPercentage: clamped})
+                                  : setNewUser({...newUser, profitPercentage: clamped});
+                              }}
+                              className="w-full bg-white dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 rounded-xl px-4 py-2 text-sm font-black text-indigo-700 dark:text-indigo-300 transition-all outline-none"
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-indigo-400 pointer-events-none">%</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex flex-col md:flex-row items-center gap-4">
+                      <p className="flex-1 text-[8px] text-slate-400 font-bold uppercase italic leading-tight text-center md:text-left">
+                        Account creation grants restricted access. User profit cuts only activate for PARTNER-enabled actors.
+                      </p>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className={`w-full md:w-auto md:min-w-[200px] text-white font-black py-3 px-8 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-xl active:scale-[0.98] ${editingUser ? 'shadow-none' : ''} ${editingUser ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-200 dark:shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none'}`}
+                      >
+                        {editingUser ? <Save className="w-4 h-4 md:w-5 md:h-5" /> : <Plus className="w-4 h-4 md:w-5 md:h-5" />}
+                        <span className="text-sm uppercase tracking-tighter">{loading ? 'Processing...' : (editingUser ? 'Commit Changes' : 'Initialize Account')}</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             </div>
 
-            {/* User List Section */}
-            <div className="lg:col-span-7 space-y-3.5">
+            {/* User List Section - Responsive Grid Layout */}
+            <div className="space-y-4">
               <div className="flex items-center justify-between px-1">
                  <h3 className="text-sm md:text-base font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                    <Users className="w-4 h-4 text-indigo-600" />
                    Active Identities
                  </h3>
-                 <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest shadow-sm">
-                   {users.length} Total
-                 </span>
+                 <div className="flex items-center gap-2">
+                   <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest shadow-sm">
+                     {users.length} Total
+                   </span>
+                 </div>
               </div>
               
-              <div className="grid grid-cols-1 gap-2.5 max-h-[70vh] overflow-y-auto no-scrollbar pr-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {users.map(user => (
-                  <div key={user.id} className="bg-white dark:bg-slate-900 p-3 md:p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 group hover:shadow-md transition-all border-l-2 border-l-transparent hover:border-l-indigo-600">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-lg font-black shadow-inner border transition-colors ${
-                        user.role === UserRole.SUPER_ADMIN ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 border-rose-100 dark:border-rose-900/50' :
-                        user.role === UserRole.ADMIN ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 border-indigo-100 dark:border-indigo-900/50' :
-                        'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-100 dark:border-slate-700'
-                      }`}>
-                        {user.name[0].toUpperCase()}
+                  <div key={user.id} className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-black shadow-inner border transition-colors ${
+                          user.role === UserRole.SUPER_ADMIN ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 border-rose-100 dark:border-rose-900/50' :
+                          user.role === UserRole.ADMIN ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 border-indigo-100 dark:border-indigo-900/50' :
+                          'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-100 dark:border-slate-700'
+                        }`}>
+                          {user.name[0].toUpperCase()}
+                        </div>
+                        <span className={`text-[7px] font-black px-2 py-1 rounded-lg tracking-widest uppercase ${
+                          user.role === UserRole.SUPER_ADMIN ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-400' :
+                          user.role === UserRole.ADMIN ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400' :
+                          'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                        }`}>
+                          {user.role}
+                        </span>
                       </div>
+                      
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{user.name}</p>
-                          <span className={`text-[7px] font-black px-1.5 py-0.5 rounded tracking-[0.1em] uppercase ${
-                            user.role === UserRole.SUPER_ADMIN ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-400' :
-                            user.role === UserRole.ADMIN ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400' :
-                            'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                          }`}>
-                            {user.role}
+                        <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{user.name}</p>
+                        <p className="text-[10px] text-slate-400 font-bold truncate tracking-tight">{user.email}</p>
+                      </div>
+
+                      {user.isPartner && (
+                        <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 w-fit px-2 py-1 rounded-lg border border-emerald-100/50 dark:border-emerald-900/30">
+                          <PieChart className="w-3 h-3 text-emerald-500" />
+                          <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">
+                            {user.profitPercentage}% SHARE
                           </span>
                         </div>
-                        <p className="text-[9px] md:text-xs text-slate-400 font-bold truncate tracking-tight">{user.email}</p>
-                        {user.isPartner && (
-                          <div className="flex items-center gap-1 mt-1 bg-emerald-50 dark:bg-emerald-950/30 w-fit px-1.5 py-0.5 rounded-md border border-emerald-100/50 dark:border-emerald-900/30">
-                            <PieChart className="w-2.5 h-2.5 text-emerald-500" />
-                            <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 uppercase">
-                              {user.profitPercentage}% SHARE
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 border-t md:border-t-0 border-slate-50 dark:border-slate-800 pt-2 md:pt-0">
+
+                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-50 dark:border-slate-800">
                       <button
                         onClick={() => setEditingUser({ 
                           id: user.id, 
@@ -433,13 +471,13 @@ export const AdminPanel: React.FC = () => {
                           role: user.role, 
                           profitPercentage: user.profitPercentage 
                         })}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl transition-all font-bold text-[9px] uppercase tracking-widest border border-transparent hover:border-indigo-100/50"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl transition-all font-black text-[9px] uppercase tracking-widest border border-transparent hover:border-indigo-100/50"
                       >
-                        <Edit3 className="w-3.5 h-3.5" /> <span className="md:hidden">Edit</span>
+                        <Edit3 className="w-3.5 h-3.5" /> <span>Edit</span>
                       </button>
                       <button
                         onClick={() => handleTogglePartner(user)}
-                        className={`flex-1 md:flex-none px-3 py-1.5 rounded-xl text-[8px] font-black tracking-widest uppercase transition-all ${user.isPartner ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                        className={`flex-1 px-3 py-2 rounded-xl text-[8px] font-black tracking-widest uppercase transition-all ${user.isPartner ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
                       >
                          {user.isPartner ? 'PARTNER' : '+ PARTNER'}
                       </button>
@@ -561,6 +599,7 @@ export const AdminPanel: React.FC = () => {
                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Payout Target (₹)</label>
                       <div className="relative group/input">
                         <input
+                          title="Payout Amount"
                           type="number"
                           required
                           value={profitDetails.amount}
@@ -820,6 +859,7 @@ const RateConfigCard: React.FC<{ points: number; label: string; value: number; o
     <div className="relative group/input">
       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-black text-slate-300 dark:text-slate-700 italic group-focus-within/input:text-indigo-500 transition-colors">₹</div>
       <input
+        title={`${label} pricing`}
         type="number"
         value={value}
         onChange={e => onChange(parseInt(e.target.value) || 0)}
