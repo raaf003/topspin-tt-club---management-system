@@ -18,7 +18,7 @@ let currentLiveMatch: OngoingMatch | null = null;
 export const initSocket = (server: HttpServer) => {
   io = new Server(server, {
     cors: {
-      origin: '*', // Adjust this for production
+      origin: process.env.FRONTEND_URL || '*',
       methods: ['GET', 'POST']
     }
   });

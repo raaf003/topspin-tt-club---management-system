@@ -4,7 +4,10 @@ import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { UserRole } from '@prisma/client';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'topsprint-secret-key-2024';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET must be defined in environment variables');
+}
 
 export const register = async (req: Request, res: Response) => {
   try {
