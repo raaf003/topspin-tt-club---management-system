@@ -83,7 +83,7 @@ export const Dashboard: React.FC = () => {
       <section>
         <div className="flex justify-between items-start mb-4 px-1">
           <div>
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white italic tracking-tight transition-all">Assalam-u-alikum! 👋</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white italic tracking-tight transition-all">Hello there! 👋</h2>
             <p className="text-gray-500 dark:text-slate-400 font-medium text-xs md:text-sm">Welcome to TopSpin TT Hub.</p>
           </div>
           <Link 
