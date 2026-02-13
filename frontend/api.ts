@@ -1,5 +1,5 @@
-export const API_URL = 'http://localhost:5000/api';
-export const SOCKET_URL = 'http://localhost:5000';
+export const API_URL = 'http://192.168.29.119:5000/api';
+export const SOCKET_URL = 'http://192.168.29.119:5000';
 
 const getHeaders = () => {
   const token = localStorage.getItem('smashtrack_token');
