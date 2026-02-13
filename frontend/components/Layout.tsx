@@ -24,6 +24,7 @@ import { UserRole } from '../types';
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, logout, isDarkMode, themeMode, setThemeMode } = useApp();
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const isSuperAdmin = currentUser.role === UserRole.SUPER_ADMIN;
   const isAdmin = currentUser.role === UserRole.ADMIN || isSuperAdmin;
 
@@ -48,7 +49,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           {/* Theme Selector */}
           <div className="relative">
             <button
-              onClick={() => setShowThemeMenu(!showThemeMenu)}
+              onClick={() => {
+                setShowThemeMenu(!showThemeMenu);
+                setShowProfileMenu(false);
+              }}
               className="p-2 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
               aria-label="Select theme"
             >
@@ -80,22 +84,55 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             )}
           </div>
           
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-            isAdmin 
-              ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' 
-              : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400'
-          }`}>
-            {isSuperAdmin ? <ShieldCheck className="w-3.5 h-3.5 text-amber-500" /> : isAdmin ? <ShieldCheck className="w-3.5 h-3.5" /> : <UserCircle className="w-3.5 h-3.5" />}
-            {currentUser.role}
+          {/* Profile Menu */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowProfileMenu(!showProfileMenu);
+                setShowThemeMenu(false);
+              }}
+              className="flex items-center gap-2 p-1 rounded-full transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-700 bg-gray-100/50 dark:bg-slate-800/50"
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                isSuperAdmin ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
+              }`}>
+                {isSuperAdmin ? <ShieldCheck className="w-5 h-5" /> : isAdmin ? <ShieldCheck className="w-5 h-5" /> : <UserCircle className="w-5 h-5" />}
+              </div>
+            </button>
+            
+            {showProfileMenu && (
+              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
+                  <p className="text-sm font-bold truncate dark:text-white">{currentUser.name}</p>
+                  <p className="text-[10px] mt-0.5 text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">{currentUser.role.replace('_', ' ')}</p>
+                </div>
+                
+                <div className="p-1.5">
+                  {isSuperAdmin && (
+                    <NavLink
+                      to="/admin"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-amber-500" />
+                      System Control and Audit
+                    </NavLink>
+                  )}
+                  
+                  <button
+                    onClick={() => {
+                      logout();
+                      setShowProfileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-
-          <button
-            onClick={logout}
-            className="p-2 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
-            title="Logout"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </header>
 
@@ -114,7 +151,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <NavItem to="/players" icon={<Users className="w-6 h-6" />} label="Players" />
           {isAdmin && <NavItem to="/expenses" icon={<ShoppingBag className="w-6 h-6" />} label="Expenses" />}
           {isAdmin && <NavItem to="/reports" icon={<PieChart className="w-6 h-6" />} label="Reports" />}
-          {isSuperAdmin && <NavItem to="/admin" icon={<ShieldCheck className="w-6 h-6 text-amber-500" />} label="Admin" />}
         </div>
       </nav>
     </div>
