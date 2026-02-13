@@ -367,7 +367,7 @@ const StatCard: React.FC<{ label: string; value: string; icon: React.ReactNode; 
         {tooltip && (
           <div className="relative group/tooltip">
             <Info className="w-2.5 h-2.5 text-gray-400/50 cursor-help" />
-            <div className="absolute bottom-full left-0 mb-2 w-40 p-2 bg-gray-900 text-white text-[9px] rounded-lg opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl border border-white/10 font-bold leading-tight">
+            <div className="absolute bottom-full left-0 md:left-1/2 md:-translate-x-1/2 mb-2 w-48 p-2.5 bg-gray-900/95 backdrop-blur-sm text-white text-[10px] rounded-xl opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-all duration-200 z-50 shadow-2xl border border-white/10 font-bold leading-tight group-even/stat:left-auto group-even/stat:right-0 md:group-even/stat:left-1/2 md:group-even/stat:translate-x-[-50%]">
               {tooltip}
             </div>
           </div>
