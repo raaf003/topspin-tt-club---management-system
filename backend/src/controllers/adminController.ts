@@ -8,7 +8,7 @@ import { logAction, AuditAction, AuditResource } from '../utils/logger';
 export const getUsers = async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
-      select: { id: true, email: true, name: true, role: true, isPartner: true, createdAt: true },
+      select: { id: true, email: true, name: true, role: true, isPartner: true, profitPercentage: true, createdAt: true },
       orderBy: { createdAt: 'desc' }
     });
     res.json(users);
@@ -19,7 +19,7 @@ export const getUsers = async (req: Request, res: Response) => {
 
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { email, password, name, role, isPartner } = req.body;
+    const { email, password, name, role, isPartner, profitPercentage } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
     const lowerEmail = email.toLowerCase();
     
@@ -29,13 +29,14 @@ export const createUser = async (req: Request, res: Response) => {
         password: hashedPassword,
         name,
         role: role as UserRole,
-        isPartner: isPartner || false
+        isPartner: isPartner || false,
+        profitPercentage: profitPercentage ? parseFloat(profitPercentage) : 0
       }
     });
 
     await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.USER, user.id, { email: lowerEmail, role });
 
-    res.status(201).json({ id: user.id, email: user.email, name: user.name, role: user.role, isPartner: user.isPartner });
+    res.status(201).json({ id: user.id, email: user.email, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -44,7 +45,7 @@ export const createUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { email, name, role, isPartner, password } = req.body;
+    const { email, name, role, isPartner, profitPercentage, password } = req.body;
     
     const data: any = { name, role, isPartner };
     if (email) {
@@ -52,6 +53,9 @@ export const updateUser = async (req: Request, res: Response) => {
     }
     if (password) {
       data.password = await bcrypt.hash(password, 10);
+    }
+    if (profitPercentage !== undefined) {
+      data.profitPercentage = parseFloat(profitPercentage);
     }
 
     const user = await prisma.user.update({
@@ -61,7 +65,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
     await logAction((req as any).user.userId, AuditAction.UPDATE, AuditResource.USER, id, { email: data.email, role });
 
-    res.json({ id: user.id, email: user.email, name: user.name, role: user.role, isPartner: user.isPartner });
+    res.json({ id: user.id, email: user.email, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -89,20 +93,58 @@ export const getAuditLogs = async (req: Request, res: Response) => {
 };
 
 // --- Profit Distribution ---
+export const getProfitSummary = async (req: Request, res: Response) => {
+  try {
+    const matches = await prisma.match.findMany({ select: { totalValue: true } });
+    const totalRevenue = matches.reduce((sum, m) => sum + (m.totalValue || 0), 0);
+
+    const expenses = await prisma.expense.findMany({ select: { amount: true } });
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+    const distributions = await prisma.financialTransaction.findMany({
+      where: { type: TransactionType.PARTNER_PAYOUT },
+      select: { amount: true }
+    });
+    const totalDistributed = distributions.reduce((sum, d) => sum + d.amount, 0);
+
+    const netProfit = totalRevenue - totalExpenses;
+    const remainingProfit = netProfit - totalDistributed;
+
+    res.json({
+      totalRevenue,
+      totalExpenses,
+      netProfit,
+      totalDistributed,
+      remainingProfit
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const distributeProfit = async (req: Request, res: Response) => {
   try {
-    const { amount, description } = req.body;
+    const { amount, description, usePercentages } = req.body;
     const partners = await prisma.user.findMany({ where: { isPartner: true } });
     
     if (partners.length === 0) {
       return res.status(400).json({ message: 'No partners found to distribute profit to' });
     }
 
-    const share = parseFloat(amount) / partners.length;
+    const totalToDistribute = parseFloat(amount);
     const transactions = [];
     const todayStr = new Date().toISOString().split('T')[0];
 
     for (const partner of partners) {
+      let share = 0;
+      if (usePercentages) {
+        share = (totalToDistribute * (partner.profitPercentage || 0)) / 100;
+      } else {
+        share = totalToDistribute / partners.length;
+      }
+
+      if (share <= 0) continue;
+
       const tx = await prisma.financialTransaction.create({
         data: {
           type: TransactionType.PARTNER_PAYOUT,
@@ -115,9 +157,9 @@ export const distributeProfit = async (req: Request, res: Response) => {
       transactions.push(tx);
     }
 
-    await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.FINANCE, undefined, { amount, partnerCount: partners.length });
+    await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.FINANCE, undefined, { amount, partnerCount: partners.length, usePercentages });
 
-    res.status(201).json({ message: 'Profit distributed successfully', sharePerPartner: share, transactions });
+    res.status(201).json({ message: 'Profit distributed successfully', transactions });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

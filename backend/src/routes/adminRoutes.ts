@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUsers, createUser, updateUser, getAuditLogs, distributeProfit, getMatchRates, updateMatchRates } from '../controllers/adminController';
+import { getUsers, createUser, updateUser, getAuditLogs, distributeProfit, getMatchRates, updateMatchRates, getProfitSummary } from '../controllers/adminController';
 import { authenticate, authorize } from '../middleware/auth';
 import { UserRole } from '@prisma/client';
 
@@ -13,6 +13,7 @@ router.post('/users', createUser);
 router.patch('/users/:id', updateUser);
 
 router.get('/audit-logs', getAuditLogs);
+router.get('/profit-summary', getProfitSummary);
 router.post('/distribute-profit', distributeProfit);
 router.get('/match-rates', getMatchRates);
 router.post('/match-rates', updateMatchRates);

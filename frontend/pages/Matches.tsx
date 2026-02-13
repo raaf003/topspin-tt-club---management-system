@@ -457,7 +457,7 @@ export const Matches: React.FC = () => {
               >
                 <span className="text-base md:text-lg">{pts} Points</span>
                 <span className={`text-[8px] md:text-[10px] opacity-80 ${points === pts ? 'text-white/70' : 'text-gray-400 dark:text-slate-500'}`}>
-                  Value: ₹{pts === 20 ? 30 : 20}
+                  Value: ₹{matchRates[`${pts}_POINTS`] || (pts === 20 ? 30 : 20)}
                 </span>
               </button>
             ))}

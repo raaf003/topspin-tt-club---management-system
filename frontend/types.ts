@@ -180,6 +180,7 @@ export interface User {
   name: string;
   role: UserRole;
   isPartner: boolean;
+  profitPercentage?: number;
   createdAt: number;
 }
 

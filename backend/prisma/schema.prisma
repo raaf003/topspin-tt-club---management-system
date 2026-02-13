@@ -34,6 +34,7 @@ model User {
   name      String
   role      UserRole
   isPartner Boolean  @default(false)
+  profitPercentage Float @default(0)
   createdAt DateTime @default(now())
   
   recordedMatches   Match[]

@@ -22,6 +22,7 @@ interface AppContextType extends AppState {
   getPlayerStats: (playerId: string, dateRange?: { start: string; end: string }) => PlayerStats;
   login: (user: any, token: string) => void;
   logout: () => void;
+  refreshData: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -416,9 +417,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     getPlayerStats,
     login,
     logout,
+    refreshData: fetchData,
     isAuthenticated,
     isLoading
-  }), [state, globalPlayerStats, addPlayer, updatePlayer, addMatch, updateMatch, addPayment, updatePayment, addExpense, updateExpense, startOngoingMatch, clearOngoingMatch, setThemeMode, getPlayerDues, getPlayerStats, isAuthenticated, isLoading, logout]);
+  }), [state, globalPlayerStats, addPlayer, updatePlayer, addMatch, updateMatch, addPayment, updatePayment, addExpense, updateExpense, startOngoingMatch, clearOngoingMatch, setThemeMode, getPlayerDues, getPlayerStats, isAuthenticated, isLoading, logout, fetchData]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
