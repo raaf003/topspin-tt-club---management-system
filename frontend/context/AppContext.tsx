@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { Player, Match, Payment, Expense, AppState, UserRole, PayerOption, PaymentMode, OngoingMatch, ThemeMode, PlayerStats } from '../types';
 import { calculateAllPlayerStats } from '../rankingUtils';
-import { api } from '../api';
+import { api, API_URL, SOCKET_URL } from '../api';
+import { io, Socket } from 'socket.io-client';
 
 interface AppContextType extends AppState {
   globalPlayerStats: Record<string, { rating: number; rd: number; vol: number; playStreak: number; consistencyScore: number; onFire: boolean; ratedMatchesLast30: number; rating7DaysAgo: number; lastMatchDate: string | null; earnedTier: number; totalRatedMatches: number; peakRating: number }>;
@@ -59,6 +60,7 @@ const INITIAL_PLAYERS: Player[] = [
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [token, setToken] = useState<string | null>(localStorage.getItem(TOKEN_KEY));
+  const socketRef = React.useRef<Socket | null>(null);
   
   const [state, setState] = useState<AppState & { matchRates: { [key: string]: number } }>({
     players: [],
@@ -77,6 +79,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     setToken(null);
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
     setState(prev => ({
       ...prev,
       players: [],
@@ -132,6 +138,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    if (token && !socketRef.current) {
+      socketRef.current = io(SOCKET_URL, {
+        transports: ['websocket'], // Prefer websocket for reliability in some envs
+        reconnection: true
+      });
+
+      socketRef.current.on('connect', () => {
+        console.log('Connected to real-time sync');
+      });
+
+      socketRef.current.on('live-match-sync', (match: OngoingMatch | null) => {
+        setState(prev => ({ ...prev, ongoingMatch: match }));
+      });
+
+      socketRef.current.on('data-updated', (data: { type: string }) => {
+        console.log('Real-time data update:', data.type);
+        fetchData();
+      });
+    }
+
+    if (!token && socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+  }, [token, fetchData]);
+  
   const login = (user: any, newToken: string) => {
     localStorage.setItem(TOKEN_KEY, newToken);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
@@ -219,12 +252,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
-  const startOngoingMatch = useCallback((match: OngoingMatch) => {
-    setState(prev => ({ ...prev, ongoingMatch: match }));
+  const startOngoingMatch = useCallback(async (match: OngoingMatch) => {
+    try {
+      await api.post('/matches/live', match);
+    } catch (err: any) {
+      console.error('Failed to start live match:', err);
+      // Re-throw to allow component to handle it
+      throw err;
+    }
   }, []);
 
-  const clearOngoingMatch = useCallback(() => {
-    setState(prev => ({ ...prev, ongoingMatch: null }));
+  const clearOngoingMatch = useCallback(async () => {
+    try {
+      await api.delete('/matches/live');
+    } catch (err) {
+      console.error('Failed to stop live match:', err);
+    }
   }, []);
 
   const setThemeMode = useCallback((mode: ThemeMode) => {

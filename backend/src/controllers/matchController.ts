@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { calculateAllPlayerStats } from '../utils/ranking';
 import { logAction, AuditAction, AuditResource } from '../utils/logger';
+import { startLiveMatch, stopLiveMatch, notifyDataUpdate } from '../socket';
 
 export const createMatch = async (req: Request, res: Response) => {
   try {
@@ -85,6 +86,10 @@ export const createMatch = async (req: Request, res: Response) => {
 
     const finalCreatedAt = fullMatch?.createdAt ? new Date(fullMatch.createdAt) : createdAt;
     const dateStr = fullMatch?.date || finalCreatedAt.toISOString().split('T')[0];
+    
+    // Notify all clients that a new match was created
+    notifyDataUpdate('MATCH');
+
     res.status(201).json({ 
       ...fullMatch, 
       recordedBy: fullMatch?.recorder,
@@ -165,6 +170,8 @@ export const updateMatch = async (req: Request, res: Response) => {
 
     if (!updatedMatch) return res.status(404).json({ message: 'Match not found' });
 
+    notifyDataUpdate('MATCH');
+
     res.json({
       ...updatedMatch,
       recordedBy: updatedMatch.recorder,
@@ -213,4 +220,27 @@ export const getMatches = async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
+};
+
+export const startLiveMatchController = async (req: Request, res: Response) => {
+  try {
+    const { id, playerAId, playerBId, points, table, startTime } = req.body;
+    startLiveMatch({
+      id,
+      playerAId,
+      playerBId,
+      points,
+      table,
+      startTime,
+      startedBy: (req as any).user.userId
+    });
+    res.status(200).json({ message: 'Live match started' });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const stopLiveMatchController = async (req: Request, res: Response) => {
+  stopLiveMatch();
+  res.status(200).json({ message: 'Live match stopped' });
 };

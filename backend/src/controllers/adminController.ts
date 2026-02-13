@@ -3,6 +3,7 @@ import prisma from '../lib/prisma';
 import bcrypt from 'bcryptjs';
 import { UserRole, TransactionType } from '@prisma/client';
 import { logAction, AuditAction, AuditResource } from '../utils/logger';
+import { notifyDataUpdate } from '../socket';
 
 // --- User Management ---
 export const getUsers = async (req: Request, res: Response) => {
@@ -36,6 +37,8 @@ export const createUser = async (req: Request, res: Response) => {
 
     await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.USER, user.id, { email: lowerEmail, role });
 
+    notifyDataUpdate('USER');
+
     res.status(201).json({ id: user.id, email: user.email, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -64,6 +67,8 @@ export const updateUser = async (req: Request, res: Response) => {
     });
 
     await logAction((req as any).user.userId, AuditAction.UPDATE, AuditResource.USER, id, { email: data.email, role });
+
+    notifyDataUpdate('USER');
 
     res.json({ id: user.id, email: user.email, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
   } catch (error: any) {
@@ -159,6 +164,8 @@ export const distributeProfit = async (req: Request, res: Response) => {
 
     await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.FINANCE, undefined, { amount, partnerCount: partners.length, usePercentages });
 
+    notifyDataUpdate('FINANCE');
+
     res.status(201).json({ message: 'Profit distributed successfully', transactions });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -188,6 +195,8 @@ export const updateMatchRates = async (req: Request, res: Response) => {
     }
 
     await logAction((req as any).user.userId, AuditAction.UPDATE, AuditResource.CONFIG, undefined, { rates });
+
+    notifyDataUpdate('CONFIG');
 
     res.json({ message: 'Rates updated successfully' });
   } catch (error: any) {

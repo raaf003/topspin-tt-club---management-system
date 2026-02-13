@@ -246,18 +246,22 @@ export const Matches: React.FC = () => {
     });
   }, [matches, historyDate, searchQuery, statusFilter, players, getPlayerDues, getPlayerStats]);
 
-  const handleGoLive = () => {
+  const handleGoLive = async () => {
     if (!playerAId || !playerBId) return;
-    startOngoingMatch({
-      id: generateUUID(),
-      playerAId,
-      playerBId,
-      points,
-      table,
-      startTime: Date.now()
-    });
-    setSuccess(true);
-    setTimeout(() => setSuccess(false), 1200);
+    try {
+      await startOngoingMatch({
+        id: generateUUID(),
+        playerAId,
+        playerBId,
+        points,
+        table,
+        startTime: Date.now()
+      });
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 1200);
+    } catch (err: any) {
+      alert(err.message || 'Failed to start live match. Another match might be in progress.');
+    }
   };
 
   useEffect(() => {
@@ -610,9 +614,9 @@ export const Matches: React.FC = () => {
         <div className="flex flex-col gap-3 md:gap-4 pt-1 md:pt-2">
           <button 
             type="submit"
-            disabled={!playerAId || !playerBId}
+            disabled={!playerAId || !playerBId || (!!ongoingMatch && !isCurrentlyLive && !isDirectRecord && !editingId)}
             className={`w-full py-4 md:py-6 rounded-2xl md:rounded-3xl font-black text-lg md:text-xl shadow-2xl transition-all flex items-center justify-center gap-2 md:gap-3 ${
-              !playerAId || !playerBId 
+              (!playerAId || !playerBId || (!!ongoingMatch && !isCurrentlyLive && !isDirectRecord && !editingId))
                 ? 'bg-gray-200 dark:bg-slate-800 text-gray-400 dark:text-slate-600 cursor-not-allowed' 
                 : editingId 
                   ? 'bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-amber-100 dark:shadow-none'
@@ -622,7 +626,7 @@ export const Matches: React.FC = () => {
             }`}
           >
             {editingId ? <Edit3 className="w-5 h-5 md:w-6 md:h-6" /> : isCurrentlyLive || isDirectRecord ? <Check className="w-5 h-5 md:w-6 md:h-6" /> : <Play className="w-5 h-5 md:w-6 md:h-6" />}
-            {editingId ? 'Save Changes' : isCurrentlyLive ? 'Finish & Record' : isDirectRecord ? 'Log Past Match' : 'Start Match'}
+            {editingId ? 'Save Changes' : isCurrentlyLive ? 'Finish & Record' : isDirectRecord ? 'Log Past Match' : (!!ongoingMatch && !isCurrentlyLive) ? 'Table Occupied' : 'Start Match'}
           </button>
 
           {!editingId && !isCurrentlyLive && playerAId && playerBId && (

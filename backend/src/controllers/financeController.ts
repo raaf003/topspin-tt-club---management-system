@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { UserRole, TransactionType } from '@prisma/client';
 import { logAction, AuditAction, AuditResource } from '../utils/logger';
+import { notifyDataUpdate } from '../socket';
 
 export const createPayment = async (req: Request, res: Response) => {
   try {
@@ -38,6 +39,8 @@ export const createPayment = async (req: Request, res: Response) => {
 
     await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.PAYMENT, payment.id, { playerId, amount });
 
+    notifyDataUpdate('FINANCE');
+
     res.status(201).json({
       ...payment,
       totalAmount: payment.amount,
@@ -72,6 +75,8 @@ export const updatePayment = async (req: Request, res: Response) => {
     });
 
     await logAction((req as any).user.userId, AuditAction.UPDATE, AuditResource.PAYMENT, id, { playerId, amount });
+
+    notifyDataUpdate('FINANCE');
 
     res.json({
       ...updated,
@@ -118,6 +123,8 @@ export const createExpense = async (req: Request, res: Response) => {
 
     await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.EXPENSE, expense.id, { amount: expense.amount, category });
 
+    notifyDataUpdate('FINANCE');
+
     res.status(201).json({
       ...expense,
       date: expense.date || expense.createdAt.toISOString().split('T')[0],
@@ -147,6 +154,8 @@ export const updateExpense = async (req: Request, res: Response) => {
     });
 
     await logAction((req as any).user.userId, AuditAction.UPDATE, AuditResource.EXPENSE, id, { amount: updated.amount, category });
+
+    notifyDataUpdate('FINANCE');
 
     res.json({
       ...updated,

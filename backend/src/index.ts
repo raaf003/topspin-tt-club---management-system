@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
+import { initSocket } from './socket';
 import authRoutes from './routes/authRoutes';
 import playerRoutes from './routes/playerRoutes';
 import matchRoutes from './routes/matchRoutes';
@@ -11,6 +13,8 @@ import adminRoutes from './routes/adminRoutes';
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
+const io = initSocket(httpServer);
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
@@ -28,6 +32,6 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
