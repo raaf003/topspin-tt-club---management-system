@@ -17,8 +17,12 @@ const httpServer = createServer(app);
 const io = initSocket(httpServer);
 const PORT = process.env.PORT || 5000;
 
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? process.env.FRONTEND_URL.split(',') 
+  : '*';
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json());

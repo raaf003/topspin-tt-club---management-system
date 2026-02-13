@@ -16,10 +16,15 @@ interface OngoingMatch {
 let currentLiveMatch: OngoingMatch | null = null;
 
 export const initSocket = (server: HttpServer) => {
+  const allowedOrigins = process.env.FRONTEND_URL 
+    ? process.env.FRONTEND_URL.split(',') 
+    : '*';
+
   io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || '*',
-      methods: ['GET', 'POST']
+      origin: allowedOrigins,
+      methods: ['GET', 'POST'],
+      credentials: true
     }
   });
 
