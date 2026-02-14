@@ -17,8 +17,7 @@ const httpServer = createServer(app);
 const io = initSocket(httpServer);
 const PORT = process.env.PORT || 5000;
 
-const isLocal = /^http:\/\/localhost(:\d+)?$/.test(normalizedOrigin) || 
-                /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(normalizedOrigin);// Standard production-ready CORS configuration
+// Standard production-ready CORS configuration
 const allowedOrigins = process.env.FRONTEND_URL 
   ? process.env.FRONTEND_URL.split(',').map(o => o.trim().replace(/\/$/, '')) 
   : [];
@@ -35,7 +34,8 @@ app.use(cors({
     const isWhitelisted = allowedOrigins.some(allowed => allowed === normalizedOrigin || allowed === '*');
     
     // 3. Always allow localhost for development convenience
-    const isLocal = normalizedOrigin.includes('localhost') || normalizedOrigin.includes('127.0.0.1');
+    const isLocal = /^http:\/\/localhost(:\d+)?$/.test(normalizedOrigin) || 
+                /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(normalizedOrigin);
 
     if (isWhitelisted || isLocal) {
       // Mirrored origin back to browser - required for credentials: true
