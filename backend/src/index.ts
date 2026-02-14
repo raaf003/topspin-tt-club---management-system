@@ -17,14 +17,40 @@ const httpServer = createServer(app);
 const io = initSocket(httpServer);
 const PORT = process.env.PORT || 5000;
 
+const isLocal = /^http:\/\/localhost(:\d+)?$/.test(normalizedOrigin) || 
+                /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(normalizedOrigin);// Standard production-ready CORS configuration
 const allowedOrigins = process.env.FRONTEND_URL 
-  ? process.env.FRONTEND_URL.split(',') 
-  : '*';
+  ? process.env.FRONTEND_URL.split(',').map(o => o.trim().replace(/\/$/, '')) 
+  : [];
 
 app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
+  origin: (origin, callback) => {
+    // 1. Allow requests with no origin (like server-to-server or tools)
+    if (!origin) return callback(null, true);
+    
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    
+    // 2. Check if the origin matches any in our whitelisted environment variable
+    // or if the whitelist contains '*' for development
+    const isWhitelisted = allowedOrigins.some(allowed => allowed === normalizedOrigin || allowed === '*');
+    
+    // 3. Always allow localhost for development convenience
+    const isLocal = normalizedOrigin.includes('localhost') || normalizedOrigin.includes('127.0.0.1');
+
+    if (isWhitelisted || isLocal) {
+      // Mirrored origin back to browser - required for credentials: true
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked for origin: ${origin}. Add to FRONTEND_URL env if this is expected.`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 204
 }));
+
 app.use(express.json());
 
 // Routes

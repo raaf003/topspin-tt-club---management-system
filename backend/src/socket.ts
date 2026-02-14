@@ -17,13 +17,24 @@ let currentLiveMatch: OngoingMatch | null = null;
 
 export const initSocket = (server: HttpServer) => {
   const allowedOrigins = process.env.FRONTEND_URL 
-    ? process.env.FRONTEND_URL.split(',') 
-    : '*';
+    ? process.env.FRONTEND_URL.split(',').map(o => o.trim().replace(/\/$/, '')) 
+    : [];
 
   io = new Server(server, {
     cors: {
-      origin: allowedOrigins,
-      methods: ['GET', 'POST'],
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        const normalizedOrigin = origin.replace(/\/$/, '');
+        const isWhitelisted = allowedOrigins.some(allowed => allowed === normalizedOrigin || allowed === '*');
+        const isLocal = normalizedOrigin.includes('localhost') || normalizedOrigin.includes('127.0.0.1');
+
+        if (isWhitelisted || isLocal) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       credentials: true
     }
   });
