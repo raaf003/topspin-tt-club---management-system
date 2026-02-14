@@ -25,8 +25,8 @@ export const getUsers = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' }
     });
     res.json(users);
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 

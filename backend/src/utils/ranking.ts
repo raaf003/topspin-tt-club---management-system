@@ -1,3 +1,5 @@
+import { Player, Match } from '@prisma/client';
+
 // Glicko-2 constants
 const GLICKO_SCALE = 173.7178;
 export const DEFAULT_RATING = 1500;
@@ -9,6 +11,15 @@ export interface GlickoPlayer {
   rating: number;
   rd: number;
   vol: number;
+}
+
+export interface PlayerStats {
+  rating: number;
+  rd: number;
+  volatility: number;
+  earnedTier: number;
+  totalRatedMatches: number;
+  peakRating: number;
 }
 
 export const glicko2 = {
@@ -149,10 +160,10 @@ const calculateEarnedTier = (rating: number, totalMatches: number): number => {
 };
 
 export const calculateAllPlayerStats = (
-  players: any[],
-  allMatches: any[]
-) => {
-  const result: Record<string, any> = {};
+  players: Player[],
+  allMatches: (Match & { date: string })[]
+): Record<string, PlayerStats> => {
+  const result: Record<string, PlayerStats> = {};
   const glickoState: Record<string, GlickoPlayer> = {};
   const playerTotalMatches: Record<string, number> = {};
   const playerEarnedTier: Record<string, number> = {};
@@ -169,7 +180,7 @@ export const calculateAllPlayerStats = (
     playerPeakRating[p.id] = DEFAULT_RATING;
   });
 
-  const matchesByDate: Record<string, any[]> = {};
+  const matchesByDate: Record<string, (Match & { date: string })[]> = {};
   allMatches.forEach(m => {
     if (!matchesByDate[m.date]) matchesByDate[m.date] = [];
     matchesByDate[m.date].push(m);
@@ -179,7 +190,7 @@ export const calculateAllPlayerStats = (
 
   sortedDates.forEach((date) => {
     const dailyMatches = matchesByDate[date];
-    const ratedMatchesToProcess: any[] = [];
+    const ratedMatchesToProcess: { player1: string; player2: string; winner: string; weight: number }[] = [];
     const dailyPlayerMatchCount: Record<string, number> = {};
 
     dailyMatches.forEach(m => {
@@ -219,7 +230,7 @@ export const calculateAllPlayerStats = (
     result[p.id] = {
       rating: glickoState[p.id].rating,
       rd: glickoState[p.id].rd,
-      vol: glickoState[p.id].vol,
+      volatility: glickoState[p.id].vol,
       earnedTier: playerEarnedTier[p.id],
       totalRatedMatches: playerTotalMatches[p.id],
       peakRating: playerPeakRating[p.id]

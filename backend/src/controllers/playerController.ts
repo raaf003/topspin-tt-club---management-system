@@ -23,8 +23,8 @@ export const getPlayers = async (req: Request, res: Response) => {
       orderBy: { rating: 'desc' }
     });
     res.json(players);
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 

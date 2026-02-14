@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
-import { UserRole, TransactionType } from '@prisma/client';
+import { UserRole, TransactionType, Prisma } from '@prisma/client';
 import { logAction, AuditAction, AuditResource } from '../utils/logger';
 import { notifyDataUpdate } from '../socket';
 import { z } from 'zod';
@@ -224,19 +224,19 @@ export const getPayments = async (req: Request, res: Response) => {
       take: 200
     });
     
-    const formatted = payments.map((p: any) => ({
+    const formatted = payments.map((p) => ({
       ...p,
       totalAmount: p.amount,
       primaryPayerId: p.playerId,
-      allocations: (p.allocations as any) || [],
+      allocations: (p.allocations as unknown as any[]) || [],
       date: p.date || p.createdAt.toISOString().split('T')[0],
       recordedAt: p.createdAt.getTime(),
       recordedBy: p.recorder
     }));
     
     res.json(formatted);
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
@@ -248,7 +248,7 @@ export const getExpenses = async (req: Request, res: Response) => {
       take: 200
     });
     
-    const formatted = expenses.map((e: any) => ({
+    const formatted = expenses.map((e) => ({
       ...e,
       date: e.date || e.createdAt.toISOString().split('T')[0],
       recordedAt: e.createdAt.getTime(),
@@ -256,8 +256,8 @@ export const getExpenses = async (req: Request, res: Response) => {
     }));
     
     res.json(formatted);
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
@@ -269,7 +269,7 @@ export const getFinancialReport = async (req: Request, res: Response) => {
     });
     const { startDate, endDate } = querySchema.parse(req.query);
 
-    const where: any = {};
+    const where: Prisma.FinancialTransactionWhereInput = {};
     if (startDate && endDate) {
       where.createdAt = {
         gte: new Date(startDate),
@@ -282,8 +282,8 @@ export const getFinancialReport = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    const summary = transactions.reduce((acc: any, curr: any) => {
-      if (curr.type === TransactionType.MATCH_PAYMENT || curr.type === TransactionType.OTHER_INCOME) {
+    const summary = transactions.reduce((acc, curr) => {
+      if (curr.type === TransactionType.MATCH_PAYMENT) {
         acc.revenue += curr.amount;
       } else {
         acc.expenses += curr.amount;

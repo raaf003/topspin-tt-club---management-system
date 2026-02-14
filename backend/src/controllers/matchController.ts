@@ -56,12 +56,12 @@ export const createMatch = async (req: AuthenticatedRequest, res: Response) => {
     });
 
     // Convert matches to the format ranking util expects
-    const formattedMatches = allMatches.map((m: any) => {
-      const dateStr = m.date || m.createdAt.toISOString().split('T')[0];
+    const formattedMatches = allMatches.map((m) => {
+      const dateStr = (m.date as string) || m.createdAt.toISOString().split('T')[0];
       return {
         ...m,
         date: dateStr,
-        charges: (m.charges as any) || {}
+        charges: (m.charges as unknown as Record<string, number>) || {}
       };
     });
 
@@ -149,10 +149,10 @@ export const updateMatch = async (req: AuthenticatedRequest, res: Response) => {
       orderBy: { createdAt: 'asc' }
     });
 
-    const formattedMatches = allMatches.map((m: any) => ({
+    const formattedMatches = allMatches.map((m) => ({
       ...m,
-      date: m.date || m.createdAt.toISOString().split('T')[0],
-      charges: (m.charges as any) || {}
+      date: (m.date as string) || m.createdAt.toISOString().split('T')[0],
+      charges: (m.charges as unknown as Record<string, number>) || {}
     }));
 
     const stats = calculateAllPlayerStats(allPlayers, formattedMatches);
@@ -225,20 +225,20 @@ export const getMatches = async (req: Request, res: Response) => {
     });
     
     // Add the missing 'date' field expected by frontend
-    const formatted = matches.map((m: any) => {
+    const formatted = matches.map((m) => {
       const createdAt = m.createdAt ? new Date(m.createdAt) : new Date();
       return {
         ...m,
         recordedBy: m.recorder, // Map 'recorder' to 'recordedBy' for frontend compatibility
         recordedAt: createdAt.getTime(),
         // Priority: stored date field > derived date
-        date: m.date || createdAt.toISOString().split('T')[0]
+        date: (m.date as string) || createdAt.toISOString().split('T')[0]
       };
     });
 
     res.json(formatted);
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 

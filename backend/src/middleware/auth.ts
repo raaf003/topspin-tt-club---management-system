@@ -10,6 +10,12 @@ export interface AuthRequest extends Request {
   };
 }
 
+interface JwtPayload {
+  userId: string;
+  role: UserRole;
+  name: string;
+}
+
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Unauthorized' });
@@ -20,7 +26,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
       console.error('JWT_SECRET is not defined in environment variables');
       return res.status(500).json({ message: 'Internal server error' });
     }
-    const decoded = jwt.verify(token, secret) as any;
+    const decoded = jwt.verify(token, secret) as unknown as JwtPayload;
     req.user = decoded;
     next();
   } catch (error) {
