@@ -3,6 +3,11 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { UserRole } from '@prisma/client';
+import { z } from 'zod';
+
+const idParamSchema = z.object({
+  id: z.string().uuid(),
+});
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -75,22 +80,23 @@ export const getUsers = async (req: Request, res: Response) => {
 
 export const updateUserRole = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id } = idParamSchema.parse(req.params);
     const { role } = req.body;
-    
-    const userId = id as string;
     
     if (!Object.values(UserRole).includes(role)) {
       return res.status(400).json({ message: 'Invalid role' });
     }
 
     const user = await prisma.user.update({
-      where: { id: userId },
+      where: { id },
       data: { role }
     });
 
     res.json({ id: user.id, role: user.role });
   } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+    }
     res.status(500).json({ message: error.message });
   }
 };

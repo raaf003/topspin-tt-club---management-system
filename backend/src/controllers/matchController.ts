@@ -3,10 +3,25 @@ import prisma from '../lib/prisma';
 import { calculateAllPlayerStats } from '../utils/ranking';
 import { logAction, AuditAction, AuditResource } from '../utils/logger';
 import { startLiveMatch, stopLiveMatch, notifyDataUpdate } from '../socket';
+import { UserRole } from '@prisma/client';
+import { z } from 'zod';
 
-export const createMatch = async (req: Request, res: Response) => {
+const idParamSchema = z.object({
+  id: z.string().uuid(),
+});
+
+interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: string;
+    role: UserRole;
+  };
+}
+
+export const createMatch = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { playerAId, playerBId, winnerId, points, tableId, typeId, isRated, payerOption, totalValue, charges, date, recordedAt } = req.body;
+
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
     const createdAt = recordedAt ? new Date(recordedAt) : (date ? new Date(date) : new Date());
     
@@ -28,11 +43,11 @@ export const createMatch = async (req: Request, res: Response) => {
         charges,
         date: matchDate,
         createdAt,
-        recordedById: (req as any).user.userId
+        recordedById: req.user.userId
       }
     });
 
-    await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.MATCH, match.id, { playerAId, playerBId });
+    await logAction(req.user.userId, AuditAction.CREATE, AuditResource.MATCH, match.id, { playerAId, playerBId });
 
     // 2. Recalculate rankings
     const allPlayers = await prisma.player.findMany();
@@ -102,10 +117,12 @@ export const createMatch = async (req: Request, res: Response) => {
   }
 };
 
-export const updateMatch = async (req: Request, res: Response) => {
+export const updateMatch = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id } = idParamSchema.parse(req.params);
     const { playerAId, playerBId, winnerId, points, tableId, typeId, isRated, payerOption, totalValue, charges, date } = req.body;
+
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
     await prisma.match.update({
       where: { id },
@@ -124,7 +141,7 @@ export const updateMatch = async (req: Request, res: Response) => {
       }
     });
 
-    await logAction((req as any).user.userId, AuditAction.UPDATE, AuditResource.MATCH, id, { playerAId, playerBId });
+    await logAction(req.user.userId, AuditAction.UPDATE, AuditResource.MATCH, id, { playerAId, playerBId });
 
     // Recalculate rankings for all players since a match in the past might have changed
     const allPlayers = await prisma.player.findMany();
@@ -179,6 +196,9 @@ export const updateMatch = async (req: Request, res: Response) => {
       date: updatedMatch.date || updatedMatch.createdAt.toISOString().split('T')[0]
     });
   } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+    }
     res.status(500).json({ message: error.message });
   }
 };
@@ -222,9 +242,12 @@ export const getMatches = async (req: Request, res: Response) => {
   }
 };
 
-export const startLiveMatchController = async (req: Request, res: Response) => {
+export const startLiveMatchController = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id, playerAId, playerBId, points, table, startTime } = req.body;
+    
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
     startLiveMatch({
       id,
       playerAId,
@@ -232,7 +255,7 @@ export const startLiveMatchController = async (req: Request, res: Response) => {
       points,
       table,
       startTime,
-      startedBy: (req as any).user.userId
+      startedBy: req.user.userId
     });
     res.status(200).json({ message: 'Live match started' });
   } catch (error: any) {

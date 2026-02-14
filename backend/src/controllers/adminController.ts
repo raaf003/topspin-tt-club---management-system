@@ -1,9 +1,21 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import bcrypt from 'bcryptjs';
-import { UserRole, TransactionType } from '@prisma/client';
+import { UserRole, TransactionType, Prisma } from '@prisma/client';
 import { logAction, AuditAction, AuditResource } from '../utils/logger';
 import { notifyDataUpdate } from '../socket';
+import { z } from 'zod';
+
+const idParamSchema = z.object({
+  id: z.string().uuid(),
+});
+
+interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: string;
+    role: UserRole;
+  };
+}
 
 // --- User Management ---
 export const getUsers = async (req: Request, res: Response) => {
@@ -18,9 +30,12 @@ export const getUsers = async (req: Request, res: Response) => {
   }
 };
 
-export const createUser = async (req: Request, res: Response) => {
+export const createUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { email, password, name, role, isPartner, profitPercentage } = req.body;
+    
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const lowerEmail = email.toLowerCase();
     
@@ -35,7 +50,7 @@ export const createUser = async (req: Request, res: Response) => {
       }
     });
 
-    await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.USER, user.id, { email: lowerEmail, role });
+    await logAction(req.user.userId, AuditAction.CREATE, AuditResource.USER, user.id, { email: lowerEmail, role });
 
     notifyDataUpdate('USER');
 
@@ -45,12 +60,19 @@ export const createUser = async (req: Request, res: Response) => {
   }
 };
 
-export const updateUser = async (req: Request, res: Response) => {
+export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id } = idParamSchema.parse(req.params);
     const { email, name, role, isPartner, profitPercentage, password } = req.body;
     
-    const data: any = { name, role, isPartner };
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const data: Prisma.UserUpdateInput = { 
+      name, 
+      role: role as UserRole, 
+      isPartner 
+    };
+    
     if (email) {
       data.email = email.toLowerCase();
     }
@@ -66,12 +88,15 @@ export const updateUser = async (req: Request, res: Response) => {
       data
     });
 
-    await logAction((req as any).user.userId, AuditAction.UPDATE, AuditResource.USER, id, { email: data.email, role });
+    await logAction(req.user.userId, AuditAction.UPDATE, AuditResource.USER, id, { email: user.email, role });
 
     notifyDataUpdate('USER');
 
     res.json({ id: user.id, email: user.email, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
   } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+    }
     res.status(500).json({ message: error.message });
   }
 };
@@ -127,9 +152,12 @@ export const getProfitSummary = async (req: Request, res: Response) => {
   }
 };
 
-export const distributeProfit = async (req: Request, res: Response) => {
+export const distributeProfit = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { amount, description, usePercentages } = req.body;
+    
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
     const partners = await prisma.user.findMany({ where: { isPartner: true } });
     
     if (partners.length === 0) {
@@ -156,13 +184,13 @@ export const distributeProfit = async (req: Request, res: Response) => {
           amount: share,
           description: `Profit Distribution: ${description || ''} (Distributed to ${partner.name})`,
           date: todayStr,
-          recordedById: (req as any).user.userId
+          recordedById: req.user.userId
         }
       });
       transactions.push(tx);
     }
 
-    await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.FINANCE, undefined, { amount, partnerCount: partners.length, usePercentages });
+    await logAction(req.user.userId, AuditAction.CREATE, AuditResource.FINANCE, undefined, { amount, partnerCount: partners.length, usePercentages });
 
     notifyDataUpdate('FINANCE');
 
@@ -182,10 +210,12 @@ export const getMatchRates = async (req: Request, res: Response) => {
   }
 };
 
-export const updateMatchRates = async (req: Request, res: Response) => {
+export const updateMatchRates = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { rates } = req.body; // Array of { type, price }
     
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
     for (const r of rates) {
       await prisma.gameConfig.upsert({
         where: { type: r.type },
@@ -194,7 +224,7 @@ export const updateMatchRates = async (req: Request, res: Response) => {
       });
     }
 
-    await logAction((req as any).user.userId, AuditAction.UPDATE, AuditResource.CONFIG, undefined, { rates });
+    await logAction(req.user.userId, AuditAction.UPDATE, AuditResource.CONFIG, undefined, { rates });
 
     notifyDataUpdate('CONFIG');
 

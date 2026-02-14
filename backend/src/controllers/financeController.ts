@@ -3,12 +3,26 @@ import prisma from '../lib/prisma';
 import { UserRole, TransactionType } from '@prisma/client';
 import { logAction, AuditAction, AuditResource } from '../utils/logger';
 import { notifyDataUpdate } from '../socket';
+import { z } from 'zod';
 
-export const createPayment = async (req: Request, res: Response) => {
+const idParamSchema = z.object({
+  id: z.string().uuid(),
+});
+
+interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: string;
+    role: UserRole;
+  };
+}
+
+export const createPayment = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { playerId, totalAmount, allocations, mode, notes, date, recordedAt } = req.body;
     const amount = parseFloat(totalAmount);
     
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
     // Use recordedAt (timestamp) if available to preserve time, 
     // otherwise fallback to date string or current time
     const createdAt = recordedAt ? new Date(recordedAt) : (date ? new Date(date) : new Date());
@@ -23,7 +37,7 @@ export const createPayment = async (req: Request, res: Response) => {
         description: notes,
         date: paymentDate,
         createdAt,
-        recordedById: (req as any).user.userId
+        recordedById: req.user.userId
       }
     });
 
@@ -33,11 +47,11 @@ export const createPayment = async (req: Request, res: Response) => {
         amount,
         description: `Payment from player ${playerId}: ${notes || ''}`,
         date: paymentDate,
-        recordedById: (req as any).user.userId
+        recordedById: req.user.userId
       }
     });
 
-    await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.PAYMENT, payment.id, { playerId, amount });
+    await logAction(req.user.userId, AuditAction.CREATE, AuditResource.PAYMENT, payment.id, { playerId, amount });
 
     notifyDataUpdate('FINANCE');
 
@@ -48,18 +62,20 @@ export const createPayment = async (req: Request, res: Response) => {
       allocations: (payment.allocations as any) || [],
       date: payment.date || payment.createdAt.toISOString().split('T')[0],
       recordedAt: payment.createdAt.getTime(),
-      recordedBy: (req as any).user
+      recordedBy: req.user
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
 };
 
-export const updatePayment = async (req: Request, res: Response) => {
+export const updatePayment = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id } = idParamSchema.parse(req.params);
     const { playerId, totalAmount, allocations, mode, notes, date } = req.body;
     const amount = parseFloat(totalAmount);
+
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
     const updated = await prisma.payment.update({
       where: { id },
@@ -74,7 +90,7 @@ export const updatePayment = async (req: Request, res: Response) => {
       include: { player: true, recorder: true }
     });
 
-    await logAction((req as any).user.userId, AuditAction.UPDATE, AuditResource.PAYMENT, id, { playerId, amount });
+    await logAction(req.user.userId, AuditAction.UPDATE, AuditResource.PAYMENT, id, { playerId, amount });
 
     notifyDataUpdate('FINANCE');
 
@@ -88,14 +104,19 @@ export const updatePayment = async (req: Request, res: Response) => {
       recordedBy: updated.recorder
     });
   } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+    }
     res.status(500).json({ message: error.message });
   }
 };
 
-export const createExpense = async (req: Request, res: Response) => {
+export const createExpense = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { amount, category, notes, mode, date, recordedAt } = req.body;
     
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
     const createdAt = recordedAt ? new Date(recordedAt) : (date ? new Date(date) : new Date());
     const expenseDate = date || createdAt.toISOString().split('T')[0];
 
@@ -107,7 +128,7 @@ export const createExpense = async (req: Request, res: Response) => {
         mode: mode || 'CASH',
         date: expenseDate,
         createdAt,
-        recordedById: (req as any).user.userId
+        recordedById: req.user.userId
       }
     });
 
@@ -117,11 +138,11 @@ export const createExpense = async (req: Request, res: Response) => {
         amount: parseFloat(amount),
         description: `Expense (${category}): ${notes || ''}`,
         date: expenseDate,
-        recordedById: (req as any).user.userId
+        recordedById: req.user.userId
       }
     });
 
-    await logAction((req as any).user.userId, AuditAction.CREATE, AuditResource.EXPENSE, expense.id, { amount: expense.amount, category });
+    await logAction(req.user.userId, AuditAction.CREATE, AuditResource.EXPENSE, expense.id, { amount: expense.amount, category });
 
     notifyDataUpdate('FINANCE');
 
@@ -129,18 +150,20 @@ export const createExpense = async (req: Request, res: Response) => {
       ...expense,
       date: expense.date || expense.createdAt.toISOString().split('T')[0],
       recordedAt: expense.createdAt.getTime(),
-      recordedBy: (req as any).user
+      recordedBy: req.user
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
 };
 
-export const updateExpense = async (req: Request, res: Response) => {
+export const updateExpense = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id } = idParamSchema.parse(req.params);
     const { amount, category, notes, mode, date } = req.body;
     
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
     const updated = await prisma.expense.update({
       where: { id },
       data: {
@@ -153,7 +176,7 @@ export const updateExpense = async (req: Request, res: Response) => {
       include: { recorder: true }
     });
 
-    await logAction((req as any).user.userId, AuditAction.UPDATE, AuditResource.EXPENSE, id, { amount: updated.amount, category });
+    await logAction(req.user.userId, AuditAction.UPDATE, AuditResource.EXPENSE, id, { amount: updated.amount, category });
 
     notifyDataUpdate('FINANCE');
 
@@ -164,20 +187,26 @@ export const updateExpense = async (req: Request, res: Response) => {
       recordedBy: updated.recorder
     });
   } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+    }
     res.status(500).json({ message: error.message });
   }
 };
 
-export const recordSpecialTransaction = async (req: Request, res: Response) => {
+export const recordSpecialTransaction = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { type, amount, description } = req.body;
+    
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
     // type should be SALARY or CAPITAL_DISTRIBUTION
     const transaction = await prisma.financialTransaction.create({
       data: {
         type,
         amount: parseFloat(amount),
         description,
-        recordedById: (req as any).user.userId
+        recordedById: req.user.userId
       }
     });
 
@@ -234,13 +263,17 @@ export const getExpenses = async (req: Request, res: Response) => {
 
 export const getFinancialReport = async (req: Request, res: Response) => {
   try {
-    const { startDate, endDate } = req.query;
+    const querySchema = z.object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+    });
+    const { startDate, endDate } = querySchema.parse(req.query);
 
     const where: any = {};
     if (startDate && endDate) {
       where.createdAt = {
-        gte: new Date(startDate as string),
-        lte: new Date(endDate as string)
+        gte: new Date(startDate),
+        lte: new Date(endDate)
       };
     }
 
