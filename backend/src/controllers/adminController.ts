@@ -93,11 +93,11 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
     notifyDataUpdate('USER');
 
     res.json({ id: user.id, email: user.email, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ message: 'Invalid input', errors: error.issues });
     }
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 

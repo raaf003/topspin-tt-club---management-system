@@ -195,11 +195,11 @@ export const updateMatch = async (req: AuthenticatedRequest, res: Response) => {
       recordedAt: updatedMatch.createdAt.getTime(),
       date: updatedMatch.date || updatedMatch.createdAt.toISOString().split('T')[0]
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ message: 'Invalid input', errors: error.issues });
     }
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 

@@ -93,10 +93,10 @@ export const updateUserRole = async (req: Request, res: Response) => {
     });
 
     res.json({ id: user.id, role: user.role });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ message: 'Invalid input', errors: error.issues });
     }
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
