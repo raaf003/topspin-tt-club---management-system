@@ -75,7 +75,7 @@ export const createMatch = async (req: AuthenticatedRequest, res: Response) => {
         data: {
           rating: pStats.rating,
           rd: pStats.rd,
-          volatility: pStats.vol,
+          volatility: pStats.volatility,
           earnedTier: pStats.earnedTier,
           totalRatedMatches: pStats.totalRatedMatches,
           peakRating: pStats.peakRating
@@ -164,7 +164,7 @@ export const updateMatch = async (req: AuthenticatedRequest, res: Response) => {
         data: {
           rating: pStats.rating,
           rd: pStats.rd,
-          volatility: pStats.vol,
+          volatility: pStats.volatility,
           earnedTier: pStats.earnedTier,
           totalRatedMatches: pStats.totalRatedMatches,
           peakRating: pStats.peakRating

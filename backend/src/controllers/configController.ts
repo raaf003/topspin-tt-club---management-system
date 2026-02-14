@@ -66,10 +66,10 @@ export const updateGameConfig = async (req: AuthenticatedRequest, res: Response)
     await logAction(req.user.userId, AuditAction.UPDATE, AuditResource.CONFIG, id, { price });
 
     res.json(config);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: 'Invalid input', errors: error.errors });
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
     }
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
