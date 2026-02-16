@@ -23,7 +23,7 @@ interface AppContextType extends AppState {
   getPlayerStats: (playerId: string, dateRange?: { start: string; end: string }) => PlayerStats;
   login: (user: any, token: string) => void;
   logout: () => void;
-  refreshData: () => Promise<void>;
+  refreshData: (silent?: boolean) => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -93,13 +93,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   }, []);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (silent = false) => {
     if (!token) {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
       return;
     }
     
-    setIsLoading(true);
+    if (!silent) setIsLoading(true);
     try {
       const isAdminFlag = state.currentUser.role === UserRole.ADMIN || state.currentUser.role === UserRole.SUPER_ADMIN;
 
@@ -132,7 +132,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logout();
       }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [token, state.currentUser?.role, logout]);
 
@@ -157,7 +157,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       socketRef.current.on('data-updated', (data: { type: string }) => {
         console.log('Real-time data update:', data.type);
-        fetchData();
+        fetchData(true);
       });
     }
 
