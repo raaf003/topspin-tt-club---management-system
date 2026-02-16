@@ -218,10 +218,19 @@ export const recordSpecialTransaction = async (req: AuthenticatedRequest, res: R
 
 export const getPayments = async (req: Request, res: Response) => {
   try {
+    const { startDate, endDate } = req.query;
+    const where: any = {};
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = startDate as string;
+      if (endDate) where.date.lte = endDate as string;
+    }
+
     const payments = await prisma.payment.findMany({
+      where,
       include: { player: true, recorder: true },
       orderBy: { createdAt: 'desc' },
-      take: 200
+      take: 1000
     });
     
     const formatted = payments.map((p) => ({
@@ -242,10 +251,19 @@ export const getPayments = async (req: Request, res: Response) => {
 
 export const getExpenses = async (req: Request, res: Response) => {
   try {
+    const { startDate, endDate } = req.query;
+    const where: any = {};
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = startDate as string;
+      if (endDate) where.date.lte = endDate as string;
+    }
+
     const expenses = await prisma.expense.findMany({
+      where,
       include: { recorder: true },
       orderBy: { createdAt: 'desc' },
-      take: 200
+      take: 1000
     });
     
     const formatted = expenses.map((e) => ({

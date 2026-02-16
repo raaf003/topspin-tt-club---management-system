@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
+import { api } from '../api';
 import { PayerOption, MatchPoints, UserRole, Player, Match } from '../types';
-import { Trophy, Check, RefreshCw, Zap, Table as TableIcon, Edit3, X, Clock, User, AlertCircle, Search, ChevronDown, Calendar, Filter, Activity, Play } from 'lucide-react';
+import { Trophy, Check, RefreshCw, Zap, Table as TableIcon, Edit3, X, Clock, User, AlertCircle, Search, ChevronDown, Calendar, Filter, Activity, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import { generateUUID, getLocalTodayStr } from '../utils';
 
 interface SearchableSelectProps {
@@ -130,6 +131,30 @@ export const Matches: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING_RESULT' | 'PENDING_PAYMENT'>('ALL');
 
+  // Paginated log state
+  const [logMatches, setLogMatches] = useState<Match[]>([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
+  const [isFetchingLog, setIsFetchingLog] = useState(false);
+
+  const fetchLog = useCallback(async (date: string, page: number = 1) => {
+    setIsFetchingLog(true);
+    try {
+      const resp = await api.get(`/matches?date=${date}&page=${page}&limit=10`);
+      if (resp && resp.matches) {
+        setLogMatches(resp.matches);
+        setPagination(resp.pagination);
+      }
+    } catch (err) {
+      console.error('Failed to fetch matches log', err);
+    } finally {
+      setIsFetchingLog(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLog(historyDate, 1);
+  }, [historyDate, fetchLog]);
+
   // Live match timer
   const [elapsedTime, setElapsedTime] = useState(0);
 
@@ -166,7 +191,7 @@ export const Matches: React.FC = () => {
    * FIFO Logic: Determine if a specific match is "Paid" for a player.
    * A match is paid if (Lifetime Payments + Initial Credits + Lifetime Discounts) >= (Cumulative Charges up to this match).
    */
-  const checkIsMatchPaid = (match: Match, playerId: string) => {
+  const checkIsMatchPaid = useCallback((match: Match, playerId: string) => {
     const stats = getPlayerStats(playerId);
 
     // Get all matches where this player was charged, sorted chronologically
@@ -181,9 +206,9 @@ export const Matches: React.FC = () => {
     }
     
     // Resources include actual payments, initial credit balance, AND waivers/discounts
-    const totalAvailableResources = stats.totalPaid + stats.initialBalance + stats.totalDiscounted;
+    const totalAvailableResources = (stats?.totalPaid || 0) + (stats?.initialBalance || 0) + (stats?.totalDiscounted || 0);
     return totalAvailableResources >= cumulativeCharge;
-  };
+  }, [matches, getPlayerStats]);
   
   const chargePreview = useMemo(() => {
     if (!playerAId || !playerBId) return { a: 0, b: 0 };
@@ -205,8 +230,8 @@ export const Matches: React.FC = () => {
   }, [playerAId, playerBId, matchTotal, payerOption, winnerId]);
 
   const filteredMatches = useMemo(() => {
-    return matches.filter(m => {
-      // Date filter
+    return logMatches.filter(m => {
+      // Date filter is already handled by server-side fetch, but we keep it for consistency if needed
       if (m.date !== historyDate) return false;
       // Search filter (player names) - Support comma separated multiple names
       const searchTerms = searchQuery.split(',').map(s => s.trim().toLowerCase()).filter(s => s !== '');
@@ -235,7 +260,7 @@ export const Matches: React.FC = () => {
         // 1. It has no result yet (for loser pays format)
         // 2. Any player charged in this match hasn't cleared their charges according to FIFO
         const matchHasUnpaidCharges = [m.playerAId, m.playerBId].some(id => {
-          const charge = m.charges[id] || 0;
+          const charge = (m.charges as any)?.[id] || 0;
           if (charge === 0) return false;
           return !checkIsMatchPaid(m, id);
         });
@@ -244,7 +269,7 @@ export const Matches: React.FC = () => {
 
       return true;
     });
-  }, [matches, historyDate, searchQuery, statusFilter, players, getPlayerDues, getPlayerStats]);
+  }, [logMatches, historyDate, searchQuery, statusFilter, players, checkIsMatchPaid]);
 
   const handleGoLive = async () => {
     if (!playerAId || !playerBId) return;
@@ -270,7 +295,7 @@ export const Matches: React.FC = () => {
     }
   }, [matchDate, todayStr, isDirectRecord]);
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     if(e) e.preventDefault();
     if (!playerAId || !playerBId) return;
 
@@ -286,7 +311,7 @@ export const Matches: React.FC = () => {
     if (chargePreview.b > 0) charges[playerBId] = chargePreview.b;
 
     if (editingId) {
-      updateMatch(editingId, {
+      await updateMatch(editingId, {
         date: matchDate,
         points,
         playerAId,
@@ -300,18 +325,21 @@ export const Matches: React.FC = () => {
       });
       setEditingId(null);
     } else {
-      addMatch({
+      await addMatch({
         date: matchDate,
         recordedAt: Date.now(),
         recordedBy: {
+          id: currentUser.id || '', // Include ID if available
           role: currentUser.role,
-          name: currentUser.name
+          name: currentUser.name,
+          email: '' // Email not needed for recordedMatch in Frontend
         },
         points,
         playerAId,
         playerBId,
         winnerId: winnerId || undefined,
-        table,
+        tableId: table, // tableId is expected by type
+        gameTypeId: points === 20 ? '20_POINTS' : '10_POINTS', // Map points to gameTypeId if needed
         payerOption,
         totalValue: matchTotal,
         charges,
@@ -322,6 +350,9 @@ export const Matches: React.FC = () => {
         clearOngoingMatch();
       }
     }
+
+    // Refresh the log
+    fetchLog(historyDate, pagination.page);
 
     setSuccess(true);
     setTimeout(() => {
@@ -694,7 +725,12 @@ export const Matches: React.FC = () => {
         </div>
 
         <div className="space-y-3 md:space-y-4">
-          {filteredMatches.length > 0 ? (
+          {isFetchingLog ? (
+            <div className="py-12 flex flex-col items-center justify-center space-y-3">
+              <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin opacity-30" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Loading Log...</p>
+            </div>
+          ) : filteredMatches.length > 0 ? (
             filteredMatches.map(m => {
               const pA = players.find(p => p.id === m.playerAId);
               const pB = players.find(p => p.id === m.playerBId);
@@ -799,6 +835,30 @@ export const Matches: React.FC = () => {
           ) : (
             <div className="py-8 md:py-10 text-center text-gray-300 dark:text-slate-700 font-bold italic border-2 border-dashed border-gray-50 dark:border-slate-800 rounded-2xl md:rounded-3xl">
               No games found...
+            </div>
+          )}
+
+          {!isFetchingLog && pagination.totalPages > 1 && (
+            <div className="pt-3 md:pt-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
+              <button 
+                type="button"
+                onClick={() => fetchLog(historyDate, pagination.page - 1)}
+                disabled={pagination.page === 1}
+                className="p-1.5 md:p-2 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-300 dark:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-[9px] md:text-[10px] font-black uppercase text-gray-500 dark:text-slate-400 transition-all hover:bg-gray-50 dark:hover:bg-slate-700"
+              >
+                <ChevronLeft className="w-3 h-3 md:w-4 md:h-4" /> Prev
+              </button>
+              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-800 px-3 py-1 rounded-full border border-gray-100 dark:border-slate-700">
+                Page {pagination.page} / {pagination.totalPages}
+              </span>
+              <button 
+                type="button"
+                onClick={() => fetchLog(historyDate, pagination.page + 1)}
+                disabled={pagination.page === pagination.totalPages}
+                className="p-1.5 md:p-2 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-300 dark:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-[9px] md:text-[10px] font-black uppercase text-gray-500 dark:text-slate-400 transition-all hover:bg-gray-50 dark:hover:bg-slate-700"
+              >
+                Next <ChevronRight className="w-3 h-3 md:w-4 md:h-4" />
+              </button>
             </div>
           )}
         </div>

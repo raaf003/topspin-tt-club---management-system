@@ -103,13 +103,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const isAdminFlag = state.currentUser.role === UserRole.ADMIN || state.currentUser.role === UserRole.SUPER_ADMIN;
 
-      const [players, matches, payments, configs, expenses] = await Promise.all([
+      const [players, matchResponse, payments, configs, expenses] = await Promise.all([
         api.get('/players'),
-        api.get('/matches'),
+        api.get('/matches?limit=1000'), // Default fetch a large batch for leaderboard
         api.get('/finance/payments'),
         api.get('/config/game-types'),
         isAdminFlag ? api.get('/finance/expenses') : Promise.resolve([])
       ]);
+
+      const matches = Array.isArray(matchResponse) ? matchResponse : (matchResponse.matches || []);
 
       const ratesMap = (configs || []).reduce((acc: any, curr: any) => {
         acc[curr.type] = curr.price;

@@ -152,11 +152,73 @@ const TIER_THRESHOLDS = [
   { tier: 0, name: 'Novice', rating: 0, matches: 0 },
 ];
 
-const calculateEarnedTier = (rating: number, totalMatches: number): number => {
+export const calculateEarnedTier = (rating: number, totalMatches: number): number => {
   for (const t of TIER_THRESHOLDS) {
     if (rating >= t.rating && totalMatches >= t.matches) return t.tier;
   }
   return 0;
+};
+
+export const updateRatingsIncremental = (
+  playerA: Player,
+  playerB: Player,
+  match: Match
+): Record<string, PlayerStats> => {
+  if (!match.winnerId) return {};
+
+  const glickoState: Record<string, GlickoPlayer> = {
+    [playerA.id]: { rating: playerA.rating, rd: playerA.rd, vol: playerA.volatility },
+    [playerB.id]: { rating: playerB.rating, rd: playerB.rd, vol: playerB.volatility }
+  };
+
+  let weight = match.points === 10 ? 0.6 : 1.0;
+  if (match.isRated === false) weight = 0;
+
+  if (weight === 0) {
+    return {
+      [playerA.id]: {
+        rating: playerA.rating,
+        rd: playerA.rd,
+        volatility: playerA.volatility,
+        earnedTier: playerA.earnedTier,
+        totalRatedMatches: playerA.totalRatedMatches,
+        peakRating: playerA.peakRating
+      },
+      [playerB.id]: {
+        rating: playerB.rating,
+        rd: playerB.rd,
+        volatility: playerB.volatility,
+        earnedTier: playerB.earnedTier,
+        totalRatedMatches: playerB.totalRatedMatches,
+        peakRating: playerB.peakRating
+      }
+    };
+  }
+
+  const periodUpdates = processRatingPeriod(glickoState, [
+    { player1: playerA.id, player2: playerB.id, winner: match.winnerId, weight }
+  ]);
+
+  const result: Record<string, PlayerStats> = {};
+  [playerA.id, playerB.id].forEach(id => {
+    const update = periodUpdates[id];
+    const { rating, rd } = glicko2.fromInternal(update.mu, update.phi);
+    const p = id === playerA.id ? playerA : playerB;
+    
+    const newTotalMatches = p.totalRatedMatches + 1;
+    const newPeak = Math.max(p.peakRating, rating);
+    
+    result[id] = {
+      rating,
+      rd,
+      volatility: update.vol,
+      earnedTier: calculateEarnedTier(rating, newTotalMatches),
+      totalRatedMatches: newTotalMatches,
+      peakRating: newPeak
+    };
+  });
+
+  return result;
 };
 
 export const calculateAllPlayerStats = (

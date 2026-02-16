@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
-import { calculateAllPlayerStats } from '../utils/ranking';
+import { calculateAllPlayerStats, updateRatingsIncremental } from '../utils/ranking';
 import { logAction, AuditAction, AuditResource } from '../utils/logger';
 import { startLiveMatch, stopLiveMatch, notifyDataUpdate } from '../socket';
 import { UserRole } from '@prisma/client';
@@ -49,39 +49,23 @@ export const createMatch = async (req: AuthenticatedRequest, res: Response) => {
 
     await logAction(req.user.userId, AuditAction.CREATE, AuditResource.MATCH, match.id, { playerAId, playerBId });
 
-    // 2. Recalculate rankings
-    const allPlayers = await prisma.player.findMany();
-    const allMatches = await prisma.match.findMany({
-      orderBy: { createdAt: 'asc' }
-    });
+    // 2. Update rankings incrementally for the two involved players
+    // This is much more efficient than recalculating all matches
+    if (isRated !== false && winnerId) {
+      const pA = await prisma.player.findUnique({ where: { id: playerAId } });
+      const pB = await prisma.player.findUnique({ where: { id: playerBId } });
 
-    // Convert matches to the format ranking util expects
-    const formattedMatches = allMatches.map((m) => {
-      const dateStr = (m.date as string) || m.createdAt.toISOString().split('T')[0];
-      return {
-        ...m,
-        date: dateStr,
-        charges: (m.charges as unknown as Record<string, number>) || {}
-      };
-    });
-
-    const stats = calculateAllPlayerStats(allPlayers, formattedMatches);
-
-    // 3. Update player records with new stats
-    const updatePromises = Object.keys(stats).map(playerId => {
-      const pStats = stats[playerId];
-      return prisma.player.update({
-        where: { id: playerId },
-        data: {
-          rating: pStats.rating,
-          rd: pStats.rd,
-          volatility: pStats.volatility,
-          earnedTier: pStats.earnedTier,
-          totalRatedMatches: pStats.totalRatedMatches,
-          peakRating: pStats.peakRating
-        }
-      });
-    });
+      if (pA && pB) {
+        const stats = updateRatingsIncremental(pA, pB, match);
+        
+        await Promise.all(Object.keys(stats).map(id => 
+          prisma.player.update({
+            where: { id },
+            data: stats[id]
+          })
+        ));
+      }
+    }
 
     const fullMatch = await prisma.match.findUnique({
       where: { id: match.id },
@@ -205,24 +189,41 @@ export const updateMatch = async (req: AuthenticatedRequest, res: Response) => {
 
 export const getMatches = async (req: Request, res: Response) => {
   try {
-    const matches = await prisma.match.findMany({
-      include: {
-        playerA: true,
-        playerB: true,
-        winner: true,
-        table: true,
-        type: true,
-        recorder: {
-          select: {
-            id: true,
-            name: true,
-            email: true
+    const { date, startDate, endDate, page = '1', limit = '1000' } = req.query;
+    
+    const p = parseInt(page as string) || 1;
+    const l = parseInt(limit as string) || 1000;
+    const skip = (p - 1) * l;
+
+    const where: any = {};
+
+    if (date) {
+      where.date = date as string;
+    } else if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = startDate as string;
+      if (endDate) where.date.lte = endDate as string;
+    }
+
+    const [matches, total] = await Promise.all([
+      prisma.match.findMany({
+        where,
+        include: {
+          playerA: true,
+          playerB: true,
+          winner: true,
+          table: true,
+          type: true,
+          recorder: {
+            select: { id: true, name: true, email: true }
           }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 200
-    });
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: l
+      }),
+      prisma.match.count({ where })
+    ]);
     
     // Add the missing 'date' field expected by frontend
     const formatted = matches.map((m) => {
@@ -236,7 +237,15 @@ export const getMatches = async (req: Request, res: Response) => {
       };
     });
 
-    res.json(formatted);
+    res.json({
+      matches: formatted,
+      pagination: {
+        total,
+        page: p,
+        limit: l,
+        totalPages: Math.ceil(total / l)
+      }
+    });
   } catch (error: unknown) {
     res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
   }
