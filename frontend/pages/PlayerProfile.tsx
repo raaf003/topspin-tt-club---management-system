@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { getLocalTodayStr } from '../utils';
+import { getLocalTodayStr, getNDaysAgoStr } from '../utils';
 import { ChevronLeft, Trophy, Target, TrendingUp, History, Phone, Award, Zap, Calendar, Filter, User, Table as TableIcon, Activity, IndianRupee, Info, BarChart3, Users, Gauge } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { calculatePlayerPerformanceScore, getPlayerTier, getTopPerformers, calculatePlayerRatingHistory } from '../rankingUtils';
+import { calculatePlayerPerformanceScore, getPlayerTier, getTopPerformers, calculatePlayerRatingHistory, calculatePlayerScore } from '../rankingUtils';
 
 const HighlightStat: React.FC<{ label: string; value: string; icon: React.ReactNode; subValue?: string; tooltip?: string }> = ({ label, value, icon, subValue, tooltip }) => (
   <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transition-all relative group/stat">
@@ -97,7 +97,7 @@ export const PlayerProfile: React.FC = () => {
 
   // Range Selection
   const todayStr = getLocalTodayStr();
-  const lastMonthStr = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const lastMonthStr = getNDaysAgoStr(30);
   
   const [range, setRange] = useState<'30d' | '90d' | 'all' | 'custom'>('30d');
   const [customStart, setCustomStart] = useState(lastMonthStr);
@@ -106,8 +106,7 @@ export const PlayerProfile: React.FC = () => {
   const activeRange = useMemo(() => {
     if (range === 'all') return undefined;
     if (range === '30d') return { start: lastMonthStr, end: todayStr };
-    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    const ninetyDaysAgoStr = `${ninetyDaysAgo.getFullYear()}-${String(ninetyDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(ninetyDaysAgo.getDate()).padStart(2, '0')}`;
+    const ninetyDaysAgoStr = getNDaysAgoStr(90);
     if (range === '90d') return { start: ninetyDaysAgoStr, end: todayStr };
     return { start: customStart, end: customEnd };
   }, [range, customStart, customEnd, lastMonthStr, todayStr]);
@@ -129,42 +128,14 @@ export const PlayerProfile: React.FC = () => {
   const rankingMetrics = useMemo(() => {
     if (!stats || !id) return null;
     
-    const rating = stats.rating || 1500;
-    const rd = stats.rd || 350;
-    const conservativeRating = rating - rd;
-    
-    // Calculate average opponent rating (same as leaderboard)
-    const wonMatches = matches.filter(m => m.winnerId === id && m.isRated !== false);
-    let avgOpponentRating = 1500;
-    if (wonMatches.length > 0) {
-      let totalOppRating = 0;
-      wonMatches.forEach(m => {
-        const oppId = m.playerAId === id ? m.playerBId : m.playerAId;
-        const oppStats = getPlayerStats(oppId);
-        totalOppRating += oppStats?.rating || 1500;
-      });
-      avgOpponentRating = totalOppRating / wonMatches.length;
-    }
-    const opponentStrengthFactor = Math.min(avgOpponentRating / 1500, 1.5);
-    
-    // Activity bonus
-    const activityBonus = Math.min((stats.ratedMatchesLast30 || 0) * 5, 100);
-    
-    // Score calculation (same as leaderboard)
-    const score = (conservativeRating * 0.60) + 
-                 (conservativeRating * opponentStrengthFactor * 0.30) +
-                 (activityBonus * 0.10);
+    const scoreMetrics = calculatePlayerScore(id, matches, getPlayerStats, players);
     
     // Find rank position
     const topPerformers = getTopPerformers(players, matches, getPlayerStats, players.length);
     const rank = topPerformers.findIndex(p => p.id === id) + 1;
     
     return {
-      conservativeRating,
-      avgOpponentRating,
-      opponentStrengthFactor,
-      activityBonus,
-      score,
+      ...scoreMetrics,
       rank,
       totalPlayers: players.length
     };
@@ -309,22 +280,22 @@ export const PlayerProfile: React.FC = () => {
           label="Win Rate" 
           value={`${stats.winRate.toFixed(1)}%`} 
           icon={<Trophy className="w-5 h-5 text-yellow-500" />} 
-          subValue={`${stats.wins}W - ${stats.losses}L`}
-          tooltip="Percentage of games won in the selected period."
+          subValue={`${stats.ratedWins}W - ${stats.ratedLosses}L`}
+          tooltip="Percentage of rated games won in the selected period."
         />
         <HighlightStat 
           label="Conservative" 
           value={`${rankingMetrics?.conservativeRating.toFixed(0) || '-'}`} 
           icon={<Gauge className="w-5 h-5 text-indigo-500" />} 
-          subValue="Rating - RD"
-          tooltip="Conservative Rating = Skill Rating minus Rating Deviation. This is 60% of your leaderboard score."
+          subValue="Rating - 2RD"
+          tooltip="Conservative Rating = Skill Rating minus twice the Rating Deviation. This is 60% of your leaderboard score."
         />
         <HighlightStat 
           label="Opp. Strength" 
           value={`${rankingMetrics?.avgOpponentRating.toFixed(0) || '-'}`} 
           icon={<Users className="w-5 h-5 text-rose-500" />} 
           subValue={`×${rankingMetrics?.opponentStrengthFactor.toFixed(2) || '1.00'}`}
-          tooltip="Average rating of opponents you've beaten. Higher = quality wins. This is 30% of your score."
+          tooltip="Average rating of opponents you've beaten (90-day window). Higher = quality wins. This is 30% of your score."
         />
         <HighlightStat 
           label="Activity" 
@@ -361,7 +332,7 @@ export const PlayerProfile: React.FC = () => {
           label="Total Matches" 
           value={`${stats.totalRatedMatches || 0}`} 
           icon={<Award className="w-5 h-5 text-purple-500" />} 
-          subValue="Career Games"
+          subValue="Rated Games"
           tooltip="Total rated matches played. Tiers are climb-only - once earned, you keep them forever!"
         />
       </div>
@@ -370,11 +341,11 @@ export const PlayerProfile: React.FC = () => {
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm space-y-6 transition-all">
             <h3 className="font-black text-gray-900 dark:text-white uppercase text-xs tracking-[0.2em] flex items-center gap-2">
-              <Award className="w-4 h-4 text-orange-500" /> Performance
+              <Award className="w-4 h-4 text-orange-500" /> Rated Performance
             </h3>
             <div className="space-y-4">
-              <ProgressStat label="Wins" value={stats.wins} total={stats.wins + stats.losses} color="bg-emerald-500" />
-              <ProgressStat label="Losses" value={stats.losses} total={stats.wins + stats.losses} color="bg-rose-500" />
+              <ProgressStat label="Wins" value={stats.ratedWins} total={stats.ratedWins + stats.ratedLosses} color="bg-emerald-500" />
+              <ProgressStat label="Losses" value={stats.ratedLosses} total={stats.ratedWins + stats.ratedLosses} color="bg-rose-500" />
             </div>
           </div>
           

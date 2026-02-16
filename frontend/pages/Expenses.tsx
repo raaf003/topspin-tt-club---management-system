@@ -73,7 +73,7 @@ export const Expenses: React.FC = () => {
     setCategory(ExpenseCategory.OTHER);
     setMode(PaymentMode.CASH);
     setNotes('');
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(getLocalTodayStr());
     setAdminName(currentUser.name);
     setShowAdd(false);
     setEditingId(null);
@@ -183,7 +183,7 @@ export const Expenses: React.FC = () => {
               <input 
                 id="expenseDate"
                 type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3 md:p-4 rounded-xl text-sm md:text-base outline-none dark:text-white transition-all" 
+                className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-4700 p-3 md:p-4 rounded-xl text-sm md:text-base outline-none dark:text-white transition-all" 
                 required
               />
             </div>

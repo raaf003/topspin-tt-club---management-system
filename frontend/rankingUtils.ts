@@ -1,4 +1,5 @@
 import { Player, Match, PlayerStats } from './types';
+import { getLocalTodayStr, getNDaysAgoStr } from './utils';
 
 // Glicko-2 constants
 const GLICKO_SCALE = 173.7178;
@@ -290,6 +291,14 @@ export const calculateAllPlayerStats = (
         weight = 0;
       }
 
+      // Track total rated matches for eligibility and display - regardless of capping
+      if (m.isRated !== false) {
+        [p1, p2].forEach(pid => {
+          if (playerTotalMatches[pid] === undefined) return;
+          playerTotalMatches[pid]++;
+        });
+      }
+
       // Rule 3B: Repeated Opponent Protection
       if (weight > 0) {
         dailyPairCount[pairKey] = (dailyPairCount[pairKey] || 0) + 1;
@@ -304,12 +313,6 @@ export const calculateAllPlayerStats = (
           player2: p2,
           winner: m.winnerId,
           weight
-        });
-
-        // Track total rated matches and peak rating updates only for matches that actually counted
-        [p1, p2].forEach(pid => {
-          if (playerTotalMatches[pid] === undefined) return;
-          playerTotalMatches[pid]++;
         });
       }
     });
@@ -364,28 +367,49 @@ export const calculateAllPlayerStats = (
     const sortedMatches = [...playerMatches].sort((a, b) => b.recordedAt - a.recordedAt);
 
     // Consistency & Streaks
-    const uniqueDays = Array.from(new Set(playerMatches.map(m => m.date))).sort().reverse();
+    const uniqueDays = Array.from(new Set(playerMatches.map(m => {
+      if (!m.date) return null;
+      // Extract YYYY-MM-DD even if it's a full ISO string
+      return typeof m.date === 'string' ? m.date.substring(0, 10) : null;
+    })))
+      .filter((d): d is string => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d))
+      .sort((a, b) => b.localeCompare(a));
+    
     let playStreak = 0;
     if (uniqueDays.length > 0) {
-      const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const todayStr = getLocalTodayStr();
+      const yesterdayStr = getNDaysAgoStr(1);
       
-      if (uniqueDays[0] === today || uniqueDays[0] === yesterday) {
+      const lastPlayedStr = uniqueDays[0];
+      
+      // Streak is active if played today (Feb 17) or yesterday (Feb 16)
+      if (lastPlayedStr === todayStr || lastPlayedStr === yesterdayStr) {
         playStreak = 1;
+        // Count consecutive days backwards
         for (let i = 0; i < uniqueDays.length - 1; i++) {
-          const d1 = new Date(uniqueDays[i]);
-          const d2 = new Date(uniqueDays[i+1]);
-          const diffDays = (new Date(uniqueDays[i]).getTime() - new Date(uniqueDays[i+1]).getTime()) / (1000 * 3600 * 24);
-          if (diffDays <= 1.5) playStreak++;
-          else break;
+          const currentDayStr = uniqueDays[i];
+          const previousDayStr = uniqueDays[i+1];
+          
+          const d1 = new Date(currentDayStr + 'T00:00:00Z');
+          const d2 = new Date(previousDayStr + 'T00:00:00Z');
+          const diffDays = Math.round((d1.getTime() - d2.getTime()) / (1000 * 3600 * 24));
+          
+          if (diffDays === 1) {
+            playStreak++;
+          } else if (diffDays === 0) {
+            // Should not happen with Set, but for safety
+            continue;
+          } else {
+            break;
+          }
         }
       }
     }
 
     // Consistency Score (active days in last 30)
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
+    const thirtyDaysAgo = getNDaysAgoStr(30);
     const consistencyScore = uniqueDays.filter(d => d >= thirtyDaysAgo).length;
-    const ratedMatchesLast30 = playerMatches.filter(m => m.date >= thirtyDaysAgo && m.isRated !== false).length;
+    const ratedMatchesLast30 = playerMatches.filter(m => (m.date || '').substring(0, 10) >= thirtyDaysAgo && m.isRated !== false).length;
 
     // Win Momentum (3 consecutive wins against DIFFERENT opponents in rated matches)
     let onFire = false;
@@ -471,8 +495,70 @@ export { TIER_THRESHOLDS };
 
 
 
+export const calculatePlayerScore = (
+  playerId: string,
+  matches: Match[],
+  getPlayerStats: (id: string | undefined) => any,
+  players: Player[]
+) => {
+  const stats = getPlayerStats(playerId);
+  if (!stats) return { score: 0, conservativeRating: 0, avgOpponentRating: 1500, opponentStrengthFactor: 1, activityBonus: 0 };
+
+  const rating = stats.rating || DEFAULT_RATING;
+  const rd = stats.rd || DEFAULT_RD;
+  
+  // Conservative Rating (Rating - 2 * RD)
+  const conservativeRating = Math.max(0, rating - (2 * rd));
+  
+  // Calculate average rating of opponents this player has beaten (Last 90 Days)
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString().split('T')[0];
+  const wonMatches = matches.filter(m => 
+    m.winnerId === playerId && 
+    m.isRated !== false && 
+    m.date >= ninetyDaysAgo
+  );
+  
+  let avgOpponentRating = DEFAULT_RATING;
+  if (wonMatches.length > 0) {
+    const totalOppRating = wonMatches.reduce((sum, m) => {
+      const oppId = m.playerAId === playerId ? m.playerBId : m.playerAId;
+      const oppStats = getPlayerStats(oppId);
+      return sum + (oppStats?.rating || DEFAULT_RATING);
+    }, 0);
+    avgOpponentRating = totalOppRating / wonMatches.length;
+  } else {
+    // If no recent wins, use all-time wins with a small penalty
+    const allWonMatches = matches.filter(m => m.winnerId === playerId && m.isRated !== false);
+    if (allWonMatches.length > 0) {
+      const totalOppRating = allWonMatches.reduce((sum, m) => {
+        const oppId = m.playerAId === playerId ? m.playerBId : m.playerAId;
+        const oppStats = getPlayerStats(oppId);
+        return sum + (oppStats?.rating || DEFAULT_RATING);
+      }, 0);
+      avgOpponentRating = (totalOppRating / allWonMatches.length) * 0.95;
+    } else {
+      avgOpponentRating = DEFAULT_RATING * 0.9;
+    }
+  }
+  
+  const opponentStrengthFactor = Math.min(avgOpponentRating / DEFAULT_RATING, 1.5);
+  const activityBonus = Math.min((stats.ratedMatchesLast30 || 0) * 5, 100);
+  
+  const score = (conservativeRating * 0.60) + 
+               (conservativeRating * opponentStrengthFactor * 0.30) +
+               (activityBonus * 0.10);
+
+  return {
+    score,
+    conservativeRating,
+    avgOpponentRating,
+    opponentStrengthFactor,
+    activityBonus
+  };
+};
+
 export const calculatePlayerPerformanceScore = (player: Player, matches: Match[], stats: PlayerStats) => {
-  // Legacy bridge or helper
+  // Bridge for components using the old signature
   return {
     totalScore: stats.rating,
     attendanceStreak: stats.playStreak,
@@ -613,44 +699,6 @@ export const calculatePlayerRatingHistory = (
 };
 
 /**
- * Calculate average rating of opponents a player has beaten in the last 90 days.
- * This helps identify if wins are against strong or weak opponents.
- */
-const getAverageOpponentRating = (
-  playerId: string,
-  matches: Match[],
-  playerStatsLookup: Record<string, PlayerStats>
-) => {
-  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString().split('T')[0];
-  
-  // Get all won matches for this player in the last 90 days
-  const wonMatches = matches.filter(m => 
-    m.winnerId === playerId && 
-    m.isRated !== false && 
-    m.date >= ninetyDaysAgo
-  );
-  
-  if (wonMatches.length === 0) {
-    // If no recent wins, we check all-time wins but penalize slightly
-    const allWonMatches = matches.filter(m => m.winnerId === playerId && m.isRated !== false);
-    if (allWonMatches.length === 0) return DEFAULT_RATING * 0.9; // Penalty for zero wins
-    
-    const totalOpponentRating = allWonMatches.reduce((sum, m) => {
-      const opponentId = m.playerAId === playerId ? m.playerBId : m.playerAId;
-      return sum + (playerStatsLookup[opponentId]?.rating || DEFAULT_RATING);
-    }, 0);
-    return (totalOpponentRating / allWonMatches.length) * 0.95; // Small penalty for stale wins
-  }
-  
-  const totalOpponentRating = wonMatches.reduce((sum, m) => {
-    const opponentId = m.playerAId === playerId ? m.playerBId : m.playerAId;
-    return sum + (playerStatsLookup[opponentId]?.rating || DEFAULT_RATING);
-  }, 0);
-  
-  return totalOpponentRating / wonMatches.length;
-};
-
-/**
  * Returns the top performing players sorted by multi-factor performance score.
  * Eligibility: Minimum 5 rated matches (anti-volatility).
  * Factors: Conservative Rating (60%), Opponent Strength (30%), Activity (10%)
@@ -661,42 +709,19 @@ export const getTopPerformers = (
   getPlayerStats: (id: string) => PlayerStats,
   limit: number = 3
 ) => {
-  // Build player stats lookup for all players (needed for opponent strength calculation)
-  const allPlayerStats: Record<string, PlayerStats> = {};
-  players.forEach(p => {
-    allPlayerStats[p.id] = getPlayerStats(p.id);
-  });
-  
   const result = players
-    .filter(p => (allPlayerStats[p.id]?.totalRatedMatches || 0) >= 5) // Minimum match requirement
+    .filter(p => (getPlayerStats(p.id)?.totalRatedMatches || 0) >= 5) // Minimum match requirement
     .map(p => {
-      const stats = allPlayerStats[p.id];
-      const rating = typeof stats.rating === 'number' ? stats.rating : DEFAULT_RATING;
-      const rd = typeof stats.rd === 'number'? stats.rd : DEFAULT_RD;
-      
-      // Conservative Rating (Rating - 2 * RD) is standard for leaderboards
-      // It represents "we are 95% sure this player is at least this good"
-      const conservativeRating = rating - (2 * rd);
-      
-      // Calculate average rating of opponents this player has beaten
-      const avgOpponentRating = getAverageOpponentRating(p.id, matches, allPlayerStats);
-      const opponentStrengthFactor = Math.min(avgOpponentRating / DEFAULT_RATING, 1.5);
-      
-      // Activity bonus: reward players who play frequently
-      const activityBonus = Math.min((stats.ratedMatchesLast30 || 0) * 5, 100);
-      
-      // Multi-factor score:
-      const score = (conservativeRating * 0.60) + 
-                   (conservativeRating * opponentStrengthFactor * 0.30) +
-                   (activityBonus * 0.10);
+      const stats = getPlayerStats(p.id);
+      const scoreMetrics = calculatePlayerScore(p.id, matches, getPlayerStats, players);
       
       return { 
         ...p, 
         stats, 
-        score,
-        displayRating: rating,
-        displayRd: rd,
-        opponentStrength: avgOpponentRating,
+        score: scoreMetrics.score,
+        displayRating: stats.rating,
+        displayRd: stats.rd,
+        opponentStrength: scoreMetrics.avgOpponentRating,
         attendanceStreak: stats.playStreak ?? 0,
         isHot: stats.onFire ?? false
       };

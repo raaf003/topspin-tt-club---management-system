@@ -271,9 +271,13 @@ export const calculateAllPlayerStats = (
       let weight = baseWeight;
       if (p1Count > 5 || p2Count > 5) weight = 0;
 
+      // Track total rated matches for eligibility and display - regardless of capping
+      if (m.isRated !== false) {
+        [p1, p2].forEach(pid => playerTotalMatches[pid]++);
+      }
+
       if (weight > 0) {
         ratedMatchesToProcess.push({ player1: p1, player2: p2, winner: m.winnerId, weight });
-        [p1, p2].forEach(pid => playerTotalMatches[pid]++);
       }
     });
 

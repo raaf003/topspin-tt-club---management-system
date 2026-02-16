@@ -312,6 +312,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Performance stats
     let wins = 0;
     let losses = 0;
+    let ratedWins = 0;
+    let ratedLosses = 0;
     const recentForm: ('W' | 'L' | 'N')[] = [];
     let bestStreak = 0;
     let tempStreak = 0;
@@ -323,6 +325,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     playerMatches.forEach((m) => {
       const isWinner = m.winnerId === playerId;
       const hasResult = !!m.winnerId;
+      const isRated = m.isRated !== false;
       const opponentId = m.playerAId === playerId ? m.playerBId : m.playerAId;
       const opponent = state.players.find(p => p.id === opponentId);
 
@@ -340,28 +343,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (hasResult) {
         if (isWinner) {
           wins++;
+          if (isRated) ratedWins++;
           tempStreak++;
           if (opponent) rivalryMap[opponentId].wins++;
         } else {
           losses++;
+          if (isRated) ratedLosses++;
           tempStreak = 0;
           if (opponent) rivalryMap[opponentId].losses++;
         }
         if (tempStreak > bestStreak) bestStreak = tempStreak;
       }
 
-      // Rating/Trend (Cumulative Win Rate)
-      const totalGamesWithResult = wins + losses;
+      // Rating/Trend (Cumulative Win Rate - Rated Only for better profile trend)
+      const gamesWithResult = wins + losses;
       performanceTrend.push({
         date: m.date,
-        rating: totalGamesWithResult > 0 ? (wins / totalGamesWithResult) * 100 : 0,
+        rating: gamesWithResult > 0 ? (wins / gamesWithResult) * 100 : 0,
         matchId: m.id
       });
     });
 
-    // Form from recent matches (last 10)
+    // Form from recent matches (last 10) - RATED ONLY for competitive form
     const sortedDescMatches = [...playerMatches].sort((a, b) => b.recordedAt - a.recordedAt);
-    sortedDescMatches.slice(0, 10).forEach(m => {
+    sortedDescMatches.filter(m => m.isRated !== false).slice(0, 10).forEach(m => {
       const isWinner = m.winnerId === playerId;
       const hasResult = !!m.winnerId;
       recentForm.push(hasResult ? (isWinner ? 'W' : 'L') : 'N');
@@ -409,7 +414,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       gamesPlayed: playerMatches.length,
       wins,
       losses,
-      winRate: (wins + losses) > 0 ? (wins / (wins + losses)) * 100 : 0,
+      ratedWins,
+      ratedLosses,
+      winRate: (ratedWins + ratedLosses) > 0 ? (ratedWins / (ratedWins + ratedLosses)) * 100 : 0,
       totalSpent,
       totalPaid,
       totalDiscounted,

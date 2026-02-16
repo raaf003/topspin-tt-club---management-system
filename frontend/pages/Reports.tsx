@@ -2,11 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { PieChart as ReChartsPieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { Download, Calendar, IndianRupee, TrendingDown, Target, Filter, ChevronRight, History, Percent } from 'lucide-react';
+import { getLocalTodayStr } from '../utils';
 
 export const Reports: React.FC = () => {
   const { players, matches, payments, expenses, getPlayerStats, isDarkMode } = useApp();
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalTodayStr();
   const thisMonthStr = todayStr.substring(0, 7);
 
   // Period Selection
