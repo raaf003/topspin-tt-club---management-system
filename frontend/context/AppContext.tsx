@@ -94,7 +94,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     if (!silent) setIsLoading(true);
     try {
-      const isAdminFlag = state.currentUser.role === UserRole.ADMIN || state.currentUser.role === UserRole.SUPER_ADMIN || state.currentUser.role === UserRole.STAFF;
+      const isAdminFlag = state.currentUser.role === UserRole.ADMIN || state.currentUser.role === UserRole.SUPER_ADMIN;
 
       const [players, matchResponse, payments, configs, expenses, tables] = await Promise.all([
         api.get('/players'),

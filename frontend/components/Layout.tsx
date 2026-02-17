@@ -108,7 +108,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 </div>
                 
                 <div className="p-1.5">
-                  {isSuperAdmin && (
+                  {isAdmin && (
                     <NavLink
                       to="/admin"
                       onClick={() => setShowProfileMenu(false)}
