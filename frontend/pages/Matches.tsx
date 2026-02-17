@@ -91,8 +91,72 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({ label, value, onCha
   );
 };
 
+interface TableSelectProps {
+  label: string;
+  value: string;
+  onChange: (id: string) => void;
+  options: any[]; // Tables
+  placeholder: string;
+}
+
+const TableSelect: React.FC<TableSelectProps> = ({ label, value, onChange, options, placeholder }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selectedTable = options.find(t => t.id === value);
+  const activeOptions = options.filter(t => t.isActive || t.id === value);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="space-y-1 md:space-y-1.5 relative" ref={containerRef}>
+      <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{label}</label>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full bg-gray-50 dark:bg-slate-900 border-2 border-transparent p-2.5 md:p-4 rounded-xl md:rounded-2xl cursor-pointer flex justify-between items-center shadow-inner group hover:border-indigo-100 dark:hover:border-indigo-900 transition-all font-black text-xs md:text-sm"
+      >
+        <div className="flex items-center gap-2 truncate">
+           <div className={`w-1.5 h-1.5 rounded-full ${selectedTable ? 'bg-indigo-500' : 'bg-gray-300'}`}></div>
+           <span className={`${selectedTable ? 'text-gray-800 dark:text-white' : 'text-gray-400 dark:text-slate-500'}`}>
+             {selectedTable ? selectedTable.name : placeholder}
+           </span>
+        </div>
+        <ChevronDown className={`w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-1 md:mt-2 w-full bg-white dark:bg-slate-900 rounded-xl md:rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="max-h-48 md:max-h-60 overflow-y-auto py-1 md:py-2">
+            {activeOptions.map(t => (
+              <div 
+                key={t.id}
+                onClick={() => {
+                  onChange(t.id);
+                  setIsOpen(false);
+                }}
+                className={`px-3 md:px-4 py-2.5 md:py-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-indigo-900/30 flex flex-col justify-center gap-0.5 border-l-4 transition-all ${value === t.id ? 'bg-indigo-50/50 dark:bg-indigo-900/40 border-indigo-500' : 'border-transparent'}`}
+              >
+                <span className={`text-xs md:text-sm font-black ${value === t.id ? 'text-indigo-600 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>{t.name}</span>
+                {t.description && <span className="text-[8px] md:text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">{t.description}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const Matches: React.FC = () => {
-  const { players, addMatch, updateMatch, matches, currentUser, getPlayerStats, getPlayerDues, ongoingMatch, startOngoingMatch, clearOngoingMatch, matchRates } = useApp();
+  const { players, tables, gameConfigs, addMatch, updateMatch, matches, currentUser, getPlayerStats, getPlayerDues, ongoingMatch, startOngoingMatch, clearOngoingMatch, matchRates } = useApp();
   const canEdit = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.STAFF || currentUser.role === UserRole.SUPER_ADMIN;
   
   // Form State
@@ -101,12 +165,19 @@ export const Matches: React.FC = () => {
   const [playerAId, setPlayerAId] = useState('');
   const [playerBId, setPlayerBId] = useState('');
   const [points, setPoints] = useState<MatchPoints>(20);
-  const [table, setTable] = useState('Table 1');
+  const [table, setTable] = useState(''); // Stores table ID now
   const [payerOption, setPayerOption] = useState<PayerOption>(PayerOption.LOSER);
   const [winnerId, setWinnerId] = useState('');
   const [isRated, setIsRated] = useState(true);
   const [matchDate, setMatchDate] = useState(getLocalTodayStr());
   const [success, setSuccess] = useState(false);
+
+  // Set default table once loaded
+  useEffect(() => {
+    if (!table && tables.length > 0) {
+      setTable(tables[0].id);
+    }
+  }, [tables, table]);
 
   // Auto-populate from ongoing match if it exists and we aren't editing something else
   useEffect(() => {
@@ -183,9 +254,9 @@ export const Matches: React.FC = () => {
   };
 
   const matchTotal = useMemo(() => {
-    const type = points === 20 ? '20_POINTS' : '10_POINTS';
-    return matchRates[type] || (points === 20 ? 30 : 20);
-  }, [points, matchRates]);
+    const config = gameConfigs.find(c => c.type === (points === 20 ? '20_POINTS' : '10_POINTS'));
+    return config?.price || 0;
+  }, [points, gameConfigs]);
 
   /**
    * FIFO Logic: Determine if a specific match is "Paid" for a player.
@@ -273,6 +344,13 @@ export const Matches: React.FC = () => {
 
   const handleGoLive = async () => {
     if (!playerAId || !playerBId) return;
+
+    const selectedTable = tables.find(t => t.id === table);
+    if (selectedTable && !selectedTable.isActive) {
+      alert("This table is currently inactive. Please select an active table.");
+      return;
+    }
+
     try {
       await startOngoingMatch({
         id: generateUUID(),
@@ -317,7 +395,7 @@ export const Matches: React.FC = () => {
         playerAId,
         playerBId,
         winnerId: winnerId || undefined,
-        table,
+        tableId: table,
         payerOption,
         totalValue: matchTotal,
         charges,
@@ -325,6 +403,9 @@ export const Matches: React.FC = () => {
       });
       setEditingId(null);
     } else {
+      // Find proper gameTypeId from gameConfigs if it matches the point format
+      const gameType = gameConfigs.find(c => c.type === (points === 20 ? '20_POINTS' : '10_POINTS'));
+      
       await addMatch({
         date: matchDate,
         recordedAt: Date.now(),
@@ -339,7 +420,7 @@ export const Matches: React.FC = () => {
         playerBId,
         winnerId: winnerId || undefined,
         tableId: table, // tableId is expected by type
-        gameTypeId: points === 20 ? '20_POINTS' : '10_POINTS', // Map points to gameTypeId if needed
+        typeId: gameType?.id, // Use actual ID from config
         payerOption,
         totalValue: matchTotal,
         charges,
@@ -371,7 +452,7 @@ export const Matches: React.FC = () => {
     setPlayerAId(m.playerAId);
     setPlayerBId(m.playerBId);
     setPoints(m.points);
-    setTable(m.table || 'Table 1');
+    setTable(m.tableId || '');
     setPayerOption(m.payerOption);
     setWinnerId(m.winnerId || '');
     setIsRated(m.isRated ?? true);
@@ -427,6 +508,10 @@ export const Matches: React.FC = () => {
               <span className="text-white font-bold text-xs truncate">
                 {players.find(p => p.id === ongoingMatch.playerAId)?.name} vs {players.find(p => p.id === ongoingMatch.playerBId)?.name}
               </span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/20 rounded-lg text-[10px] text-white font-black shrink-0">
+                 <Activity className="w-2.5 h-2.5" />
+                 {tables.find(t => t.id === ongoingMatch.table)?.name}
+              </div>
               <span className="text-white/70 font-bold text-xs shrink-0">({formatElapsedTime(elapsedTime)})</span>
             </div>
           </div>
@@ -492,17 +577,27 @@ export const Matches: React.FC = () => {
               >
                 <span className="text-base md:text-lg">{pts} Points</span>
                 <span className={`text-[8px] md:text-[10px] opacity-80 ${points === pts ? 'text-white/70' : 'text-gray-400 dark:text-slate-500'}`}>
-                  Value: ₹{matchRates[`${pts}_POINTS`] || (pts === 20 ? 30 : 20)}
+                  Value: ₹{matchRates[`${pts}_POINTS`] || 0}
                 </span>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1 md:space-y-1.5">
+        <div className="grid grid-cols-3 gap-3">
+          <div className="col-span-1">
+            <TableSelect 
+              label="Table"
+              value={table}
+              onChange={setTable}
+              options={tables}
+              placeholder="Select..."
+            />
+          </div>
+
+          <div className="space-y-1 md:space-y-1.5 col-span-1">
             <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Match Date</label>
-            <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-800 p-1 md:p-1.5 h-[48px] md:h-[56px] flex items-center">
+            <div className="bg-gray-50 dark:bg-slate-900 rounded-xl md:rounded-2xl border-2 border-transparent shadow-inner p-1 md:p-1.5 h-[42px] md:h-[52px] flex items-center">
               <input 
                 type="date" 
                 value={matchDate}
@@ -512,24 +607,16 @@ export const Matches: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-1 md:space-y-1.5">
+          <div className="space-y-1 md:space-y-1.5 col-span-1">
             <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Ranked</label>
-            <div className="flex items-center justify-between px-3 p-1 md:p-1.5 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-800 h-[48px] md:h-[56px]">
-              <div className="flex items-center gap-1.5 md:gap-2">
-                <Zap className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isRated ? 'text-amber-500' : 'text-gray-400'}`} />
-                <div>
-                   <div className="text-[9px] md:text-[10px] font-black uppercase dark:text-white">Rated</div>
-                   <div className="text-[7px] font-bold text-gray-400 uppercase hidden md:block">Affects Skill</div>
-                </div>
-              </div>
+            <div className="flex items-center justify-between px-3 bg-gray-50 dark:bg-slate-900 rounded-xl md:rounded-2xl border-2 border-transparent shadow-inner h-[42px] md:h-[52px]">
+              <Zap className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isRated ? 'text-amber-500' : 'text-gray-400'}`} />
               <button 
                 type="button"
                 onClick={() => setIsRated(!isRated)}
-                title={isRated ? "Disable Rating" : "Enable Rating"}
-                aria-label={isRated ? "Disable Rating" : "Enable Rating"}
-                className={`w-8 h-4 md:w-9 md:h-5 rounded-full transition-colors relative ${isRated ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'}`}
+                className={`w-7 h-3.5 md:w-8 md:h-4 rounded-full transition-colors relative ${isRated ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'}`}
               >
-                <div className={`absolute top-0.5 md:top-1 w-3 h-3 bg-white rounded-full transition-all ${isRated ? 'right-0.5 md:right-1' : 'left-0.5 md:left-1'}`} />
+                <div className={`absolute top-0.5 w-2.5 h-2.5 bg-white rounded-full transition-all ${isRated ? 'right-0.5' : 'left-0.5'}`} />
               </button>
             </div>
           </div>
@@ -789,6 +876,9 @@ export const Matches: React.FC = () => {
                           )}
                           <span className="text-[7px] md:text-[8px] font-black bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 px-1 md:px-1.5 py-0.5 rounded-md uppercase truncate">
                             {getPayerStatusLabel()}
+                          </span>
+                          <span className="text-[7px] md:text-[8px] font-black bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 px-1 md:px-1.5 py-0.5 rounded-md uppercase">
+                            {m.table?.name}
                           </span>
                         </div>
                       </div>

@@ -33,10 +33,10 @@ export const createMatch = async (req: AuthenticatedRequest, res: Response) => {
       data: {
         playerAId,
         playerBId,
-        winnerId,
+        winnerId: winnerId || null,
         points: parseInt(points),
-        tableId,
-        typeId,
+        tableId: tableId || null,
+        typeId: typeId || null,
         isRated: isRated !== undefined ? isRated : true,
         payerOption,
         totalValue: parseFloat(totalValue),
@@ -73,6 +73,8 @@ export const createMatch = async (req: AuthenticatedRequest, res: Response) => {
         playerA: true,
         playerB: true,
         winner: true,
+        table: true,
+        type: true,
         recorder: {
           select: {
             id: true,
@@ -113,10 +115,10 @@ export const updateMatch = async (req: AuthenticatedRequest, res: Response) => {
       data: {
         playerAId,
         playerBId,
-        winnerId,
+        winnerId: winnerId || null,
         points: points ? parseInt(points) : undefined,
-        tableId,
-        typeId,
+        tableId: tableId || null,
+        typeId: typeId || null,
         isRated,
         payerOption,
         totalValue: totalValue ? parseFloat(totalValue) : undefined,
@@ -163,6 +165,8 @@ export const updateMatch = async (req: AuthenticatedRequest, res: Response) => {
         playerA: true,
         playerB: true,
         winner: true,
+        table: true,
+        type: true,
         recorder: {
           select: { id: true, name: true, email: true }
         }

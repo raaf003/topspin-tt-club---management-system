@@ -6,9 +6,10 @@ import { format } from 'date-fns';
 import { useApp } from '../context/AppContext';
 
 export const AdminPanel: React.FC = () => {
-  const { refreshData } = useApp();
+  const { refreshData, tables: contextTables, gameConfigs } = useApp();
   const [activeTab, setActiveTab] = useState<'users' | 'rates' | 'profit' | 'logs'>('users');
   const [users, setUsers] = useState<User[]>([]);
+  const [tables, setTables] = useState<any[]>([]);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -26,19 +27,32 @@ export const AdminPanel: React.FC = () => {
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: UserRole.STAFF as UserRole, profitPercentage: 0 });
   const [editingUser, setEditingUser] = useState<{ id: string, name: string, email: string, password?: string, role: UserRole, profitPercentage?: number } | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [rates, setRates] = useState({ rate10: 10, rate20: 20 });
+  const [rates, setRates] = useState({ rate10: 0, rate20: 0 });
   const [profitDetails, setProfitDetails] = useState({ 
     amount: 0, 
     description: '', 
     mode: 'EQUAL' as 'EQUAL' | 'PERCENTAGE' 
   });
+  const [newTable, setNewTable] = useState({ name: '', description: '' });
+  const [showAddTable, setShowAddTable] = useState(false);
+  const [editingTable, setEditingTable] = useState<{ id: string, name: string, description: string } | null>(null);
 
   useEffect(() => {
     fetchUsers();
     fetchLogs();
     fetchRates();
     fetchProfitSummary();
+    fetchTables();
   }, []);
+
+  const fetchTables = async () => {
+    try {
+      const data = await api.get('/config/tables');
+      setTables(data);
+    } catch (err) {
+      console.error('Failed to fetch tables', err);
+    }
+  };
 
   const fetchProfitSummary = async () => {
     try {
@@ -70,9 +84,11 @@ export const AdminPanel: React.FC = () => {
   const fetchRates = async () => {
     try {
       const data = await api.get('/admin/match-rates');
-      const r10 = data.find((r: any) => r.type === '10_POINTS')?.price || 20;
-      const r20 = data.find((r: any) => r.type === '20_POINTS')?.price || 30;
-      setRates({ rate10: r10, rate20: r20 });
+      const r10 = data.find((r: any) => r.type === '10_POINTS')?.price;
+      const r20 = data.find((r: any) => r.type === '20_POINTS')?.price;
+      if (r10 !== undefined && r20 !== undefined) {
+        setRates({ rate10: r10, rate20: r20 });
+      }
     } catch (err) {
       console.error('Failed to fetch rates', err);
     }
@@ -179,6 +195,55 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
+  const handleUpdateTable = async (id: string, updates: any) => {
+    try {
+      await api.put(`/config/tables/${id}`, updates);
+      setMessage({ type: 'success', text: 'Table updated' });
+      fetchTables();
+      refreshData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Update failed' });
+    }
+  };
+
+  const handleUpdateTableDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTable || !editingTable.name) return;
+    setLoading(true);
+    try {
+      await api.put(`/config/tables/${editingTable.id}`, {
+        name: editingTable.name,
+        description: editingTable.description
+      });
+      setMessage({ type: 'success', text: 'Table details updated' });
+      setEditingTable(null);
+      fetchTables();
+      refreshData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Update failed' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateTable = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTable.name) return;
+    setLoading(true);
+    try {
+      await api.post('/config/tables', newTable);
+      setMessage({ type: 'success', text: 'Table added successfully' });
+      setNewTable({ name: '', description: '' });
+      setShowAddTable(false);
+      fetchTables();
+      refreshData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to add table' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4 md:space-y-5 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-1">
@@ -226,7 +291,7 @@ export const AdminPanel: React.FC = () => {
           active={activeTab === 'rates'} 
           onClick={() => setActiveTab('rates')} 
           icon={<Activity className="w-3.5 h-3.5" />} 
-          label="Rates" 
+          label="Rates & Tables" 
         />
         <TabButton 
           active={activeTab === 'profit'} 
@@ -490,44 +555,227 @@ export const AdminPanel: React.FC = () => {
         )}
 
         {activeTab === 'rates' && (
-          <div className="max-w-xl mx-auto py-2 md:py-4 animate-in zoom-in-95 duration-300">
-            <div className="text-center mb-6 px-4">
-              <div className="inline-flex p-2 bg-indigo-600 dark:bg-indigo-500 rounded-xl text-white shadow-xl shadow-indigo-100 dark:shadow-none mb-3">
-                <Activity className="w-5 h-5" />
+          <div className="space-y-10 animate-in zoom-in-95 duration-300">
+            {/* Rates Section */}
+            <div className="max-w-xl mx-auto py-2 md:py-4">
+              <div className="text-center mb-8 px-4">
+                <div className="inline-flex p-2 bg-indigo-600 dark:bg-indigo-500 rounded-xl text-white shadow-xl shadow-indigo-100 dark:shadow-none mb-4 animate-bounce-slow">
+                  <DollarSign className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white italic tracking-tight">Game Rates</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-[10px] max-w-sm mx-auto font-bold mt-1 leading-relaxed uppercase tracking-[0.2em]">Define session pricing for standard formats</p>
               </div>
-              <h3 className="text-base md:text-lg font-black text-slate-900 dark:text-white italic tracking-tight">Economic Policy</h3>
-              <p className="text-slate-500 dark:text-slate-400 text-[9px] max-w-sm mx-auto font-medium mt-1 leading-relaxed uppercase tracking-widest">Define billing standards for game session formats</p>
+
+              <form onSubmit={handleUpdateRates} className="space-y-6 px-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <RateConfigCard 
+                    points={10} 
+                    label="Short Match" 
+                    value={rates.rate10} 
+                    onChange={val => setRates({...rates, rate10: val})} 
+                    color="blue"
+                  />
+                  <RateConfigCard 
+                    points={20} 
+                    label="Standard Pro" 
+                    value={rates.rate20} 
+                    onChange={val => setRates({...rates, rate20: val})} 
+                    color="indigo"
+                  />
+                </div>
+
+                <div className="flex justify-center pt-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full md:w-auto px-8 py-4 bg-indigo-600 dark:bg-indigo-600 text-white font-black rounded-2xl hover:bg-slate-900 dark:hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 shadow-2xl shadow-indigo-200 dark:shadow-none active:scale-95 text-xs uppercase tracking-widest italic"
+                  >
+                    {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>{loading ? 'Saving Changes...' : 'Save Game Rates'}</span>
+                  </button>
+                </div>
+              </form>
             </div>
 
-            <form onSubmit={handleUpdateRates} className="space-y-4 px-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                <RateConfigCard 
-                  points={10} 
-                  label="Short Match" 
-                  value={rates.rate10} 
-                  onChange={val => setRates({...rates, rate10: val})} 
-                  color="blue"
-                />
-                <RateConfigCard 
-                  points={20} 
-                  label="Standard Pro" 
-                  value={rates.rate20} 
-                  onChange={val => setRates({...rates, rate20: val})} 
-                  color="indigo"
-                />
+            {/* Tables Section */}
+            <div className="max-w-xl mx-auto space-y-4">
+              <div className="flex items-center justify-between px-2">
+                 <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-600 dark:bg-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                       <Activity className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900 dark:text-white italic tracking-tight uppercase">Game Tables</h3>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Resource Asset Tracking</p>
+                    </div>
+                 </div>
+                 <button 
+                    onClick={() => setShowAddTable(!showAddTable)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${showAddTable ? 'bg-rose-50 text-rose-500 border border-rose-100' : 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 shadow-sm hover:shadow-md'}`}
+                  >
+                    {showAddTable ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                    {showAddTable ? 'CANCEL' : 'ADD TABLE'}
+                  </button>
               </div>
 
-              <div className="flex justify-center pt-2 pb-10 md:pb-0">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full md:w-auto px-6 py-3 bg-slate-900 dark:bg-indigo-600 text-white font-black rounded-xl hover:bg-slate-800 dark:hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-xl shadow-slate-200 dark:shadow-none active:scale-95 text-sm italic tracking-tight"
-                >
-                  <Save className="w-4 h-4" /> 
-                  <span className="uppercase tracking-widest">{loading ? 'Saving...' : 'Authorize Rate Update'}</span>
-                </button>
+              <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 md:p-8 shadow-2xl shadow-indigo-100 dark:shadow-none border border-slate-100 dark:border-slate-800 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none"></div>
+                
+                {showAddTable && (
+                  <form onSubmit={handleCreateTable} className="mb-10 p-6 bg-slate-50/50 dark:bg-slate-800/20 rounded-[2rem] border-2 border-dashed border-indigo-100 dark:border-indigo-900/50 animate-in slide-in-from-top-4 duration-500 relative z-10">
+                    <div className="space-y-6">
+                       <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest italic flex items-center gap-2">
+                             <Plus className="w-4 h-4 text-indigo-500" />
+                             Initialize New Asset
+                          </h4>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Step 1: Configuration</p>
+                       </div>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Identity</label>
+                            <input 
+                              type="text"
+                              required
+                              placeholder="e.g. Table 4"
+                              value={newTable.name}
+                              onChange={e => setNewTable({...newTable, name: e.target.value})}
+                              className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-indigo-500/20 text-sm font-black text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-200"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Location / Spec</label>
+                            <input 
+                              type="text"
+                              placeholder="e.g. Center Area"
+                              value={newTable.description}
+                              onChange={e => setNewTable({...newTable, description: e.target.value})}
+                              className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-indigo-500/20 text-sm font-bold text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-200"
+                            />
+                          </div>
+                       </div>
+                       <button 
+                         type="submit" 
+                         disabled={loading}
+                         className="w-full py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:bg-slate-800 dark:hover:bg-indigo-700 active:scale-98 transition-all disabled:opacity-50"
+                       >
+                         {loading ? 'SYNCING...' : 'INITIALIZE ASSET'}
+                       </button>
+                    </div>
+                  </form>
+                )}
+
+                {editingTable && (
+                  <form onSubmit={handleUpdateTableDetails} className="mb-10 p-6 bg-indigo-50/10 dark:bg-indigo-900/10 rounded-[2rem] border-2 border-indigo-500/20 animate-in slide-in-from-top-4 duration-500 relative z-10">
+                    <div className="space-y-6">
+                       <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest italic flex items-center gap-2">
+                             <Edit3 className="w-4 h-4" />
+                             Modify Asset Details
+                          </h4>
+                          <button type="button" onClick={() => setEditingTable(null)} className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg"><X className="w-4 h-4" /></button>
+                       </div>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Identity</label>
+                            <input 
+                              type="text"
+                              required
+                              value={editingTable.name}
+                              onChange={e => setEditingTable({...editingTable, name: e.target.value})}
+                              className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-indigo-500/20 text-sm font-black text-slate-900 dark:text-white outline-none transition-all"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Location / Spec</label>
+                            <input 
+                              type="text"
+                              value={editingTable.description}
+                              onChange={e => setEditingTable({...editingTable, description: e.target.value})}
+                              className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-indigo-500/20 text-sm font-bold text-slate-900 dark:text-white outline-none transition-all"
+                            />
+                          </div>
+                       </div>
+                       <button 
+                         type="submit" 
+                         disabled={loading}
+                         className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:bg-indigo-700 active:scale-98 transition-all disabled:opacity-50"
+                       >
+                         {loading ? 'SAVING...' : 'UPDATE ASSET'}
+                       </button>
+                    </div>
+                  </form>
+                )}
+
+                <div className="flex flex-col gap-3 relative z-10">
+                  {tables.map((table, idx) => (
+                    <div key={table.id} className={`group p-4 md:p-5 rounded-[1.8rem] border-2 transition-all duration-300 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 ${table.isActive ? 'bg-white dark:bg-slate-900 border-slate-50 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-indigo-100 dark:hover:border-indigo-900' : 'bg-slate-100/50 dark:bg-slate-800/10 border-transparent opacity-60'}`}>
+                      {/* Background Numbering */}
+                      <span className="absolute -bottom-2 right-4 text-5xl font-black text-slate-50 dark:text-slate-800/30 italic pointer-events-none select-none group-hover:text-indigo-50 dark:group-hover:text-indigo-900/10 transition-colors uppercase">0{idx + 1}</span>
+                      
+                      <div className="flex items-center gap-3.5 relative z-10 flex-1 min-w-0">
+                         <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center border shadow-inner ${table.isActive ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 border-indigo-100/50' : 'bg-slate-200 dark:bg-slate-700 text-slate-400 border-transparent'}`}>
+                            <Activity className="w-6 h-6" />
+                         </div>
+                         <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-3 flex-wrap">
+                               <h4 className="text-sm md:text-base font-black text-slate-900 dark:text-white leading-tight">{table.name}</h4>
+                               <div className="flex items-center gap-1.5 font-black uppercase tracking-widest text-[8px]">
+                                  <div className={`w-1.5 h-1.5 rounded-full ${table.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></div>
+                                  <span className={table.isActive ? 'text-emerald-600' : 'text-slate-400'}>{table.isActive ? 'OPERATIONAL' : 'OFFLINE'}</span>
+                               </div>
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight line-clamp-1 mt-1 italic">
+                               {table.description || 'Verified System Asset'}
+                            </p>
+                         </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-1 relative z-10 shrink-0 self-end md:self-center bg-slate-50/50 dark:bg-slate-800/50 md:bg-transparent p-1 md:p-0 rounded-xl">
+                         <button 
+                            title="Edit Details"
+                            onClick={() => setEditingTable({ id: table.id, name: table.name, description: table.description || '' })}
+                            className="p-2 text-indigo-500 hover:bg-white dark:hover:bg-slate-800 md:hover:bg-indigo-50 md:dark:hover:bg-indigo-900/20 rounded-lg transition-all active:scale-90"
+                         >
+                            <Edit3 className="w-4 h-4" />
+                         </button>
+                         <button 
+                            title={table.isActive ? "Deactivate" : "Activate"}
+                            onClick={() => handleUpdateTable(table.id, { isActive: !table.isActive })}
+                            className={`p-2 rounded-lg transition-all active:scale-90 ${table.isActive ? 'text-amber-500 hover:bg-white dark:hover:bg-slate-800 md:hover:bg-amber-50 md:dark:hover:bg-amber-900/20' : 'text-emerald-500 hover:bg-white dark:hover:bg-slate-800 md:hover:bg-emerald-50 md:dark:hover:bg-emerald-900/20'}`}
+                         >
+                            {table.isActive ? <X className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                         </button>
+                         <button 
+                            title="Permanent Remove"
+                            onClick={async () => {
+                              if(window.confirm('Wipe this asset from the fleet? Note: Assets with historical match data cannot be deleted.')) {
+                                try {
+                                  await api.delete(`/config/tables/${table.id}`);
+                                  fetchTables();
+                                  refreshData();
+                                } catch(e: any) { alert(e.message); }
+                              }
+                            }}
+                            className="p-2 text-rose-500 hover:bg-white dark:hover:bg-slate-800 md:hover:bg-rose-50 md:dark:hover:bg-rose-900/20 rounded-lg transition-all active:scale-90"
+                         >
+                            <Trash2 className="w-4 h-4" />
+                         </button>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {tables.length === 0 && (
+                    <div className="col-span-full py-20 text-center bg-slate-50/50 dark:bg-slate-800/10 rounded-[2.5rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
+                      <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-[2rem] flex items-center justify-center mx-auto mb-4 border border-slate-100 dark:border-slate-800 shadow-xl">
+                        <Activity className="w-10 h-10 text-slate-200" />
+                      </div>
+                      <p className="text-slate-400 font-black italic text-[11px] uppercase tracking-[0.3em] px-10">Zero Active Resources Detected</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </form>
+            </div>
           </div>
         )}
 

@@ -27,6 +27,19 @@ export enum PayerOption {
 
 export type MatchPoints = 10 | 20;
 
+export interface GameTable {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export interface GameConfig {
+  id: string;
+  type: string;
+  price: number;
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -57,8 +70,11 @@ export interface Match {
     role: UserRole;
     name: string;
   };
-  table?: string;
+  tableId?: string;
+  table?: GameTable;
   points: MatchPoints;
+  typeId?: string;
+  type?: GameConfig;
   playerAId: string;
   playerBId: string;
   winnerId?: string;
@@ -166,10 +182,13 @@ export interface AppState {
   matches: Match[];
   payments: Payment[];
   expenses: Expense[];
+  tables: GameTable[];
+  gameConfigs: GameConfig[];
   ongoingMatch: OngoingMatch | null;
   currentUser: {
     role: UserRole;
     name: string;
+    id?: string;
   };
   themeMode: ThemeMode;
 }

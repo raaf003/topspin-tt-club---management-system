@@ -48,15 +48,6 @@ const getEffectiveTheme = (themeMode: ThemeMode): 'light' | 'dark' => {
   return themeMode;
 };
 
-const INITIAL_PLAYERS: Player[] = [
-  { id: 'p1', name: 'Fardeen Malik', initialBalance: 0, createdAt: Date.now() },
-  { id: 'p2', name: 'Hamza Jeelani', initialBalance: 0, createdAt: Date.now() },
-  { id: 'p3', name: 'Amaan Tak', initialBalance: 0, createdAt: Date.now() },
-  { id: 'p4', name: 'Saqib Shapoo', nickname: 'Lenchi', initialBalance: 0, createdAt: Date.now() },
-  { id: 'p5', name: 'Rajid', nickname: 'Grenade', initialBalance: 0, createdAt: Date.now() },
-  { id: 'p6', name: 'Tahir Shapoo', initialBalance: 0, createdAt: Date.now() },
-];
-
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [token, setToken] = useState<string | null>(localStorage.getItem(TOKEN_KEY));
@@ -67,8 +58,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     matches: [],
     payments: [],
     expenses: [],
+    tables: [],
+    gameConfigs: [],
     ongoingMatch: null,
-    matchRates: { '10_POINTS': 20, '20_POINTS': 30 },
+    matchRates: {},
     currentUser: JSON.parse(localStorage.getItem(USER_KEY) || '{"role":"STAFF","name":"Guest"}'),
     themeMode: (localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode) || 'auto'
   });
@@ -101,14 +94,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     if (!silent) setIsLoading(true);
     try {
-      const isAdminFlag = state.currentUser.role === UserRole.ADMIN || state.currentUser.role === UserRole.SUPER_ADMIN;
+      const isAdminFlag = state.currentUser.role === UserRole.ADMIN || state.currentUser.role === UserRole.SUPER_ADMIN || state.currentUser.role === UserRole.STAFF;
 
-      const [players, matchResponse, payments, configs, expenses] = await Promise.all([
+      const [players, matchResponse, payments, configs, expenses, tables] = await Promise.all([
         api.get('/players'),
         api.get('/matches?limit=1000'), // Default fetch a large batch for leaderboard
         api.get('/finance/payments'),
         api.get('/config/game-types'),
-        isAdminFlag ? api.get('/finance/expenses') : Promise.resolve([])
+        isAdminFlag ? api.get('/finance/expenses') : Promise.resolve([]),
+        api.get('/config/tables')
       ]);
 
       const matches = Array.isArray(matchResponse) ? matchResponse : (matchResponse.matches || []);
@@ -124,6 +118,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         matches,
         payments,
         expenses: expenses || [],
+        tables: tables || [],
+        gameConfigs: configs || [],
         matchRates: ratesMap
       }));
     } catch (error) {
@@ -330,8 +326,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const opponent = state.players.find(p => p.id === opponentId);
 
       // Preferred Table
-      if (m.table) {
-        tableMap[m.table] = (tableMap[m.table] || 0) + 1;
+      if (m.table?.name) {
+        const tableName = m.table.name;
+        tableMap[tableName] = (tableMap[tableName] || 0) + 1;
       }
 
       // Rivalries

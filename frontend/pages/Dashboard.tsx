@@ -8,7 +8,7 @@ import { getLocalTodayStr } from '../utils';
 import { getTopPerformers, getPlayerTier } from '../rankingUtils';
 
 export const Dashboard: React.FC = () => {
-  const { players, matches, payments, getPlayerStats, currentUser, ongoingMatch, clearOngoingMatch } = useApp();
+  const { players, matches, payments, getPlayerStats, currentUser, ongoingMatch, clearOngoingMatch, tables } = useApp();
   const isAdmin = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPER_ADMIN;
   const navigate = useNavigate();
 
@@ -75,8 +75,9 @@ export const Dashboard: React.FC = () => {
     if (!ongoingMatch) return null;
     const pA = players.find(p => p.id === ongoingMatch.playerAId);
     const pB = players.find(p => p.id === ongoingMatch.playerBId);
-    return { ...ongoingMatch, pA, pB };
-  }, [ongoingMatch, players]);
+    const tableObj = tables.find(t => t.id === ongoingMatch.table);
+    return { ...ongoingMatch, pA, pB, table: tableObj };
+  }, [ongoingMatch, players, tables]);
 
   return (
     <div className="space-y-6">
@@ -147,7 +148,7 @@ export const Dashboard: React.FC = () => {
                 <div className="flex items-center gap-3 md:gap-4 text-[9px] md:text-[10px] font-bold text-indigo-100">
                   <div className="flex items-center gap-1">
                     <Zap className="w-2.5 h-2.5 md:w-3 md:h-3 text-amber-400 fill-amber-400" />
-                    {liveMatchData.table}
+                    {liveMatchData.table?.name}
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
@@ -401,12 +402,12 @@ const MatchItem: React.FC<{ match: any }> = ({ match }) => {
         </div>
         <div className="min-w-0">
           <div className="font-bold text-xs md:text-sm text-gray-900 dark:text-white leading-tight truncate">{pA} vs {pB}</div>
-          <div className="text-[8px] md:text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase mt-0.5 truncate">{match.date} • {match.table || 'Table 1'}</div>
+          <div className="text-[8px] md:text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase mt-0.5 truncate">{match.date} • {match.table?.name}</div>
         </div>
       </div>
       <div className="text-right shrink-0 ml-2">
         <div className="font-black text-xs md:text-sm text-gray-900 dark:text-white transition-all">₹{match.totalValue}</div>
-        <div className="text-[7px] md:text-[9px] text-gray-400 dark:text-slate-500 uppercase font-black tracking-tighter truncate">{match.payerOption.replace('_', ' ')}</div>
+        <div className="text-[7px] md:text-[9px] text-gray-400 dark:text-slate-500 uppercase font-black tracking-tighter truncate">{match.payerOption?.replace('_', ' ')}</div>
       </div>
     </div>
   );

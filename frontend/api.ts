@@ -28,6 +28,16 @@ export const api = {
     return response.json();
   },
 
+  async put(endpoint: string, data: any) {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  },
+
   async patch(endpoint: string, data: any) {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: 'PATCH',
