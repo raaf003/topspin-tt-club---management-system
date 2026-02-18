@@ -13,11 +13,39 @@ import { Reports } from './pages/Reports';
 import { AdminPanel } from './pages/AdminPanel';
 import { DebugExport } from './pages/DebugExport';
 import { Login } from './pages/Login';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldAlert } from 'lucide-react';
 import { NavigationGuard } from './components/NavigationGuard';
+import { UserRole } from './types';
+
+const UnauthorizedPage = () => (
+  <div className="min-h-[60vh] flex flex-col items-center justify-center p-4 text-center">
+    <div className="bg-red-100 dark:bg-red-900/20 p-4 rounded-full mb-4">
+      <ShieldAlert className="w-12 h-12 text-red-600 dark:text-red-400" />
+    </div>
+    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h2>
+    <p className="text-gray-500 dark:text-gray-400 max-w-md">
+      You don't have the required permissions to view this page. Please contact an administrator if you believe this is an error.
+    </p>
+  </div>
+);
+
+const ProtectedRoute: React.FC<{ 
+  element: React.ReactElement; 
+  allowedRoles?: UserRole[] 
+}> = ({ element, allowedRoles }) => {
+  const { isAuthenticated, currentUser } = useApp();
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  
+  if (allowedRoles && !allowedRoles.includes(currentUser.role)) {
+    return <UnauthorizedPage />;
+  }
+
+  return element;
+};
 
 const AppRoutes: React.FC = () => {
-  const { isAuthenticated, isLoading } = useApp();
+  const { isAuthenticated, isLoading, currentUser } = useApp();
 
   if (isLoading) {
     return (
@@ -32,21 +60,37 @@ const AppRoutes: React.FC = () => {
     return <Login />;
   }
 
+  const adminRoles = [UserRole.ADMIN, UserRole.SUPER_ADMIN];
+
   return (
     <NavigationGuard>
       <Layout>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/matches" element={<Matches />} />
-          <Route path="/payments" element={<Payments />} />
-          <Route path="/players" element={<Players />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/players/:id" element={<PlayerProfile />} />
-          <Route path="/expenses" element={<Expenses />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/admin" element={<AdminPanel />} />
-          <Route path="/debug-export" element={<DebugExport />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Dashboard only for ADMIN/SUPER_ADMIN, STAFF redirects to Matches */}
+          <Route path="/" element={
+            currentUser.role === UserRole.STAFF 
+              ? <Navigate to="/matches" replace /> 
+              : <ProtectedRoute element={<Dashboard />} allowedRoles={adminRoles} />
+          } />
+          
+          <Route path="/matches" element={<ProtectedRoute element={<Matches />} />} />
+          <Route path="/payments" element={<ProtectedRoute element={<Payments />} />} />
+          <Route path="/players" element={<ProtectedRoute element={<Players />} />} />
+          <Route path="/leaderboard" element={<ProtectedRoute element={<Leaderboard />} allowedRoles={adminRoles} />} />
+          <Route path="/players/:id" element={<ProtectedRoute element={<PlayerProfile />} />} />
+          
+          {/* Admin-only Routes */}
+          <Route path="/expenses" element={<ProtectedRoute element={<Expenses />} allowedRoles={adminRoles} />} />
+          <Route path="/reports" element={<ProtectedRoute element={<Reports />} allowedRoles={adminRoles} />} />
+          {/* Admin Panel - Only SUPER_ADMIN */}
+          <Route path="/admin" element={<ProtectedRoute element={<AdminPanel />} allowedRoles={[UserRole.SUPER_ADMIN]} />} />
+          <Route path="/debug-export" element={<ProtectedRoute element={<DebugExport />} allowedRoles={[UserRole.SUPER_ADMIN]} />} />
+          
+          <Route path="*" element={
+            currentUser.role === UserRole.STAFF 
+              ? <Navigate to="/matches" replace /> 
+              : <Navigate to="/" replace />
+          } />
         </Routes>
       </Layout>
     </NavigationGuard>
