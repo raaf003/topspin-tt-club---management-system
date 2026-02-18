@@ -5,7 +5,7 @@ import { UserRole } from '@prisma/client';
 
 const router = Router();
 
-router.post('/register', register);
+// router.post('/register', register);
 router.post('/login', login);
 
 // Admin only: Get all staff/admins

@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Mail, Lock, User, LogIn, UserPlus, AlertCircle, Loader2, Phone } from 'lucide-react';
+import { Lock, LogIn, AlertCircle, Loader2, Phone } from 'lucide-react';
 import { api } from '../api';
 
 export const Login: React.FC = () => {
   const { login } = useApp();
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -19,11 +16,6 @@ export const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      if (isRegistering) {
-        await api.post('/auth/register', { email, phone, password, name });
-        // After register, automatically log in
-      }
-      
       const response = await api.post('/auth/login', { phone, password });
       login(response.user, response.token);
     } catch (err: any) {
@@ -42,10 +34,10 @@ export const Login: React.FC = () => {
             <LogIn className="w-10 h-10 text-white -rotate-12" />
           </div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white italic tracking-tighter">
-            {isRegistering ? 'JOIN THE HUB' : 'WELCOME BACK'}
+            WELCOME BACK
           </h1>
           <p className="text-slate-500 dark:text-slate-400 font-medium">
-            {isRegistering ? 'Create your account to start managing' : 'Sign in to access your dashboard'}
+            Sign in to access your dashboard
           </p>
         </div>
 
@@ -57,38 +49,6 @@ export const Login: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {isRegistering && (
-            <>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
-                  <User className="w-5 h-5" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required={isRegistering}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 rounded-2xl text-slate-900 dark:text-white font-semibold outline-none transition-all"
-                />
-              </div>
-
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <input
-                  type="email"
-                  placeholder="Email Address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required={isRegistering}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 rounded-2xl text-slate-900 dark:text-white font-semibold outline-none transition-all"
-                />
-              </div>
-            </>
-          )}
-
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
               <Phone className="w-5 h-5" />
@@ -124,10 +84,6 @@ export const Login: React.FC = () => {
           >
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
-            ) : isRegistering ? (
-              <>
-                <UserPlus className="w-5 h-5" /> CREATE ACCOUNT
-              </>
             ) : (
               <>
                 <LogIn className="w-5 h-5" /> SIGN IN
@@ -135,15 +91,6 @@ export const Login: React.FC = () => {
             )}
           </button>
         </form>
-
-        <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
-          <button
-            onClick={() => setIsRegistering(!isRegistering)}
-            className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
-          >
-            {isRegistering ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
-          </button>
-        </div>
       </div>
     </div>
   );
