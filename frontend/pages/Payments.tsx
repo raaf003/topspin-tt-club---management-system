@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { PaymentMode, PaymentAllocation, UserRole, Player } from '../types';
 import { getLocalTodayStr } from '../utils';
-import { IndianRupee, CreditCard, Banknote, Check, UserPlus, Trash2, Edit3, X, Search, ChevronDown, Percent, Calendar } from 'lucide-react';
+import { IndianRupee, CreditCard, Banknote, Check, UserPlus, Trash2, Edit3, X, Search, ChevronDown, Percent, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SearchableSelectProps {
   label?: string;
@@ -119,12 +119,25 @@ export const Payments: React.FC = () => {
   // History & Filter State
   const todayStr = getLocalTodayStr();
   const [historyDate, setHistoryDate] = useState(todayStr);
+  const [payLimit, setPayLimit] = useState(50);
+  const [payPage, setPayPage] = useState(1);
 
   const filteredPayments = useMemo(() => {
     return payments
       .filter(p => !historyDate || p.date === historyDate)
       .sort((a, b) => b.recordedAt - a.recordedAt);
   }, [payments, historyDate]);
+
+  const totalPages = Math.ceil(filteredPayments.length / payLimit);
+  const paginatedPayments = useMemo(() => {
+    const start = (payPage - 1) * payLimit;
+    return filteredPayments.slice(start, start + payLimit);
+  }, [filteredPayments, payPage, payLimit]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPayPage(1);
+  }, [historyDate, payLimit]);
 
   const totalPaymentAmount = allocations.reduce((sum, a) => sum + (a.amount || 0), 0);
   const totalDiscountAmount = allocations.reduce((sum, a) => sum + (a.discount || 0), 0);
@@ -411,25 +424,48 @@ export const Payments: React.FC = () => {
 
       {/* History Section */}
       <section className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-3xl md:rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm space-y-4 md:space-y-5 transition-all">
-        <div className="flex justify-between items-center px-1">
-          <h3 className="font-black text-base md:text-lg text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <Calendar className="w-4 h-4 md:w-5 md:h-5 text-emerald-600 dark:text-emerald-400" />
-            Recent Transactions
-          </h3>
-          <div className="bg-gray-50 dark:bg-slate-800 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-700 flex items-center gap-1.5 md:gap-2">
-            <input 
-              type="date" 
-              value={historyDate}
-              title="Select date"
-              onChange={(e) => setHistoryDate(e.target.value)}
-              className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-emerald-600 dark:text-emerald-400"
-            />
+        <div className="flex flex-col gap-3 md:gap-4">
+          <div className="flex justify-between items-center px-1">
+            <h3 className="font-black text-base md:text-lg text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
+              <Calendar className="w-4 h-4 md:w-5 md:h-5 text-emerald-600 dark:text-emerald-400" />
+              Recent Transactions
+            </h3>
+            <div className="bg-gray-50 dark:bg-slate-800 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-700 flex items-center gap-1.5 md:gap-2">
+              <input 
+                type="date" 
+                value={historyDate}
+                title="Select date"
+                onChange={(e) => setHistoryDate(e.target.value)}
+                className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-emerald-600 dark:text-emerald-400"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2 md:gap-3">
+               <div className="flex items-center gap-1.5">
+                 <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-tighter">Show</span>
+                 <select 
+                   value={payLimit}
+                   onChange={(e) => setPayLimit(Number(e.target.value))}
+                   className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-emerald-600 dark:text-emerald-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700"
+                 >
+                   {[10, 20, 50, 100].map(v => (
+                     <option key={v} value={v}>{v}</option>
+                   ))}
+                 </select>
+               </div>
+               <div className="h-4 w-px bg-gray-100 dark:bg-slate-800"></div>
+               <div className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-tighter">
+                 Total: <span className="text-emerald-600 dark:text-emerald-400">{filteredPayments.length}</span>
+               </div>
+            </div>
           </div>
         </div>
 
         <div className="space-y-3 md:space-y-4">
-          {filteredPayments.length > 0 ? (
-            filteredPayments.map(p => {
+          {paginatedPayments.length > 0 ? (
+            paginatedPayments.map(p => {
               const payer = players.find(player => player.id === p.primaryPayerId);
               const waived = p.allocations.reduce((sum, a) => sum + (a.discount || 0), 0);
               
@@ -495,6 +531,30 @@ export const Payments: React.FC = () => {
           ) : (
             <div className="py-8 md:py-10 text-center text-gray-300 dark:text-slate-700 font-bold italic border-2 border-dashed border-gray-50 dark:border-slate-800 rounded-2xl md:rounded-3xl">
               No payments yet...
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="pt-3 md:pt-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
+              <button 
+                type="button"
+                onClick={() => setPayPage(prev => Math.max(1, prev - 1))}
+                disabled={payPage === 1}
+                className="p-1.5 md:p-2 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-300 dark:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-[9px] md:text-[10px] font-black uppercase text-gray-500 dark:text-slate-400 transition-all hover:bg-gray-50 dark:hover:bg-slate-700"
+              >
+                <ChevronLeft className="w-3 h-3 md:w-4 md:h-4" /> Prev
+              </button>
+              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-800 px-3 py-1 rounded-full border border-gray-100 dark:border-slate-700">
+                Page {payPage} / {totalPages}
+              </span>
+              <button 
+                type="button"
+                onClick={() => setPayPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={payPage === totalPages}
+                className="p-1.5 md:p-2 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-300 dark:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-[9px] md:text-[10px] font-black uppercase text-gray-500 dark:text-slate-400 transition-all hover:bg-gray-50 dark:hover:bg-slate-700"
+              >
+                Next <ChevronRight className="w-3 h-3 md:w-4 md:h-4" />
+              </button>
             </div>
           )}
         </div>

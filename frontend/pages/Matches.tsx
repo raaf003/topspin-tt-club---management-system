@@ -204,13 +204,14 @@ export const Matches: React.FC = () => {
 
   // Paginated log state
   const [logMatches, setLogMatches] = useState<Match[]>([]);
-  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
+  const [logLimit, setLogLimit] = useState(50);
+  const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, totalPages: 1 });
   const [isFetchingLog, setIsFetchingLog] = useState(false);
 
-  const fetchLog = useCallback(async (date: string, page: number = 1) => {
+  const fetchLog = useCallback(async (date: string, page: number = 1, limit: number = 50) => {
     setIsFetchingLog(true);
     try {
-      const resp = await api.get(`/matches?date=${date}&page=${page}&limit=10`);
+      const resp = await api.get(`/matches?date=${date}&page=${page}&limit=${limit}`);
       if (resp && resp.matches) {
         setLogMatches(resp.matches);
         setPagination(resp.pagination);
@@ -223,8 +224,8 @@ export const Matches: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchLog(historyDate, 1);
-  }, [historyDate, fetchLog]);
+    fetchLog(historyDate, 1, logLimit);
+  }, [historyDate, logLimit, fetchLog]);
 
   // Live match timer
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -433,7 +434,7 @@ export const Matches: React.FC = () => {
     }
 
     // Refresh the log
-    fetchLog(historyDate, pagination.page);
+    fetchLog(historyDate, pagination.page, logLimit);
 
     setSuccess(true);
     setTimeout(() => {
@@ -790,24 +791,45 @@ export const Matches: React.FC = () => {
                 />
                 </div>
 
-          <div className="flex flex-wrap gap-1.5 md:gap-2">
-            {[
-              { id: 'ALL', label: 'All' },
-              { id: 'PENDING_RESULT', label: 'Result Missing' },
-              { id: 'PENDING_PAYMENT', label: 'Unpaid' }
-            ].map(filter => (
-              <button
-                key={filter.id}
-                onClick={() => setStatusFilter(filter.id as any)}
-                className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-all border ${
-                  statusFilter === filter.id 
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
-                  : 'bg-white dark:bg-slate-900 text-gray-400 dark:text-slate-500 border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800'
-                }`}
-              >
-                {filter.label}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-1.5 md:gap-2">
+              {[
+                { id: 'ALL', label: 'All' },
+                { id: 'PENDING_RESULT', label: 'Result Missing' },
+                { id: 'PENDING_PAYMENT', label: 'Unpaid' }
+              ].map(filter => (
+                <button
+                  key={filter.id}
+                  onClick={() => setStatusFilter(filter.id as any)}
+                  className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-all border ${
+                    statusFilter === filter.id 
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
+                    : 'bg-white dark:bg-slate-900 text-gray-400 dark:text-slate-500 border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 md:gap-3 ml-auto">
+               <div className="flex items-center gap-1.5">
+                 <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-tighter">Show</span>
+                 <select 
+                   value={logLimit}
+                   onChange={(e) => setLogLimit(Number(e.target.value))}
+                   className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-indigo-600 dark:text-indigo-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700"
+                 >
+                   {[10, 20, 50, 100].map(v => (
+                     <option key={v} value={v}>{v}</option>
+                   ))}
+                 </select>
+               </div>
+               <div className="h-4 w-px bg-gray-100 dark:bg-slate-800"></div>
+               <div className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-tighter">
+                 Total: <span className="text-indigo-600 dark:text-indigo-400">{pagination.total}</span>
+               </div>
+            </div>
           </div>
         </div>
 
@@ -932,7 +954,7 @@ export const Matches: React.FC = () => {
             <div className="pt-3 md:pt-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
               <button 
                 type="button"
-                onClick={() => fetchLog(historyDate, pagination.page - 1)}
+                onClick={() => fetchLog(historyDate, pagination.page - 1, logLimit)}
                 disabled={pagination.page === 1}
                 className="p-1.5 md:p-2 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-300 dark:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-[9px] md:text-[10px] font-black uppercase text-gray-500 dark:text-slate-400 transition-all hover:bg-gray-50 dark:hover:bg-slate-700"
               >
@@ -943,7 +965,7 @@ export const Matches: React.FC = () => {
               </span>
               <button 
                 type="button"
-                onClick={() => fetchLog(historyDate, pagination.page + 1)}
+                onClick={() => fetchLog(historyDate, pagination.page + 1, logLimit)}
                 disabled={pagination.page === pagination.totalPages}
                 className="p-1.5 md:p-2 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-300 dark:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-[9px] md:text-[10px] font-black uppercase text-gray-500 dark:text-slate-400 transition-all hover:bg-gray-50 dark:hover:bg-slate-700"
               >
