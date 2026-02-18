@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { useNavigate } from 'react-router-dom';
+import { useSmartNavigate } from '../hooks/useSmartNavigate';
 import { Trophy, Search, Zap, Info, ArrowRight, X, ShieldCheck, Flame, TrendingUp, Target, Activity, Award } from 'lucide-react';
 import { getTopPerformers, getPlayerTier, getWeeklyHighlights } from '../rankingUtils';
 
 export const Leaderboard: React.FC = () => {
   const { players, matches, getPlayerStats, globalPlayerStats } = useApp();
-  const navigate = useNavigate();
+  const { navigate } = useSmartNavigate();
   const [search, setSearch] = useState('');
   const [showInfo, setShowInfo] = useState(false);
 

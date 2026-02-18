@@ -111,6 +111,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   {isAdmin && (
                     <NavLink
                       to="/admin"
+                      replace
                       onClick={() => setShowProfileMenu(false)}
                       className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
                     >
@@ -160,6 +161,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string }> = ({ to, icon, label }) => (
   <NavLink
     to={to}
+    replace
     className={({ isActive }) =>
       `flex flex-col items-center justify-center gap-0.5 w-full md:w-auto px-2 md:px-0 transition-all duration-200 ${
         isActive 

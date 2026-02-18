@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useSmartNavigate } from '../hooks/useSmartNavigate';
 import { useApp } from '../context/AppContext';
 import { getLocalTodayStr, getNDaysAgoStr } from '../utils';
 import { ChevronLeft, Trophy, Target, TrendingUp, History, Phone, Award, Zap, Calendar, Filter, User, Table as TableIcon, Activity, IndianRupee, Info, BarChart3, Users, Gauge } from 'lucide-react';
@@ -90,7 +91,7 @@ const RivalryProgressBar: React.FC<{ wins: number; losses: number; played: numbe
 
 export const PlayerProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { navigate, goBack } = useSmartNavigate();
   const { players, matches, payments, getPlayerStats, isDarkMode } = useApp();
   
   const player = players.find(p => p.id === id);
@@ -184,7 +185,7 @@ export const PlayerProfile: React.FC = () => {
     <div className="space-y-6 pb-20">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 px-1">
         <div className="flex items-center gap-4">
-          <button type="button" title="Go Back" aria-label="Go Back" onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-all">
+          <button type="button" title="Go Back" aria-label="Go Back" onClick={() => goBack()} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-all">
             <ChevronLeft className="w-6 h-6 text-gray-600 dark:text-slate-400" />
           </button>
           <h2 className="text-2xl font-black dark:text-white transition-all">Player Profile</h2>

@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useSmartNavigate } from '../hooks/useSmartNavigate';
 import { downloadLocalStorageData } from '../downloadLocalStorageScript';
 import { Download, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 
 export const DebugExport: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const navigate = useNavigate();
+  const { navigate } = useSmartNavigate();
   const STORAGE_KEY = 'smashtrack_data_v1';
 
   const triggerDownload = () => {

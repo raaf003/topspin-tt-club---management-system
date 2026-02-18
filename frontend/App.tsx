@@ -14,6 +14,7 @@ import { AdminPanel } from './pages/AdminPanel';
 import { DebugExport } from './pages/DebugExport';
 import { Login } from './pages/Login';
 import { Loader2 } from 'lucide-react';
+import { NavigationGuard } from './components/NavigationGuard';
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, isLoading } = useApp();
@@ -32,21 +33,23 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/matches" element={<Matches />} />
-        <Route path="/payments" element={<Payments />} />
-        <Route path="/players" element={<Players />} />
-        <Route path="/leaderboard" element={<Leaderboard />} />
-        <Route path="/players/:id" element={<PlayerProfile />} />
-        <Route path="/expenses" element={<Expenses />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/admin" element={<AdminPanel />} />
-        <Route path="/debug-export" element={<DebugExport />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Layout>
+    <NavigationGuard>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/matches" element={<Matches />} />
+          <Route path="/payments" element={<Payments />} />
+          <Route path="/players" element={<Players />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/players/:id" element={<PlayerProfile />} />
+          <Route path="/expenses" element={<Expenses />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/debug-export" element={<DebugExport />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Layout>
+    </NavigationGuard>
   );
 };
 

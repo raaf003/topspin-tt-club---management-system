@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { useNavigate } from 'react-router-dom';
+import { useSmartNavigate } from '../hooks/useSmartNavigate';
 import { UserRole } from '../types';
 import { Users, Search, Plus, Phone, Edit3, X, Check, Save, UserPen } from 'lucide-react';
 
 export const Players: React.FC = () => {
   const { players, addPlayer, updatePlayer, getPlayerStats, currentUser } = useApp();
-  const navigate = useNavigate();
+  const { navigate } = useSmartNavigate();
   const isAdmin = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPER_ADMIN;
   
   const [showAdd, setShowAdd] = useState(false);

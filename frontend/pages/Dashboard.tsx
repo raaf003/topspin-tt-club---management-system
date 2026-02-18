@@ -2,7 +2,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { IndianRupee, TrendingUp, AlertCircle, PlusCircle, CheckCircle2, Calendar, ChevronDown, Filter, Percent, Zap, Clock, X, Trophy, Star, Info, ArrowRight } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
+import { useSmartNavigate } from '../hooks/useSmartNavigate';
 import { UserRole, PaymentMode } from '../types';
 import { getLocalTodayStr } from '../utils';
 import { getTopPerformers, getPlayerTier } from '../rankingUtils';
@@ -10,7 +11,7 @@ import { getTopPerformers, getPlayerTier } from '../rankingUtils';
 export const Dashboard: React.FC = () => {
   const { players, matches, payments, getPlayerStats, currentUser, ongoingMatch, clearOngoingMatch, tables } = useApp();
   const isAdmin = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPER_ADMIN;
-  const navigate = useNavigate();
+  const { navigate } = useSmartNavigate();
 
   const todayStr = getLocalTodayStr();
   const currentMonthStr = todayStr.substring(0, 7); // YYYY-MM
@@ -87,12 +88,13 @@ export const Dashboard: React.FC = () => {
             <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white italic tracking-tight transition-all">Hello there! 👋</h2>
             <p className="text-gray-500 dark:text-slate-400 font-medium text-xs md:text-sm">Welcome to TopSpin TT Hub.</p>
           </div>
-          <Link 
+          <NavLink 
             to="/matches" 
+            replace
             className="bg-indigo-600 text-white p-2.5 md:p-3 rounded-xl md:rounded-2xl shadow-lg shadow-indigo-100 dark:shadow-indigo-900/20 active:scale-95 transition-all"
           >
             <PlusCircle className="w-5 h-5 md:w-6 md:h-6" />
-          </Link>
+          </NavLink>
         </div>
 
         {/* Ongoing Match - Flashing UI */}
@@ -237,9 +239,9 @@ export const Dashboard: React.FC = () => {
                 <div className="text-xl md:text-2xl font-black">₹{collectedForPeriod}</div>
                 <div className="text-[8px] md:text-[10px] opacity-60 font-bold uppercase">Cash/Online Received</div>
               </div>
-              <Link to="/reports" className="text-[8px] md:text-[10px] font-black bg-indigo-600 dark:bg-indigo-500 px-2 md:px-3 py-1.5 md:py-2 rounded-lg md:rounded-xl hover:bg-indigo-500 dark:hover:bg-indigo-400 transition-all">
+              <NavLink to="/reports" replace className="text-[8px] md:text-[10px] font-black bg-indigo-600 dark:bg-indigo-500 px-2 md:px-3 py-1.5 md:py-2 rounded-lg md:rounded-xl hover:bg-indigo-500 dark:hover:bg-indigo-400 transition-all">
                 REPORTS
-              </Link>
+              </NavLink>
             </div>
           </div>
         )}
@@ -263,7 +265,7 @@ export const Dashboard: React.FC = () => {
             <Trophy className="w-5 h-5 text-amber-500" />
             Top Rated
           </h3>
-          <Link to="/leaderboard" className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Leaderboard</Link>
+          <NavLink to="/leaderboard" replace className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Leaderboard</NavLink>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {topPlayers.map((p, idx) => (
@@ -281,7 +283,7 @@ export const Dashboard: React.FC = () => {
         <section>
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-bold text-base md:text-lg tracking-tight dark:text-white">Recent Battles</h3>
-            <Link to="/matches" className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">View All</Link>
+            <NavLink to="/matches" replace className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">View All</NavLink>
           </div>
           <div className="space-y-2.5 md:space-y-3">
             {matches.slice(0, 5).map(match => (
@@ -298,7 +300,7 @@ export const Dashboard: React.FC = () => {
         <section>
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-bold text-base md:text-lg tracking-tight dark:text-white">Recent Payments</h3>
-            <Link to="/payments" className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">View All</Link>
+            <NavLink to="/payments" replace className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">View All</NavLink>
           </div>
           <div className="space-y-2.5 md:space-y-3">
             {payments.slice(0, 5).map(p => (
@@ -317,7 +319,7 @@ export const Dashboard: React.FC = () => {
 };
 
 const TopPlayerItem: React.FC<{ player: any; rank: number }> = ({ player, rank }) => {
-  const navigate = useNavigate();
+  const { navigate } = useSmartNavigate();
   const tier = getPlayerTier(player.score, player.stats);
   return (
     <div 
@@ -384,9 +386,9 @@ const StatCard: React.FC<{ label: string; value: string; icon: React.ReactNode; 
 );
 
 const QuickButton: React.FC<{ to: string; label: string; color: string }> = ({ to, label, color }) => (
-  <Link to={to} className={`${color} text-white px-3 md:px-4 py-4 md:py-5 rounded-xl md:rounded-[1.5rem] text-center font-black text-[10px] md:text-xs shadow-lg active:scale-95 transition-all uppercase tracking-wider`}>
+  <NavLink to={to} replace className={`${color} text-white px-3 md:px-4 py-4 md:py-5 rounded-xl md:rounded-[1.5rem] text-center font-black text-[10px] md:text-xs shadow-lg active:scale-95 transition-all uppercase tracking-wider`}>
     {label}
-  </Link>
+  </NavLink>
 );
 
 const MatchItem: React.FC<{ match: any }> = ({ match }) => {
