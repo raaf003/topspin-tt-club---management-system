@@ -302,6 +302,7 @@ export const calculateAllPlayerStats = (
       peakRating: playerPeakRating[p.id]
     };
   });
+  
 
   return result;
 };
