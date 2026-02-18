@@ -56,28 +56,29 @@ const AppRoutes: React.FC = () => {
     );
   }
 
-  if (!isAuthenticated) {
-    return <Login />;
-  }
-
   const adminRoles = [UserRole.ADMIN, UserRole.SUPER_ADMIN];
 
   return (
     <NavigationGuard>
       <Layout>
         <Routes>
-          {/* Dashboard only for ADMIN/SUPER_ADMIN, STAFF redirects to Matches */}
+          {/* Public Routes */}
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/players/:id" element={<PlayerProfile />} />
+          <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />} />
+
+          {/* Protected Routes */}
           <Route path="/" element={
-            currentUser.role === UserRole.STAFF 
-              ? <Navigate to="/matches" replace /> 
-              : <ProtectedRoute element={<Dashboard />} allowedRoles={adminRoles} />
+            !isAuthenticated 
+              ? <Navigate to="/leaderboard" replace />
+              : currentUser.role === UserRole.STAFF 
+                ? <Navigate to="/matches" replace /> 
+                : <ProtectedRoute element={<Dashboard />} allowedRoles={adminRoles} />
           } />
           
           <Route path="/matches" element={<ProtectedRoute element={<Matches />} />} />
           <Route path="/payments" element={<ProtectedRoute element={<Payments />} />} />
           <Route path="/players" element={<ProtectedRoute element={<Players />} />} />
-          <Route path="/leaderboard" element={<ProtectedRoute element={<Leaderboard />} allowedRoles={adminRoles} />} />
-          <Route path="/players/:id" element={<ProtectedRoute element={<PlayerProfile />} />} />
           
           {/* Admin-only Routes */}
           <Route path="/expenses" element={<ProtectedRoute element={<Expenses />} allowedRoles={adminRoles} />} />
@@ -87,9 +88,11 @@ const AppRoutes: React.FC = () => {
           <Route path="/debug-export" element={<ProtectedRoute element={<DebugExport />} allowedRoles={[UserRole.SUPER_ADMIN]} />} />
           
           <Route path="*" element={
-            currentUser.role === UserRole.STAFF 
-              ? <Navigate to="/matches" replace /> 
-              : <Navigate to="/" replace />
+            !isAuthenticated 
+              ? <Navigate to="/leaderboard" replace />
+              : currentUser.role === UserRole.STAFF 
+                ? <Navigate to="/matches" replace /> 
+                : <Navigate to="/" replace />
           } />
         </Routes>
       </Layout>

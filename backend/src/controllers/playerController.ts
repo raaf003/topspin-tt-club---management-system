@@ -22,6 +22,25 @@ export const getPlayers = async (req: Request, res: Response) => {
     const players = await prisma.player.findMany({
       orderBy: { rating: 'desc' }
     });
+
+    const isPublic = !(req as AuthenticatedRequest).user;
+    
+    if (isPublic) {
+      return res.json(players.map(p => ({
+        id: p.id,
+        name: p.name,
+        nickname: p.nickname,
+        avatarUrl: p.avatarUrl,
+        rating: p.rating,
+        rd: p.rd,
+        volatility: p.volatility,
+        totalRatedMatches: p.totalRatedMatches,
+        earnedTier: p.earnedTier,
+        peakRating: p.peakRating,
+        createdAt: p.createdAt
+      })));
+    }
+
     res.json(players);
   } catch (error: unknown) {
     res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
@@ -123,6 +142,26 @@ export const getPlayerProfile = async (req: Request, res: Response) => {
     });
 
     if (!player) return res.status(404).json({ message: 'Player not found' });
+
+    const isPublic = !(req as AuthenticatedRequest).user;
+
+    if (isPublic) {
+      const sanitizedPlayer = {
+        id: player.id,
+        name: player.name,
+        nickname: player.nickname,
+        avatarUrl: player.avatarUrl,
+        rating: player.rating,
+        rd: player.rd,
+        volatility: player.volatility,
+        totalRatedMatches: player.totalRatedMatches,
+        earnedTier: player.earnedTier,
+        peakRating: player.peakRating,
+        createdAt: player.createdAt
+      };
+      return res.json(sanitizedPlayer);
+    }
+
     res.json(player);
   } catch (error: any) {
     if (error instanceof z.ZodError) {

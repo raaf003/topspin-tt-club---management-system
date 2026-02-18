@@ -92,7 +92,7 @@ const RivalryProgressBar: React.FC<{ wins: number; losses: number; played: numbe
 export const PlayerProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { navigate, goBack } = useSmartNavigate();
-  const { players, matches, payments, getPlayerStats, isDarkMode } = useApp();
+  const { players, matches, payments, getPlayerStats, isDarkMode, isAuthenticated } = useApp();
   
   const player = players.find(p => p.id === id);
 
@@ -242,7 +242,7 @@ export const PlayerProfile: React.FC = () => {
             </div>
             <div className="flex flex-wrap justify-center md:justify-start gap-2">
               <span className="bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border border-white/10">@{player.nickname || 'Guest'}</span>
-              {player.phone && (
+              {isAuthenticated && player.phone && (
                 <span className="bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border border-white/10">
                   <Phone className="w-3 h-3" /> {player.phone}
                 </span>
@@ -374,7 +374,9 @@ export const PlayerProfile: React.FC = () => {
                 subValue={`${stats.favoriteOpponent.played} Battles`}
               />
             )}
-            <HighlightStat label="Avg Spend/Game" value={`₹${stats.avgSpendPerGame.toFixed(1)}`} icon={<IndianRupee className="w-5 h-5 text-emerald-500" />} />
+            {isAuthenticated && (
+              <HighlightStat label="Avg Spend/Game" value={`₹${stats.avgSpendPerGame.toFixed(1)}`} icon={<IndianRupee className="w-5 h-5 text-emerald-500" />} />
+            )}
           </div>
         </div>
 
@@ -462,65 +464,79 @@ export const PlayerProfile: React.FC = () => {
           </div>
 
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
-            <div className="flex border-b border-gray-50 dark:border-slate-800 p-2">
-              <button type="button" onClick={() => setActiveTab('matches')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'matches' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/20' : 'text-gray-400 dark:text-slate-500'}`}>Matches</button>
-              <button type="button" onClick={() => setActiveTab('rivalries')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'rivalries' ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/20' : 'text-gray-400 dark:text-slate-500'}`}>Rivalries</button>
-              <button type="button" onClick={() => setActiveTab('payments')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'payments' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'text-gray-400 dark:text-slate-500'}`}>Payments</button>
-            </div>
-            <div className="p-6 max-h-[600px] overflow-y-auto custom-scrollbar">
-              {activeTab === 'matches' ? (
-                <div className="space-y-3">
-                  {playerMatches.map(m => (
-                    <div key={m.id} className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl flex justify-between items-center transition-all">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${m.winnerId === id ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400'}`}>
-                          {m.winnerId === id ? 'W' : 'L'}
-                        </div>
-                        <div>
-                          <div className="font-bold dark:text-white transition-all">vs {players.find(p => p.id === (m.playerAId === id ? m.playerBId : m.playerAId))?.name}</div>
-                          <div className="text-[10px] text-gray-400 dark:text-slate-500 font-black uppercase transition-all">{m.date}</div>
-                        </div>
-                      </div>
-                      <div className="font-black dark:text-white transition-all">₹{m.charges[id!] || 0}</div>
-                    </div>
-                  ))}
-                  {playerMatches.length === 0 && <p className="text-center py-8 text-gray-400 italic text-sm">No matches found.</p>}
+            {isAuthenticated ? (
+              <>
+                <div className="flex border-b border-gray-50 dark:border-slate-800 p-2">
+                  <button type="button" onClick={() => setActiveTab('matches')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'matches' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/20' : 'text-gray-400 dark:text-slate-500'}`}>Matches</button>
+                  <button type="button" onClick={() => setActiveTab('rivalries')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'rivalries' ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/20' : 'text-gray-400 dark:text-slate-500'}`}>Rivalries</button>
+                  <button type="button" onClick={() => setActiveTab('payments')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'payments' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'text-gray-400 dark:text-slate-500'}`}>Payments</button>
                 </div>
-              ) : activeTab === 'rivalries' ? (
-                <div className="space-y-4">
-                  {stats.rivalries.map(r => (
-                    <div key={r.opponentId} className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl space-y-3">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center font-black text-xs text-orange-500">{r.opponentName[0]}</div>
-                          <span className="font-bold dark:text-white">{r.opponentName}</span>
+                <div className="p-6 max-h-[600px] overflow-y-auto custom-scrollbar">
+                  {activeTab === 'matches' ? (
+                    <div className="space-y-3">
+                      {playerMatches.map(m => (
+                        <div key={m.id} className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl flex justify-between items-center transition-all">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${m.winnerId === id ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400'}`}>
+                              {m.winnerId === id ? 'W' : 'L'}
+                            </div>
+                            <div>
+                              <div className="font-bold dark:text-white transition-all">vs {players.find(p => p.id === (m.playerAId === id ? m.playerBId : m.playerAId))?.name}</div>
+                              <div className="text-[10px] text-gray-400 dark:text-slate-500 font-black uppercase transition-all">{m.date}</div>
+                            </div>
+                          </div>
+                          <div className="font-black dark:text-white transition-all">₹{m.charges[id!] || 0}</div>
                         </div>
-                        <span className="text-[10px] font-black text-gray-400">{r.played} Battles</span>
-                      </div>
-                      <RivalryProgressBar wins={r.wins} losses={r.losses} played={r.played} />
-                      <div className="flex justify-between text-[10px] font-black uppercase">
-                        <span className="text-emerald-600">{r.wins} Wins</span>
-                        <span className="text-rose-600">{r.losses} Losses</span>
-                      </div>
+                      ))}
+                      {playerMatches.length === 0 && <p className="text-center py-8 text-gray-400 italic text-sm">No matches found.</p>}
                     </div>
-                  ))}
-                  {stats.rivalries.length === 0 && <p className="text-center py-8 text-gray-400 italic text-sm">No rivalries yet.</p>}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {playerPayments.map(p => (
-                    <div key={p.id} className="bg-emerald-50/30 dark:bg-emerald-900/10 p-4 rounded-2xl flex justify-between items-center transition-all">
-                      <div>
-                        <div className="font-bold text-emerald-900 dark:text-emerald-400 transition-all">{p.mode} RECEIPT</div>
-                        <div className="text-[10px] text-emerald-600/60 dark:text-emerald-500/60 font-black uppercase transition-all">{p.date}</div>
-                      </div>
-                      <div className="font-black text-emerald-600 dark:text-emerald-400 transition-all">₹{p.allocations.find(a => a.playerId === id)?.amount || 0}</div>
+                  ) : activeTab === 'rivalries' ? (
+                    <div className="space-y-4">
+                      {stats.rivalries.map(r => (
+                        <div key={r.opponentId} className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl space-y-3">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center font-black text-xs text-orange-500">{r.opponentName[0]}</div>
+                              <span className="font-bold dark:text-white">{r.opponentName}</span>
+                            </div>
+                            <span className="text-[10px] font-black text-gray-400">{r.played} Battles</span>
+                          </div>
+                          <RivalryProgressBar wins={r.wins} losses={r.losses} played={r.played} />
+                          <div className="flex justify-between text-[10px] font-black uppercase">
+                            <span className="text-emerald-600">{r.wins} Wins</span>
+                            <span className="text-rose-600">{r.losses} Losses</span>
+                          </div>
+                        </div>
+                      ))}
+                      {stats.rivalries.length === 0 && <p className="text-center py-8 text-gray-400 italic text-sm">No rivalries yet.</p>}
                     </div>
-                  ))}
-                  {playerPayments.length === 0 && <p className="text-center py-8 text-gray-400 italic text-sm">No payments found.</p>}
+                  ) : (
+                    <div className="space-y-3">
+                      {playerPayments.map(p => (
+                        <div key={p.id} className="bg-emerald-50/30 dark:bg-emerald-900/10 p-4 rounded-2xl flex justify-between items-center transition-all">
+                          <div>
+                            <div className="font-bold text-emerald-900 dark:text-emerald-400 transition-all">{p.mode} RECEIPT</div>
+                            <div className="text-[10px] text-emerald-600/60 dark:text-emerald-500/60 font-black uppercase transition-all">{p.date}</div>
+                          </div>
+                          <div className="font-black text-emerald-600 dark:text-emerald-400 transition-all">₹{p.allocations.find(a => a.playerId === id)?.amount || 0}</div>
+                        </div>
+                      ))}
+                      {playerPayments.length === 0 && <p className="text-center py-8 text-gray-400 italic text-sm">No payments found.</p>}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            ) : (
+              <div className="p-12 text-center space-y-4">
+                <div className="w-16 h-16 bg-gray-50 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto">
+                    <History className="w-8 h-8 text-gray-300" />
+                </div>
+                <div className="space-y-1">
+                    <p className="font-black text-gray-900 dark:text-white uppercase text-xs tracking-widest">History Restricted</p>
+                    <p className="text-[10px] text-gray-500 font-bold max-w-[200px] mx-auto">Match history and rivalries are only visible to club members.</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

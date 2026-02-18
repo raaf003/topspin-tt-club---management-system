@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { getPlayers, createPlayer, getPlayerProfile, updatePlayer } from '../controllers/playerController';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuthenticate } from '../middleware/auth';
 
 const router = Router();
 
-router.get('/', authenticate, getPlayers);
+router.get('/', optionalAuthenticate, getPlayers);
 router.post('/', authenticate, createPlayer);
 router.patch('/:id', authenticate, updatePlayer);
-router.get('/:id', authenticate, getPlayerProfile);
+router.get('/:id', optionalAuthenticate, getPlayerProfile);
 
 export default router;

@@ -22,11 +22,12 @@ import { useApp } from '../context/AppContext';
 import { UserRole } from '../types';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, logout, isDarkMode, themeMode, setThemeMode } = useApp();
+  const { currentUser, logout, isDarkMode, themeMode, setThemeMode, isAuthenticated } = useApp();
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const isSuperAdmin = currentUser.role === UserRole.SUPER_ADMIN;
-  const isAdmin = currentUser.role === UserRole.ADMIN || isSuperAdmin;
+  const isSuperAdmin = isAuthenticated && currentUser.role === UserRole.SUPER_ADMIN;
+  const isAdmin = isAuthenticated && (currentUser.role === UserRole.ADMIN || isSuperAdmin);
+  const navigate = useNavigate();
 
   const themeOptions: { mode: 'light' | 'dark' | 'auto'; icon: React.ReactNode; label: string }[] = [
     { mode: 'light', icon: <Sun className="w-4 h-4" />, label: 'Light' },
@@ -38,7 +39,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     <div className="min-h-screen flex flex-col pb-20 md:pb-0 md:pl-20 bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
       {/* Header */}
       <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 px-3 md:px-4 py-2.5 md:py-3 flex items-center justify-between transition-colors duration-300">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
           <div className="bg-indigo-600 p-1 md:p-1.5 rounded-lg shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
             <Trophy className="text-white w-4 h-4 md:w-5 md:h-5" />
           </div>
@@ -86,52 +87,63 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           
           {/* Profile Menu */}
           <div className="relative">
-            <button
-              onClick={() => {
-                setShowProfileMenu(!showProfileMenu);
-                setShowThemeMenu(false);
-              }}
-              className="flex items-center gap-2 p-1 rounded-full transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-700 bg-gray-100/50 dark:bg-slate-800/50"
-            >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                isSuperAdmin ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
-              }`}>
-                {isSuperAdmin ? <ShieldCheck className="w-5 h-5" /> : isAdmin ? <ShieldCheck className="w-5 h-5" /> : <UserCircle className="w-5 h-5" />}
-              </div>
-            </button>
-            
-            {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden z-50">
-                <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
-                  <p className="text-sm font-bold truncate dark:text-white">{currentUser.name}</p>
-                  <p className="text-[10px] mt-0.5 text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">{currentUser.role.replace('_', ' ')}</p>
-                </div>
+            {isAuthenticated ? (
+              <>
+                <button
+                  onClick={() => {
+                    setShowProfileMenu(!showProfileMenu);
+                    setShowThemeMenu(false);
+                  }}
+                  className="flex items-center gap-2 p-1 rounded-full transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-700 bg-gray-100/50 dark:bg-slate-800/50"
+                >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    isSuperAdmin ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
+                  }`}>
+                    {isSuperAdmin ? <ShieldCheck className="w-5 h-5" /> : isAdmin ? <ShieldCheck className="w-5 h-5" /> : <UserCircle className="w-5 h-5" />}
+                  </div>
+                </button>
                 
-                <div className="p-1.5">
-                  {isSuperAdmin && (
-                    <NavLink
-                      to="/admin"
-                      replace
-                      onClick={() => setShowProfileMenu(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
-                    >
-                      <ShieldCheck className="w-4 h-4 text-amber-500" />
-                      System Control and Audit
-                    </NavLink>
-                  )}
-                  
-                  <button
-                    onClick={() => {
-                      logout();
-                      setShowProfileMenu(false);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Logout
-                  </button>
-                </div>
-              </div>
+                {showProfileMenu && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden z-50">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
+                      <p className="text-sm font-bold truncate dark:text-white">{currentUser.name}</p>
+                      <p className="text-[10px] mt-0.5 text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">{currentUser.role.replace('_', ' ')}</p>
+                    </div>
+                    
+                    <div className="p-1.5">
+                      {isSuperAdmin && (
+                        <NavLink
+                          to="/admin"
+                          replace
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
+                        >
+                          <ShieldCheck className="w-4 h-4 text-amber-500" />
+                          System Control and Audit
+                        </NavLink>
+                      )}
+                      
+                      <button
+                        onClick={() => {
+                          logout();
+                          setShowProfileMenu(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <button
+                onClick={() => navigate('/login')}
+                className="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 dark:shadow-none"
+              >
+                Sign In
+              </button>
             )}
           </div>
         </div>
@@ -146,12 +158,16 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 md:top-0 md:left-0 md:right-auto md:w-20 md:h-full md:border-t-0 md:border-r transition-colors duration-300">
         <div className="flex md:flex-col justify-around md:justify-start items-center h-16 md:h-full md:py-8 gap-1 md:gap-8 overflow-x-auto md:overflow-visible">
           {isAdmin && <NavItem to="/" icon={<Home className="w-6 h-6" />} label="Home" />}
-          {isAdmin && <NavItem to="/leaderboard" icon={<Trophy className="w-6 h-6" />} label="Rank" />}
-          <NavItem to="/matches" icon={<TableIcon className="w-6 h-6" />} label="Matches" />
-          <NavItem to="/payments" icon={<IndianRupee className="w-6 h-6" />} label="Pay" />
-          <NavItem to="/players" icon={<Users className="w-6 h-6" />} label="Players" />
-          {isAdmin && <NavItem to="/expenses" icon={<ShoppingBag className="w-6 h-6" />} label="Expenses" />}
-          {isAdmin && <NavItem to="/reports" icon={<PieChart className="w-6 h-6" />} label="Reports" />}
+          <NavItem to="/leaderboard" icon={<Trophy className="w-6 h-6" />} label="Rank" />
+          {isAuthenticated && (
+            <>
+              <NavItem to="/matches" icon={<TableIcon className="w-6 h-6" />} label="Matches" />
+              <NavItem to="/payments" icon={<IndianRupee className="w-6 h-6" />} label="Pay" />
+              <NavItem to="/players" icon={<Users className="w-6 h-6" />} label="Players" />
+              {isAdmin && <NavItem to="/expenses" icon={<ShoppingBag className="w-6 h-6" />} label="Expenses" />}
+              {isAdmin && <NavItem to="/reports" icon={<PieChart className="w-6 h-6" />} label="Reports" />}
+            </>
+          )}
         </div>
       </nav>
     </div>

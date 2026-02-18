@@ -34,6 +34,26 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   }
 };
 
+export const optionalAuthenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      return next();
+    }
+    const decoded = jwt.verify(token, secret) as unknown as JwtPayload;
+    req.user = decoded;
+    next();
+  } catch (error) {
+    // If token is invalid, we still treat it as unauthenticated
+    next();
+  }
+};
+
 export const authorize = (...roles: UserRole[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {

@@ -229,15 +229,52 @@ export const getMatches = async (req: Request, res: Response) => {
       prisma.match.count({ where })
     ]);
     
-    // Add the missing 'date' field expected by frontend
     const formatted = matches.map((m) => {
       const createdAt = m.createdAt ? new Date(m.createdAt) : new Date();
-      return {
-        ...m,
-        recordedBy: m.recorder, // Map 'recorder' to 'recordedBy' for frontend compatibility
+      const isPublic = !(req as AuthenticatedRequest).user;
+
+      const baseMatch = {
+        id: m.id,
+        playerAId: m.playerAId,
+        playerBId: m.playerBId,
+        winnerId: m.winnerId,
+        points: m.points,
+        isRated: m.isRated,
+        tableId: m.tableId,
+        typeId: m.typeId,
+        date: (m.date as string) || createdAt.toISOString().split('T')[0],
+        createdAt: m.createdAt,
         recordedAt: createdAt.getTime(),
-        // Priority: stored date field > derived date
-        date: (m.date as string) || createdAt.toISOString().split('T')[0]
+        playerA: {
+          id: m.playerA.id,
+          name: m.playerA.name,
+          nickname: m.playerA.nickname,
+          avatarUrl: m.playerA.avatarUrl,
+          rating: m.playerA.rating
+        },
+        playerB: {
+          id: m.playerB.id,
+          name: m.playerB.name,
+          nickname: m.playerB.nickname,
+          avatarUrl: m.playerB.avatarUrl,
+          rating: m.playerB.rating
+        },
+        winner: m.winner ? { id: m.winner.id, name: m.winner.name } : null,
+        table: m.table,
+        type: m.type
+      };
+
+      if (isPublic) {
+        return baseMatch;
+      }
+
+      return {
+        ...baseMatch,
+        payerOption: m.payerOption,
+        totalValue: m.totalValue,
+        charges: m.charges,
+        recordedBy: m.recorder,
+        recorder: m.recorder
       };
     });
 

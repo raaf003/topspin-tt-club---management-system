@@ -87,25 +87,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const fetchData = useCallback(async (silent = false) => {
-    if (!token) {
-      if (!silent) setIsLoading(false);
-      return;
-    }
-    
     if (!silent) setIsLoading(true);
     try {
       const isAdminFlag = state.currentUser.role === UserRole.ADMIN || state.currentUser.role === UserRole.SUPER_ADMIN;
 
-      const [players, matchResponse, payments, configs, expenses, tables] = await Promise.all([
-        api.get('/players'),
-        api.get('/matches?limit=1000'), // Default fetch a large batch for leaderboard
-        api.get('/finance/payments'),
-        api.get('/config/game-types'),
-        isAdminFlag ? api.get('/finance/expenses') : Promise.resolve([]),
-        api.get('/config/tables')
+      // Public data - Always fetch for calculation
+      const playersPromise = api.get('/players');
+      // Matches are needed for leaderboard calculation even for public users
+      const matchesPromise = api.get('/matches?limit=1000');
+
+      // Protected data - Only if authenticated
+      const paymentsPromise = token ? api.get('/finance/payments') : Promise.resolve([]);
+      const expensesPromise = (token && isAdminFlag) ? api.get('/finance/expenses') : Promise.resolve([]);
+      const gameTypesPromise = token ? api.get('/config/game-types') : Promise.resolve([]);
+      const tablesPromise = token ? api.get('/config/tables') : Promise.resolve([]);
+
+      const [playersRes, matchRes, paymentsRes, expensesRes, configsRes, tablesRes] = await Promise.all([
+        playersPromise,
+        matchesPromise,
+        paymentsPromise,
+        expensesPromise,
+        gameTypesPromise,
+        tablesPromise
       ]);
 
-      const matches = Array.isArray(matchResponse) ? matchResponse : (matchResponse.matches || []);
+      // Robust data extraction handling various potential response formats
+      const players = Array.isArray(playersRes) ? playersRes : (playersRes?.data || playersRes?.players || []);
+      const matchData = (matchRes as any);
+      const matches = Array.isArray(matchData) ? matchData : (matchData?.matches || matchData?.data?.matches || []);
+      
+      const payments = token ? (Array.isArray(paymentsRes) ? paymentsRes : ((paymentsRes as any)?.data || [])) : [];
+      const expenses = (token && isAdminFlag) ? (Array.isArray(expensesRes) ? expensesRes : ((expensesRes as any)?.data || [])) : [];
+      const configs = token ? (Array.isArray(configsRes) ? configsRes : ((configsRes as any)?.data || [])) : [];
+      const tables = token ? (Array.isArray(tablesRes) ? tablesRes : ((tablesRes as any)?.data || [])) : [];
 
       const ratesMap = (configs || []).reduce((acc: any, curr: any) => {
         acc[curr.type] = curr.price;
@@ -117,14 +131,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         players,
         matches,
         payments,
-        expenses: expenses || [],
-        tables: tables || [],
-        gameConfigs: configs || [],
+        expenses,
+        tables,
+        gameConfigs: configs,
         matchRates: ratesMap
       }));
     } catch (error) {
       console.error('Failed to fetch data:', error);
-      if ((error as any).message?.includes('token') || (error as any).status === 401) {
+      if (token && ((error as any).message?.includes('token') || (error as any).status === 401)) {
         logout();
       }
     } finally {
@@ -289,7 +303,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .sort((a, b) => a.recordedAt - b.recordedAt); // Chronological for trend
     
     // Sum all match charges for this player
-    const totalSpent = playerMatches.reduce((sum, m) => sum + (m.charges[playerId] || 0), 0);
+    const totalSpent = playerMatches.reduce((sum, m) => {
+      const charge = m.charges ? (m.charges[playerId] || 0) : 0;
+      return sum + charge;
+    }, 0);
     
     // Sum all payment allocations for this player
     let totalPaid = 0;
