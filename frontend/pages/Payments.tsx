@@ -441,24 +441,24 @@ export const Payments: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between px-1">
+          <div className="flex items-center justify-between gap-2 px-1">
             <div className="flex items-center gap-2 md:gap-3">
                <div className="flex items-center gap-1.5">
                  <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-tighter">Show</span>
                  <select 
                    value={payLimit}
                    onChange={(e) => setPayLimit(Number(e.target.value))}
-                   className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-emerald-600 dark:text-emerald-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700"
+                   className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-emerald-600 dark:text-emerald-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                  >
                    {[10, 20, 50, 100].map(v => (
                      <option key={v} value={v}>{v}</option>
                    ))}
                  </select>
                </div>
-               <div className="h-4 w-px bg-gray-100 dark:bg-slate-800"></div>
-               <div className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-tighter">
-                 Total: <span className="text-emerald-600 dark:text-emerald-400">{filteredPayments.length}</span>
-               </div>
+            </div>
+
+            <div className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-tighter shrink-0 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded-lg border border-gray-100 dark:border-slate-700">
+              Total: <span className="text-emerald-600 dark:text-emerald-400">{filteredPayments.length}</span>
             </div>
           </div>
         </div>
