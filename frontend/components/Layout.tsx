@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
@@ -152,6 +151,20 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       {/* Main Content */}
       <main className="flex-1 max-w-4xl mx-auto w-full p-4 md:p-8">
         {children}
+        
+        <footer className="mt-12 mb-8 text-center border-t border-gray-100 dark:border-slate-800/50 pt-8">
+          <p className="text-slate-600 dark:text-slate-400 text-xs md:text-sm flex items-center justify-center gap-1.5 font-semibold tracking-wide">
+            Built locally with <span className="text-red-500 animate-bounce">❤️</span> by{' '}
+            <a 
+              href="https://www.newagesolutions.dev" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-all underline decoration-2 underline-offset-4"
+            >
+              New Age Solutions
+            </a>
+          </p>
+        </footer>
       </main>
 
       {/* Navigation - Bottom for Mobile, Left for Desktop */}
