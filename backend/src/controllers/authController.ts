@@ -16,7 +16,7 @@ if (!JWT_SECRET) {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, name, role } = req.body;
+    const { email, phone, password, name, role } = req.body;
 
     // Only allow SUPER_ADMIN to register certain roles if needed, 
     // or keep it open for the first user
@@ -24,20 +24,29 @@ export const register = async (req: Request, res: Response) => {
     const finalRole = userCount === 0 ? UserRole.SUPER_ADMIN : (role || UserRole.STAFF);
 
     const hashedEmail = email.toLowerCase();
-    const existing = await prisma.user.findUnique({ where: { email: hashedEmail } });
-    if (existing) return res.status(400).json({ message: 'User already exists' });
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: hashedEmail },
+          { phone: phone }
+        ]
+      }
+    });
+
+    if (existing) return res.status(400).json({ message: 'User with this email or phone already exists' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
         email: hashedEmail,
+        phone,
         password: hashedPassword,
         name,
         role: finalRole
       }
     });
 
-    res.status(201).json({ id: user.id, email: user.email, name: user.name, role: user.role });
+    res.status(201).json({ id: user.id, email: user.email, phone: user.phone, name: user.name, role: user.role });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -45,8 +54,8 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    const { phone, password } = req.body;
+    const user = await prisma.user.findUnique({ where: { phone } });
     
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -60,7 +69,7 @@ export const login = async (req: Request, res: Response) => {
 
     res.json({
       token,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role }
+      user: { id: user.id, email: user.email, phone: user.phone, name: user.name, role: user.role }
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -70,7 +79,7 @@ export const login = async (req: Request, res: Response) => {
 export const getUsers = async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
-      select: { id: true, email: true, name: true, role: true, createdAt: true }
+      select: { id: true, email: true, phone: true, name: true, role: true, createdAt: true }
     });
     res.json(users);
   } catch (error: any) {
