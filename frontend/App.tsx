@@ -11,7 +11,6 @@ import { Leaderboard } from './pages/Leaderboard';
 import { Expenses } from './pages/Expenses';
 import { Reports } from './pages/Reports';
 import { AdminPanel } from './pages/AdminPanel';
-import { DebugExport } from './pages/DebugExport';
 import { Login } from './pages/Login';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { NavigationGuard } from './components/NavigationGuard';
@@ -85,7 +84,6 @@ const AppRoutes: React.FC = () => {
           <Route path="/reports" element={<ProtectedRoute element={<Reports />} allowedRoles={adminRoles} />} />
           {/* Admin Panel - Only SUPER_ADMIN */}
           <Route path="/admin" element={<ProtectedRoute element={<AdminPanel />} allowedRoles={[UserRole.SUPER_ADMIN]} />} />
-          <Route path="/debug-export" element={<ProtectedRoute element={<DebugExport />} allowedRoles={[UserRole.SUPER_ADMIN]} />} />
           
           <Route path="*" element={
             !isAuthenticated 
