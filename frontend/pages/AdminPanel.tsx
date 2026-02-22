@@ -11,6 +11,21 @@ export const AdminPanel: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [tables, setTables] = useState<any[]>([]);
   const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [logFilters, setLogFilters] = useState({
+    page: 1,
+    limit: 50,
+    action: '',
+    resource: '',
+    userId: '',
+    startDate: '',
+    endDate: ''
+  });
+  const [logPagination, setLogPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 50,
+    totalPages: 1
+  });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -24,8 +39,8 @@ export const AdminPanel: React.FC = () => {
   });
 
   // Form states
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: UserRole.STAFF as UserRole, profitPercentage: 0 });
-  const [editingUser, setEditingUser] = useState<{ id: string, name: string, email: string, password?: string, role: UserRole, profitPercentage?: number } | null>(null);
+  const [newUser, setNewUser] = useState({ name: '', email: '', phone: '', password: '', role: UserRole.STAFF as UserRole, profitPercentage: 0 });
+  const [editingUser, setEditingUser] = useState<{ id: string, name: string, email: string, phone?: string, password?: string, role: UserRole, profitPercentage?: number } | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [rates, setRates] = useState({ rate10: 0, rate20: 0 });
   const [profitDetails, setProfitDetails] = useState({ 
@@ -39,11 +54,16 @@ export const AdminPanel: React.FC = () => {
 
   useEffect(() => {
     fetchUsers();
-    fetchLogs();
     fetchRates();
     fetchProfitSummary();
     fetchTables();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'logs') {
+      fetchLogs();
+    }
+  }, [logFilters, activeTab]);
 
   const fetchTables = async () => {
     try {
@@ -74,8 +94,18 @@ export const AdminPanel: React.FC = () => {
 
   const fetchLogs = async () => {
     try {
-      const data = await api.get('/admin/audit-logs');
-      setLogs(data);
+      const params = new URLSearchParams();
+      params.append('page', logFilters.page.toString());
+      params.append('limit', logFilters.limit.toString());
+      if (logFilters.action) params.append('action', logFilters.action);
+      if (logFilters.resource) params.append('resource', logFilters.resource);
+      if (logFilters.userId) params.append('userId', logFilters.userId);
+      if (logFilters.startDate) params.append('startDate', logFilters.startDate);
+      if (logFilters.endDate) params.append('endDate', logFilters.endDate);
+
+      const data = await api.get(`/admin/audit-logs?${params.toString()}`);
+      setLogs(data.logs);
+      setLogPagination(data.pagination);
     } catch (err) {
       console.error('Failed to fetch logs', err);
     }
@@ -100,13 +130,14 @@ export const AdminPanel: React.FC = () => {
     try {
       await api.post('/admin/users', {
         email: newUser.email.toLowerCase().trim(),
+        phone: newUser.phone.trim(),
         password: newUser.password,
         name: newUser.name,
         role: newUser.role,
         profitPercentage: newUser.profitPercentage
       });
       setMessage({ type: 'success', text: 'User created successfully' });
-      setNewUser({ name: '', email: '', password: '', role: UserRole.STAFF, profitPercentage: 0 });
+      setNewUser({ name: '', email: '', phone: '', password: '', role: UserRole.STAFF, profitPercentage: 0 });
       setShowAddForm(false);
       fetchUsers();
     } catch (err: any) {
@@ -134,6 +165,7 @@ export const AdminPanel: React.FC = () => {
       await api.patch(`/admin/users/${editingUser.id}`, {
         name: editingUser.name,
         email: editingUser.email.toLowerCase().trim(),
+        phone: editingUser.phone?.trim(),
         role: editingUser.role,
         profitPercentage: editingUser.profitPercentage,
         ...(editingUser.password ? { password: editingUser.password } : {})
@@ -396,6 +428,25 @@ export const AdminPanel: React.FC = () => {
                             />
                           </div>
                         </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Phone Number</label>
+                          <div className="relative group/input">
+                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors">
+                              <span className="font-bold text-xs">+91</span>
+                            </div>
+                            <input
+                              type="tel"
+                              required
+                              value={editingUser ? (editingUser.phone || '') : newUser.phone}
+                              placeholder="9876543210"
+                              onChange={e => editingUser
+                                ? setEditingUser({...editingUser, phone: e.target.value})
+                                : setNewUser({...newUser, phone: e.target.value})}
+                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 focus:bg-white dark:focus:bg-slate-800/50 rounded-xl pl-12 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white transition-all outline-none"
+                            />
+                          </div>
+                        </div>
                       </div>
 
                       <div className="space-y-4">
@@ -533,6 +584,7 @@ export const AdminPanel: React.FC = () => {
                           id: user.id, 
                           name: user.name, 
                           email: user.email, 
+                          phone: user.phone,
                           role: user.role, 
                           profitPercentage: user.profitPercentage 
                         })}
@@ -962,6 +1014,64 @@ export const AdminPanel: React.FC = () => {
                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Live platform activity monitor</p>
               </div>
             </div>
+
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+              <div className="flex-1 flex flex-col md:flex-row gap-2">
+                <input 
+                  type="date" 
+                  value={logFilters.startDate} 
+                  onChange={e => setLogFilters({...logFilters, startDate: e.target.value, page: 1})}
+                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
+                />
+                <input 
+                  type="date" 
+                  value={logFilters.endDate} 
+                  onChange={e => setLogFilters({...logFilters, endDate: e.target.value, page: 1})}
+                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
+                />
+                <select 
+                  value={logFilters.action} 
+                  onChange={e => setLogFilters({...logFilters, action: e.target.value, page: 1})}
+                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
+                >
+                  <option value="">All Actions</option>
+                  <option value="CREATE">CREATE</option>
+                  <option value="UPDATE">UPDATE</option>
+                  <option value="DELETE">DELETE</option>
+                  <option value="LOGIN">LOGIN</option>
+                </select>
+                <select 
+                  value={logFilters.resource} 
+                  onChange={e => setLogFilters({...logFilters, resource: e.target.value, page: 1})}
+                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
+                >
+                  <option value="">All Resources</option>
+                  <option value="USER">USER</option>
+                  <option value="MATCH">MATCH</option>
+                  <option value="PAYMENT">PAYMENT</option>
+                  <option value="EXPENSE">EXPENSE</option>
+                  <option value="CONFIG">CONFIG</option>
+                  <option value="FINANCE">FINANCE</option>
+                </select>
+                <select 
+                  value={logFilters.limit} 
+                  onChange={e => setLogFilters({...logFilters, limit: parseInt(e.target.value), page: 1})}
+                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
+                >
+                  <option value="10">10 per page</option>
+                  <option value="25">25 per page</option>
+                  <option value="50">50 per page</option>
+                  <option value="100">100 per page</option>
+                </select>
+              </div>
+              <button 
+                onClick={() => setLogFilters({ page: 1, limit: 50, action: '', resource: '', userId: '', startDate: '', endDate: '' })}
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                Clear Filters
+              </button>
+            </div>
             
             {/* Table for Desktop, Cards for Mobile */}
             <div className="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
@@ -972,7 +1082,7 @@ export const AdminPanel: React.FC = () => {
                       <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Identity / Time</th>
                       <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none text-center">Operation</th>
                       <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none text-center">Entity</th>
-                      <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none text-right">Contextual ID</th>
+                      <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Details</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -995,6 +1105,7 @@ export const AdminPanel: React.FC = () => {
                           <span className={`text-[8px] font-black px-2 py-0.5 rounded-md tracking-wider shadow-sm uppercase ${
                             log.action === 'CREATE' ? 'bg-emerald-500 text-white' :
                             log.action === 'UPDATE' ? 'bg-amber-500 text-white' :
+                            log.action === 'LOGIN' ? 'bg-blue-500 text-white' :
                             'bg-rose-500 text-white'
                           }`}>
                             {log.action}
@@ -1006,10 +1117,10 @@ export const AdminPanel: React.FC = () => {
                              <div className="w-4 h-0.5 bg-indigo-500/20 rounded-full"></div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="text-[9px] font-mono text-slate-400 italic bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-800">
-                            {log.resourceId ? `${log.resourceId}` : 'GL-GLOBAL'}
-                          </span>
+                        <td className="px-6 py-4">
+                          <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap" title={JSON.stringify(log.details, null, 2)}>
+                            {log.details ? JSON.stringify(log.details) : '-'}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1030,41 +1141,76 @@ export const AdminPanel: React.FC = () => {
 
             {/* Mobile Log Cards */}
             <div className="md:hidden space-y-2.5 pb-20">
-              {logs.map(log => (
-                <div key={log.id} className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden active:scale-98 transition-transform">
-                   <div className="flex items-center justify-between mb-2.5 border-b border-slate-50 dark:border-slate-800 pb-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-[10px] font-black text-indigo-600 dark:text-indigo-400">
-                           {(log.user?.name || 'S')[0]}
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-black text-slate-900 dark:text-white leading-tight">{log.user?.name || 'System'}</p>
-                          <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tight">
-                            {format(new Date(log.timestamp), 'HH:mm:ss')}
-                          </p>
-                        </div>
-                      </div>
-                      <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase ${
-                        log.action === 'CREATE' ? 'bg-emerald-100 text-emerald-700' :
-                        log.action === 'UPDATE' ? 'bg-amber-100 text-amber-700' :
-                        'bg-rose-100 text-rose-700'
-                      }`}>
-                         {log.action}
-                      </span>
-                   </div>
-                   <div className="flex items-center justify-between text-[8px] font-bold">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-slate-300 dark:text-slate-600 uppercase tracking-widest text-[6px]">Resource</span>
-                        <span className="text-slate-600 dark:text-slate-300 uppercase italic font-black">{log.resource}</span>
-                      </div>
-                      <div className="flex flex-col gap-0.5 text-right">
-                        <span className="text-slate-300 dark:text-slate-600 uppercase tracking-widest text-[6px]">Ident</span>
-                        <span className="text-slate-400 dark:text-slate-500 font-mono truncate max-w-[100px] italic">#{log.resourceId || 'GLOBAL'}</span>
-                      </div>
-                   </div>
+              {logs.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-center">
+                  <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 border border-dashed border-slate-200 dark:border-slate-700">
+                    <Activity className="w-5 h-5 text-slate-300" />
+                  </div>
+                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest italic">Zero footprint detected</p>
                 </div>
-              ))}
+              ) : (
+                logs.map(log => (
+                  <div key={log.id} className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden active:scale-98 transition-transform">
+                     <div className="flex items-center justify-between mb-2.5 border-b border-slate-50 dark:border-slate-800 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-[10px] font-black text-indigo-600 dark:text-indigo-400">
+                             {(log.user?.name || 'S')[0]}
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-slate-900 dark:text-white leading-tight">{log.user?.name || 'System'}</p>
+                            <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tight">
+                              {format(new Date(log.timestamp), 'HH:mm:ss')}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase ${
+                          log.action === 'CREATE' ? 'bg-emerald-100 text-emerald-700' :
+                          log.action === 'UPDATE' ? 'bg-amber-100 text-amber-700' :
+                          log.action === 'LOGIN' ? 'bg-blue-100 text-blue-700' :
+                          'bg-rose-100 text-rose-700'
+                        }`}>
+                           {log.action}
+                        </span>
+                     </div>
+                     <div className="flex items-center justify-between text-[8px] font-bold">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-slate-300 dark:text-slate-600 uppercase tracking-widest text-[6px]">Resource</span>
+                          <span className="text-slate-600 dark:text-slate-300 uppercase italic font-black">{log.resource}</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5 text-right">
+                          <span className="text-slate-300 dark:text-slate-600 uppercase tracking-widest text-[6px]">Details</span>
+                          <span className="text-slate-400 dark:text-slate-500 font-mono truncate max-w-[100px] italic" title={JSON.stringify(log.details, null, 2)}>
+                            {log.details ? JSON.stringify(log.details) : '-'}
+                          </span>
+                        </div>
+                     </div>
+                  </div>
+                ))
+              )}
             </div>
+
+            {/* Pagination */}
+            {logPagination.totalPages > 1 && (
+              <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm pb-20 md:pb-3">
+                <button 
+                  disabled={logPagination.page === 1}
+                  onClick={() => setLogFilters({...logFilters, page: logPagination.page - 1})}
+                  className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <span className="text-xs font-bold text-slate-500">
+                  Page {logPagination.page} of {logPagination.totalPages}
+                </span>
+                <button 
+                  disabled={logPagination.page === logPagination.totalPages}
+                  onClick={() => setLogFilters({...logFilters, page: logPagination.page + 1})}
+                  className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

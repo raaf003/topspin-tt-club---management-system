@@ -9,6 +9,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma_1 = __importDefault(require("../lib/prisma"));
 const client_1 = require("@prisma/client");
 const zod_1 = require("zod");
+const logger_1 = require("../utils/logger");
 const idParamSchema = zod_1.z.object({
     id: zod_1.z.string().uuid(),
 });
@@ -59,6 +60,13 @@ const login = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
         const token = jsonwebtoken_1.default.sign({ userId: user.id, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
+        // Log the login action
+        try {
+            await (0, logger_1.logAction)(user.id, logger_1.AuditAction.LOGIN, logger_1.AuditResource.USER, user.id, { phone: user.phone });
+        }
+        catch (logError) {
+            console.error('Failed to log login:', logError);
+        }
         res.json({
             token,
             user: { id: user.id, email: user.email, phone: user.phone, name: user.name, role: user.role }

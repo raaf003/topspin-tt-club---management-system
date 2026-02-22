@@ -21,7 +21,7 @@ interface AuthenticatedRequest extends Request {
 export const getUsers = async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
-      select: { id: true, email: true, name: true, role: true, isPartner: true, profitPercentage: true, createdAt: true },
+      select: { id: true, email: true, phone: true, name: true, role: true, isPartner: true, profitPercentage: true, createdAt: true },
       orderBy: { createdAt: 'desc' }
     });
     res.json(users);
@@ -32,7 +32,7 @@ export const getUsers = async (req: Request, res: Response) => {
 
 export const createUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { email, password, name, role, isPartner, profitPercentage } = req.body;
+    const { email, phone, password, name, role, isPartner, profitPercentage } = req.body;
     
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
@@ -42,6 +42,7 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
     const user = await prisma.user.create({
       data: {
         email: lowerEmail,
+        phone,
         password: hashedPassword,
         name,
         role: role as UserRole,
@@ -50,11 +51,11 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       }
     });
 
-    await logAction(req.user.userId, AuditAction.CREATE, AuditResource.USER, user.id, { email: lowerEmail, role });
+    await logAction(req.user.userId, AuditAction.CREATE, AuditResource.USER, user.id, { email: lowerEmail, phone, role });
 
     notifyDataUpdate('USER');
 
-    res.status(201).json({ id: user.id, email: user.email, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
+    res.status(201).json({ id: user.id, email: user.email, phone: user.phone, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -63,9 +64,12 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
 export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = idParamSchema.parse(req.params);
-    const { email, name, role, isPartner, profitPercentage, password } = req.body;
+    const { email, phone, name, role, isPartner, profitPercentage, password } = req.body;
     
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const existingUser = await prisma.user.findUnique({ where: { id } });
+    if (!existingUser) return res.status(404).json({ message: 'User not found' });
 
     const data: Prisma.UserUpdateInput = { 
       name, 
@@ -75,6 +79,9 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
     
     if (email) {
       data.email = email.toLowerCase();
+    }
+    if (phone !== undefined) {
+      data.phone = phone;
     }
     if (password) {
       data.password = await bcrypt.hash(password, 10);
@@ -88,11 +95,29 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       data
     });
 
-    await logAction(req.user.userId, AuditAction.UPDATE, AuditResource.USER, id, { email: user.email, role });
+    const previousValues = {
+      name: existingUser.name,
+      email: existingUser.email,
+      phone: existingUser.phone,
+      role: existingUser.role,
+      isPartner: existingUser.isPartner,
+      profitPercentage: existingUser.profitPercentage
+    };
+
+    const updatedValues = {
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isPartner: user.isPartner,
+      profitPercentage: user.profitPercentage
+    };
+
+    await logAction(req.user.userId, AuditAction.UPDATE, AuditResource.USER, id, { previousValues, updatedValues });
 
     notifyDataUpdate('USER');
 
-    res.json({ id: user.id, email: user.email, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
+    res.json({ id: user.id, email: user.email, phone: user.phone, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ message: 'Invalid input', errors: error.issues });
@@ -104,11 +129,51 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
 // --- Audit Logs ---
 export const getAuditLogs = async (req: Request, res: Response) => {
   try {
-    const logs = await prisma.auditLog.findMany({
-      include: { user: { select: { name: true, role: true } } },
-      orderBy: { createdAt: 'desc' },
-      take: 500
-    });
+    const { page = '1', limit = '50', action, resource, userId, startDate, endDate } = req.query;
+    
+    const pageNumber = parseInt(page as string, 10);
+    const limitNumber = parseInt(limit as string, 10);
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const where: Prisma.AuditLogWhereInput = {};
+
+    if (action) where.action = action as string;
+    if (resource) where.resource = resource as string;
+    if (userId) where.userId = userId as string;
+
+    // Default to current day if no dates provided
+    if (!startDate && !endDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      where.createdAt = {
+        gte: today,
+        lt: tomorrow
+      };
+    } else {
+      if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = new Date(startDate as string);
+        if (endDate) {
+          const end = new Date(endDate as string);
+          end.setHours(23, 59, 59, 999);
+          where.createdAt.lte = end;
+        }
+      }
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        include: { user: { select: { name: true, role: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limitNumber
+      }),
+      prisma.auditLog.count({ where })
+    ]);
     
     // Map createdAt to timestamp for frontend compatibility
     const formattedLogs = logs.map(log => ({
@@ -116,7 +181,15 @@ export const getAuditLogs = async (req: Request, res: Response) => {
       timestamp: log.createdAt
     }));
 
-    res.json(formattedLogs);
+    res.json({
+      logs: formattedLogs,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(total / limitNumber)
+      }
+    });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

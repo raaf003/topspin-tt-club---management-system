@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { UserRole } from '@prisma/client';
 import { z } from 'zod';
+import { logAction, AuditAction, AuditResource } from '../utils/logger';
 
 const idParamSchema = z.object({
   id: z.string().uuid(),
@@ -66,6 +67,13 @@ export const login = async (req: Request, res: Response) => {
       JWT_SECRET,
       { expiresIn: '24h' }
     );
+
+    // Log the login action
+    try {
+      await logAction(user.id, AuditAction.LOGIN, AuditResource.USER, user.id, { phone: user.phone });
+    } catch (logError) {
+      console.error('Failed to log login:', logError);
+    }
 
     res.json({
       token,

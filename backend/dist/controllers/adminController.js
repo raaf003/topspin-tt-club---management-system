@@ -17,7 +17,7 @@ const idParamSchema = zod_1.z.object({
 const getUsers = async (req, res) => {
     try {
         const users = await prisma_1.default.user.findMany({
-            select: { id: true, email: true, name: true, role: true, isPartner: true, profitPercentage: true, createdAt: true },
+            select: { id: true, email: true, phone: true, name: true, role: true, isPartner: true, profitPercentage: true, createdAt: true },
             orderBy: { createdAt: 'desc' }
         });
         res.json(users);
@@ -29,7 +29,7 @@ const getUsers = async (req, res) => {
 exports.getUsers = getUsers;
 const createUser = async (req, res) => {
     try {
-        const { email, password, name, role, isPartner, profitPercentage } = req.body;
+        const { email, phone, password, name, role, isPartner, profitPercentage } = req.body;
         if (!req.user)
             return res.status(401).json({ message: 'Unauthorized' });
         const hashedPassword = await bcryptjs_1.default.hash(password, 10);
@@ -37,6 +37,7 @@ const createUser = async (req, res) => {
         const user = await prisma_1.default.user.create({
             data: {
                 email: lowerEmail,
+                phone,
                 password: hashedPassword,
                 name,
                 role: role,
@@ -44,9 +45,9 @@ const createUser = async (req, res) => {
                 profitPercentage: profitPercentage ? parseFloat(profitPercentage) : 0
             }
         });
-        await (0, logger_1.logAction)(req.user.userId, logger_1.AuditAction.CREATE, logger_1.AuditResource.USER, user.id, { email: lowerEmail, role });
+        await (0, logger_1.logAction)(req.user.userId, logger_1.AuditAction.CREATE, logger_1.AuditResource.USER, user.id, { email: lowerEmail, phone, role });
         (0, socket_1.notifyDataUpdate)('USER');
-        res.status(201).json({ id: user.id, email: user.email, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
+        res.status(201).json({ id: user.id, email: user.email, phone: user.phone, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
     }
     catch (error) {
         res.status(500).json({ message: error.message });
@@ -56,9 +57,12 @@ exports.createUser = createUser;
 const updateUser = async (req, res) => {
     try {
         const { id } = idParamSchema.parse(req.params);
-        const { email, name, role, isPartner, profitPercentage, password } = req.body;
+        const { email, phone, name, role, isPartner, profitPercentage, password } = req.body;
         if (!req.user)
             return res.status(401).json({ message: 'Unauthorized' });
+        const existingUser = await prisma_1.default.user.findUnique({ where: { id } });
+        if (!existingUser)
+            return res.status(404).json({ message: 'User not found' });
         const data = {
             name,
             role: role,
@@ -66,6 +70,9 @@ const updateUser = async (req, res) => {
         };
         if (email) {
             data.email = email.toLowerCase();
+        }
+        if (phone !== undefined) {
+            data.phone = phone;
         }
         if (password) {
             data.password = await bcryptjs_1.default.hash(password, 10);
@@ -77,9 +84,25 @@ const updateUser = async (req, res) => {
             where: { id },
             data
         });
-        await (0, logger_1.logAction)(req.user.userId, logger_1.AuditAction.UPDATE, logger_1.AuditResource.USER, id, { email: user.email, role });
+        const previousValues = {
+            name: existingUser.name,
+            email: existingUser.email,
+            phone: existingUser.phone,
+            role: existingUser.role,
+            isPartner: existingUser.isPartner,
+            profitPercentage: existingUser.profitPercentage
+        };
+        const updatedValues = {
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+            isPartner: user.isPartner,
+            profitPercentage: user.profitPercentage
+        };
+        await (0, logger_1.logAction)(req.user.userId, logger_1.AuditAction.UPDATE, logger_1.AuditResource.USER, id, { previousValues, updatedValues });
         (0, socket_1.notifyDataUpdate)('USER');
-        res.json({ id: user.id, email: user.email, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
+        res.json({ id: user.id, email: user.email, phone: user.phone, name: user.name, role: user.role, isPartner: user.isPartner, profitPercentage: user.profitPercentage });
     }
     catch (error) {
         if (error instanceof zod_1.z.ZodError) {
@@ -92,17 +115,64 @@ exports.updateUser = updateUser;
 // --- Audit Logs ---
 const getAuditLogs = async (req, res) => {
     try {
-        const logs = await prisma_1.default.auditLog.findMany({
-            include: { user: { select: { name: true, role: true } } },
-            orderBy: { createdAt: 'desc' },
-            take: 500
-        });
+        const { page = '1', limit = '50', action, resource, userId, startDate, endDate } = req.query;
+        const pageNumber = parseInt(page, 10);
+        const limitNumber = parseInt(limit, 10);
+        const skip = (pageNumber - 1) * limitNumber;
+        const where = {};
+        if (action)
+            where.action = action;
+        if (resource)
+            where.resource = resource;
+        if (userId)
+            where.userId = userId;
+        // Default to current day if no dates provided
+        if (!startDate && !endDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            where.createdAt = {
+                gte: today,
+                lt: tomorrow
+            };
+        }
+        else {
+            if (startDate || endDate) {
+                where.createdAt = {};
+                if (startDate)
+                    where.createdAt.gte = new Date(startDate);
+                if (endDate) {
+                    const end = new Date(endDate);
+                    end.setHours(23, 59, 59, 999);
+                    where.createdAt.lte = end;
+                }
+            }
+        }
+        const [logs, total] = await Promise.all([
+            prisma_1.default.auditLog.findMany({
+                where,
+                include: { user: { select: { name: true, role: true } } },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limitNumber
+            }),
+            prisma_1.default.auditLog.count({ where })
+        ]);
         // Map createdAt to timestamp for frontend compatibility
         const formattedLogs = logs.map(log => ({
             ...log,
             timestamp: log.createdAt
         }));
-        res.json(formattedLogs);
+        res.json({
+            logs: formattedLogs,
+            pagination: {
+                total,
+                page: pageNumber,
+                limit: limitNumber,
+                totalPages: Math.ceil(total / limitNumber)
+            }
+        });
     }
     catch (error) {
         res.status(500).json({ message: error.message });
