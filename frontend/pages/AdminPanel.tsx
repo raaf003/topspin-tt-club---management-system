@@ -1016,61 +1016,94 @@ export const AdminPanel: React.FC = () => {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
-              <div className="flex-1 flex flex-col md:flex-row gap-2">
-                <input 
-                  type="date" 
-                  value={logFilters.startDate} 
-                  onChange={e => setLogFilters({...logFilters, startDate: e.target.value, page: 1})}
-                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
-                />
-                <input 
-                  type="date" 
-                  value={logFilters.endDate} 
-                  onChange={e => setLogFilters({...logFilters, endDate: e.target.value, page: 1})}
-                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
-                />
-                <select 
-                  value={logFilters.action} 
-                  onChange={e => setLogFilters({...logFilters, action: e.target.value, page: 1})}
-                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
-                >
-                  <option value="">All Actions</option>
-                  <option value="CREATE">CREATE</option>
-                  <option value="UPDATE">UPDATE</option>
-                  <option value="DELETE">DELETE</option>
-                  <option value="LOGIN">LOGIN</option>
-                </select>
-                <select 
-                  value={logFilters.resource} 
-                  onChange={e => setLogFilters({...logFilters, resource: e.target.value, page: 1})}
-                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
-                >
-                  <option value="">All Resources</option>
-                  <option value="USER">USER</option>
-                  <option value="MATCH">MATCH</option>
-                  <option value="PAYMENT">PAYMENT</option>
-                  <option value="EXPENSE">EXPENSE</option>
-                  <option value="CONFIG">CONFIG</option>
-                  <option value="FINANCE">FINANCE</option>
-                </select>
-                <select 
-                  value={logFilters.limit} 
-                  onChange={e => setLogFilters({...logFilters, limit: parseInt(e.target.value), page: 1})}
-                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
-                >
-                  <option value="10">10 per page</option>
-                  <option value="25">25 per page</option>
-                  <option value="50">50 per page</option>
-                  <option value="100">100 per page</option>
-                </select>
+            <div className="bg-white dark:bg-slate-900 p-3 md:p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm mb-4">
+              <div className="flex flex-col md:flex-row gap-3">
+                {/* Date Range Group */}
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200 dark:border-slate-700 flex-1 md:flex-none md:w-auto">
+                  <input 
+                    type="date" 
+                    value={logFilters.startDate} 
+                    onChange={e => setLogFilters({...logFilters, startDate: e.target.value, page: 1})}
+                    className="bg-transparent border-none px-2 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none w-full text-center"
+                  />
+                  <span className="text-slate-400 text-xs font-bold px-1">-</span>
+                  <input 
+                    type="date" 
+                    value={logFilters.endDate} 
+                    onChange={e => setLogFilters({...logFilters, endDate: e.target.value, page: 1})}
+                    className="bg-transparent border-none px-2 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none w-full text-center"
+                  />
+                </div>
+
+                {/* Dropdowns Group */}
+                <div className="grid grid-cols-2 md:flex md:flex-row gap-3 flex-1">
+                  <div className="relative w-full">
+                    <select 
+                      value={logFilters.action} 
+                      onChange={e => setLogFilters({...logFilters, action: e.target.value, page: 1})}
+                      className="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all w-full"
+                    >
+                      <option value="">All Actions</option>
+                      <option value="CREATE">CREATE</option>
+                      <option value="UPDATE">UPDATE</option>
+                      <option value="DELETE">DELETE</option>
+                      <option value="LOGIN">LOGIN</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                  </div>
+                  
+                  <div className="relative w-full">
+                    <select 
+                      value={logFilters.resource} 
+                      onChange={e => setLogFilters({...logFilters, resource: e.target.value, page: 1})}
+                      className="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all w-full"
+                    >
+                      <option value="">All Resources</option>
+                      <option value="USER">USER</option>
+                      <option value="MATCH">MATCH</option>
+                      <option value="PAYMENT">PAYMENT</option>
+                      <option value="EXPENSE">EXPENSE</option>
+                      <option value="CONFIG">CONFIG</option>
+                      <option value="FINANCE">FINANCE</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Controls Group */}
+                <div className="grid grid-cols-2 md:flex md:flex-row gap-3 md:w-auto">
+                  <div className="relative w-full md:w-32">
+                    <select 
+                      value={logFilters.limit} 
+                      onChange={e => setLogFilters({...logFilters, limit: parseInt(e.target.value), page: 1})}
+                      className="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all w-full"
+                    >
+                      <option value="10">10 / page</option>
+                      <option value="25">25 / page</option>
+                      <option value="50">50 / page</option>
+                      <option value="100">100 / page</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => setLogFilters({ page: 1, limit: 50, action: '', resource: '', userId: '', startDate: '', endDate: '' })}
+                    className="px-4 py-2.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors flex items-center justify-center gap-2 whitespace-nowrap border border-rose-100 dark:border-rose-500/20 w-full md:w-auto"
+                    title="Clear Filters"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>Clear</span>
+                  </button>
+                </div>
               </div>
-              <button 
-                onClick={() => setLogFilters({ page: 1, limit: 50, action: '', resource: '', userId: '', startDate: '', endDate: '' })}
-                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-              >
-                Clear Filters
-              </button>
             </div>
             
             {/* Table for Desktop, Cards for Mobile */}

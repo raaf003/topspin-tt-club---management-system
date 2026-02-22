@@ -206,15 +206,24 @@ export const PlayerProfile: React.FC = () => {
       </div>
 
       {range === 'custom' && (
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-orange-100 dark:border-orange-900/30 flex flex-wrap gap-4 animate-in slide-in-from-top-2 duration-300">
-           <div className="space-y-1">
-             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Start Date</label>
-             <input title="Start Date" type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="bg-gray-50 dark:bg-slate-800 border-none rounded-xl p-2 text-xs font-bold dark:text-white" />
-           </div>
-           <div className="space-y-1">
-             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">End Date</label>
-             <input title="End Date" type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="bg-gray-50 dark:bg-slate-800 border-none rounded-xl p-2 text-xs font-bold dark:text-white" />
-           </div>
+        <div className="bg-white dark:bg-slate-900 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-orange-100 dark:border-orange-900/30 animate-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/50 p-1 rounded-xl border border-gray-200 dark:border-slate-700 w-full md:w-auto">
+            <input 
+              title="Start Date" 
+              type="date" 
+              value={customStart} 
+              onChange={(e) => setCustomStart(e.target.value)} 
+              className="bg-transparent border-none px-2 py-1.5 text-xs font-bold text-gray-700 dark:text-slate-300 outline-none w-full text-center" 
+            />
+            <span className="text-gray-400 text-xs font-bold px-1">-</span>
+            <input 
+              title="End Date" 
+              type="date" 
+              value={customEnd} 
+              onChange={(e) => setCustomEnd(e.target.value)} 
+              className="bg-transparent border-none px-2 py-1.5 text-xs font-bold text-gray-700 dark:text-slate-300 outline-none w-full text-center" 
+            />
+          </div>
         </div>
       )}
 

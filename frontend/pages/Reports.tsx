@@ -127,28 +127,24 @@ export const Reports: React.FC = () => {
            </div>
 
            {reportRange === 'custom' && (
-             <div className="flex items-center gap-2 md:gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-               <div className="flex-1 space-y-1">
-                 <label className="text-[8px] md:text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">Start</label>
+             <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+               <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/50 p-1 rounded-xl border border-gray-200 dark:border-slate-700 w-full">
                  <input 
                    type="date" 
                    value={startDate}
                    title="Select start date"
                    aria-label="Select start date"
                    onChange={(e) => setStartDate(e.target.value)}
-                   className="w-full bg-gray-50 dark:bg-slate-800 border-none p-2 md:p-3 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold outline-none ring-1 ring-gray-100 dark:ring-slate-700 dark:text-white transition-all"
+                   className="bg-transparent border-none px-2 py-1.5 text-xs font-bold text-gray-700 dark:text-slate-300 outline-none w-full text-center"
                  />
-               </div>
-               <ChevronRight className="w-3 h-3 md:w-4 md:h-4 text-gray-300 dark:text-slate-600 mt-4" />
-               <div className="flex-1 space-y-1">
-                 <label className="text-[8px] md:text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">End</label>
+                 <span className="text-gray-400 text-xs font-bold px-1">-</span>
                  <input 
                    type="date" 
                    value={endDate}
                    title="Select end date"
                    aria-label="Select end date"
                    onChange={(e) => setEndDate(e.target.value)}
-                   className="w-full bg-gray-50 dark:bg-slate-800 border-none p-2 md:p-3 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold outline-none ring-1 ring-gray-100 dark:ring-slate-700 dark:text-white transition-all"
+                   className="bg-transparent border-none px-2 py-1.5 text-xs font-bold text-gray-700 dark:text-slate-300 outline-none w-full text-center"
                  />
                </div>
              </div>
