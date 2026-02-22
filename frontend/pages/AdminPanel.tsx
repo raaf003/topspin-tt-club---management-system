@@ -26,6 +26,7 @@ export const AdminPanel: React.FC = () => {
     limit: 50,
     totalPages: 1
   });
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -1120,42 +1121,68 @@ export const AdminPanel: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                     {logs.map(log => (
-                      <tr key={log.id} className="group hover:bg-indigo-50/10 dark:hover:bg-indigo-900/5 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-black text-slate-500 group-hover:bg-white dark:group-hover:bg-slate-700 transition-colors shadow-inner">
-                              {(log.user?.name || 'S')[0].toUpperCase()}
+                      <React.Fragment key={log.id}>
+                        <tr 
+                          onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
+                          className="group hover:bg-indigo-50/10 dark:hover:bg-indigo-900/5 transition-colors cursor-pointer"
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-black text-slate-500 group-hover:bg-white dark:group-hover:bg-slate-700 transition-colors shadow-inner">
+                                {(log.user?.name || 'S')[0].toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="text-xs font-black text-slate-900 dark:text-white leading-none mb-1">{log.user?.name || 'System'}</p>
+                                <p className="text-[8px] font-mono text-slate-400 uppercase font-bold tracking-tight">
+                                  {format(new Date(log.timestamp), 'MMM dd, HH:mm:ss')}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-xs font-black text-slate-900 dark:text-white leading-none mb-1">{log.user?.name || 'System'}</p>
-                              <p className="text-[8px] font-mono text-slate-400 uppercase font-bold tracking-tight">
-                                {format(new Date(log.timestamp), 'MMM dd, HH:mm:ss')}
-                              </p>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-md tracking-wider shadow-sm uppercase ${
+                              log.action === 'CREATE' ? 'bg-emerald-500 text-white' :
+                              log.action === 'UPDATE' ? 'bg-amber-500 text-white' :
+                              log.action === 'LOGIN' ? 'bg-blue-500 text-white' :
+                              'bg-rose-500 text-white'
+                            }`}>
+                              {log.action}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <div className="flex flex-col items-center gap-1">
+                               <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tighter">{log.resource}</span>
+                               <div className="w-4 h-0.5 bg-indigo-500/20 rounded-full"></div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`text-[8px] font-black px-2 py-0.5 rounded-md tracking-wider shadow-sm uppercase ${
-                            log.action === 'CREATE' ? 'bg-emerald-500 text-white' :
-                            log.action === 'UPDATE' ? 'bg-amber-500 text-white' :
-                            log.action === 'LOGIN' ? 'bg-blue-500 text-white' :
-                            'bg-rose-500 text-white'
-                          }`}>
-                            {log.action}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <div className="flex flex-col items-center gap-1">
-                             <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tighter">{log.resource}</span>
-                             <div className="w-4 h-0.5 bg-indigo-500/20 rounded-full"></div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap" title={JSON.stringify(log.details, null, 2)}>
-                            {log.details ? JSON.stringify(log.details) : '-'}
-                          </div>
-                        </td>
-                      </tr>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap">
+                                {log.details ? JSON.stringify(log.details) : '-'}
+                              </div>
+                              {log.details && (
+                                <div className="text-slate-400 group-hover:text-indigo-500 transition-colors">
+                                  <svg className={`w-4 h-4 transition-transform ${expandedLogId === log.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                        {expandedLogId === log.id && log.details && (
+                          <tr className="bg-slate-50/50 dark:bg-slate-800/20">
+                            <td colSpan={4} className="px-6 py-4">
+                              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                                <span className="text-slate-400 dark:text-slate-500 uppercase tracking-widest text-[9px] font-black block mb-2">Full Details Payload</span>
+                                <pre className="text-[10px] font-mono text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-all bg-white dark:bg-slate-900 p-4 rounded-xl overflow-x-auto border border-slate-200 dark:border-slate-700 shadow-inner">
+                                  {JSON.stringify(log.details, null, 2)}
+                                </pre>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))}
                     {logs.length === 0 && (
                       <tr>
@@ -1183,7 +1210,11 @@ export const AdminPanel: React.FC = () => {
                 </div>
               ) : (
                 logs.map(log => (
-                  <div key={log.id} className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden active:scale-98 transition-transform">
+                  <div 
+                    key={log.id} 
+                    onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
+                    className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden active:scale-98 transition-all cursor-pointer"
+                  >
                      <div className="flex items-center justify-between mb-2.5 border-b border-slate-50 dark:border-slate-800 pb-2.5">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-[10px] font-black text-indigo-600 dark:text-indigo-400">
@@ -1210,13 +1241,23 @@ export const AdminPanel: React.FC = () => {
                           <span className="text-slate-300 dark:text-slate-600 uppercase tracking-widest text-[6px]">Resource</span>
                           <span className="text-slate-600 dark:text-slate-300 uppercase italic font-black">{log.resource}</span>
                         </div>
-                        <div className="flex flex-col gap-0.5 text-right">
+                        <div className="flex flex-col gap-0.5 text-right min-w-0 flex-1 ml-4">
                           <span className="text-slate-300 dark:text-slate-600 uppercase tracking-widest text-[6px]">Details</span>
-                          <span className="text-slate-400 dark:text-slate-500 font-mono truncate max-w-[100px] italic" title={JSON.stringify(log.details, null, 2)}>
-                            {log.details ? JSON.stringify(log.details) : '-'}
-                          </span>
+                          {expandedLogId !== log.id && (
+                            <span className="text-slate-400 dark:text-slate-500 font-mono truncate italic">
+                              {log.details ? JSON.stringify(log.details) : '-'}
+                            </span>
+                          )}
                         </div>
                      </div>
+                     {expandedLogId === log.id && log.details && (
+                       <div className="mt-3 pt-3 border-t border-slate-50 dark:border-slate-800 animate-in fade-in slide-in-from-top-1 duration-200">
+                         <span className="text-slate-300 dark:text-slate-600 uppercase tracking-widest text-[6px] block mb-1.5">Full Details</span>
+                         <pre className="text-[8px] font-mono text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-all bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl overflow-x-auto border border-slate-100 dark:border-slate-700/50">
+                           {JSON.stringify(log.details, null, 2)}
+                         </pre>
+                       </div>
+                     )}
                   </div>
                 ))
               )}
