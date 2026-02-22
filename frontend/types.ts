@@ -13,8 +13,17 @@ export enum ExpenseCategory {
   RENT = 'RENT',
   SALARY = 'SALARY',
   ELECTRICITY = 'ELECTRICITY',
+  WATER = 'WATER',
+  EQUIPMENT = 'EQUIPMENT',
   BATS = 'BATS',
+  BALLS = 'BALLS',
   MAINTENANCE = 'MAINTENANCE',
+  MARKETING = 'MARKETING',
+  INTERNET = 'INTERNET',
+  CLEANING = 'CLEANING',
+  TOURNAMENT = 'TOURNAMENT',
+  REFRESHMENTS = 'REFRESHMENTS',
+  OFFICE = 'OFFICE',
   OTHER = 'OTHER'
 }
 
@@ -98,7 +107,7 @@ export interface Payment {
   allocations: PaymentAllocation[];
   mode: PaymentMode;
   date: string;
-  notes?: string;
+  description?: string;
   recordedAt: number;
   recordedBy: {
     role: UserRole;
@@ -112,7 +121,7 @@ export interface Expense {
   category: ExpenseCategory;
   amount: number;
   mode: PaymentMode;
-  notes?: string;
+  description?: string;
   recordedBy: {
     role: UserRole;
     name: string;

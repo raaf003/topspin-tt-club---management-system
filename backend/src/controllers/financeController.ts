@@ -18,7 +18,7 @@ interface AuthenticatedRequest extends Request {
 
 export const createPayment = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { playerId, totalAmount, allocations, mode, notes, date, recordedAt } = req.body;
+    const { playerId, totalAmount, allocations, mode, description, date, recordedAt } = req.body;
     const amount = parseFloat(totalAmount);
     
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
@@ -34,7 +34,7 @@ export const createPayment = async (req: AuthenticatedRequest, res: Response) =>
         amount,
         allocations: allocations || [],
         mode,
-        description: notes,
+        description,
         date: paymentDate,
         createdAt,
         recordedById: req.user.userId
@@ -45,7 +45,7 @@ export const createPayment = async (req: AuthenticatedRequest, res: Response) =>
       data: {
         type: TransactionType.MATCH_PAYMENT,
         amount,
-        description: `Payment from player ${playerId}: ${notes || ''}`,
+        description: `Payment from player ${playerId}: ${description || ''}`,
         date: paymentDate,
         recordedById: req.user.userId
       }
@@ -72,7 +72,7 @@ export const createPayment = async (req: AuthenticatedRequest, res: Response) =>
 export const updatePayment = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = idParamSchema.parse(req.params);
-    const { playerId, totalAmount, allocations, mode, notes, date } = req.body;
+    const { playerId, totalAmount, allocations, mode, description, date } = req.body;
     const amount = parseFloat(totalAmount);
 
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
@@ -84,7 +84,7 @@ export const updatePayment = async (req: AuthenticatedRequest, res: Response) =>
         amount,
         allocations: allocations || [],
         mode,
-        description: notes,
+        description,
         date
       },
       include: { player: true, recorder: true }
@@ -113,7 +113,7 @@ export const updatePayment = async (req: AuthenticatedRequest, res: Response) =>
 
 export const createExpense = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { amount, category, notes, mode, date, recordedAt } = req.body;
+    const { amount, category, description, mode, date, recordedAt } = req.body;
     
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
@@ -124,7 +124,7 @@ export const createExpense = async (req: AuthenticatedRequest, res: Response) =>
       data: {
         amount: parseFloat(amount),
         category,
-        description: notes,
+        description,
         mode: mode || 'CASH',
         date: expenseDate,
         createdAt,
@@ -136,7 +136,7 @@ export const createExpense = async (req: AuthenticatedRequest, res: Response) =>
       data: {
         type: TransactionType.EXPENSE,
         amount: parseFloat(amount),
-        description: `Expense (${category}): ${notes || ''}`,
+        description: `Expense (${category}): ${description || ''}`,
         date: expenseDate,
         recordedById: req.user.userId
       }
@@ -160,7 +160,7 @@ export const createExpense = async (req: AuthenticatedRequest, res: Response) =>
 export const updateExpense = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = idParamSchema.parse(req.params);
-    const { amount, category, notes, mode, date } = req.body;
+    const { amount, category, description, mode, date } = req.body;
     
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
@@ -169,7 +169,7 @@ export const updateExpense = async (req: AuthenticatedRequest, res: Response) =>
       data: {
         amount: parseFloat(amount),
         category,
-        description: notes,
+        description,
         mode,
         date
       },

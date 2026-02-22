@@ -112,21 +112,38 @@ export const Payments: React.FC = () => {
   const [primaryPayerId, setPrimaryPayerId] = useState('');
   const [allocations, setAllocations] = useState<PaymentAllocation[]>([{ playerId: '', amount: 0, discount: 0 }]);
   const [mode, setMode] = useState<PaymentMode>(PaymentMode.CASH);
-  const [notes, setNotes] = useState('');
+  const [description, setDescription] = useState('');
   const [paymentDate, setPaymentDate] = useState(getLocalTodayStr());
   const [success, setSuccess] = useState(false);
 
   // History & Filter State
   const todayStr = getLocalTodayStr();
   const [historyDate, setHistoryDate] = useState(todayStr);
+  const [searchQuery, setSearchQuery] = useState('');
   const [payLimit, setPayLimit] = useState(50);
   const [payPage, setPayPage] = useState(1);
 
   const filteredPayments = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     return payments
-      .filter(p => !historyDate || p.date === historyDate)
+      .filter(p => {
+        const matchesDate = !historyDate || p.date === historyDate;
+        if (!matchesDate) return false;
+        if (!query) return true;
+        const payer = players.find(pl => pl.id === p.primaryPayerId);
+        return (
+          (payer?.name?.toLowerCase().includes(query)) ||
+          (payer?.nickname?.toLowerCase().includes(query)) ||
+          p.amount?.toString().includes(query) ||
+          (p.description && p.description.toLowerCase().includes(query)) ||
+          p.allocations.some((a: any) => {
+            const ap = players.find(pl => pl.id === a.playerId);
+            return ap?.name?.toLowerCase().includes(query);
+          })
+        );
+      })
       .sort((a, b) => b.recordedAt - a.recordedAt);
-  }, [payments, historyDate]);
+  }, [payments, historyDate, searchQuery, players]);
 
   const totalPages = Math.ceil(filteredPayments.length / payLimit);
   const paginatedPayments = useMemo(() => {
@@ -137,7 +154,7 @@ export const Payments: React.FC = () => {
   // Reset page when filters change
   useEffect(() => {
     setPayPage(1);
-  }, [historyDate, payLimit]);
+  }, [historyDate, payLimit, searchQuery]);
 
   const totalPaymentAmount = allocations.reduce((sum, a) => sum + (a.amount || 0), 0);
   const totalDiscountAmount = allocations.reduce((sum, a) => sum + (a.discount || 0), 0);
@@ -178,7 +195,7 @@ export const Payments: React.FC = () => {
         totalAmount: totalPaymentAmount,
         allocations: validAllocations,
         mode,
-        notes
+        description
       });
       setEditingId(null);
     } else {
@@ -187,7 +204,7 @@ export const Payments: React.FC = () => {
         totalAmount: totalPaymentAmount,
         allocations: validAllocations,
         mode,
-        notes,
+        description,
         date: paymentDate,
         recordedAt: Date.now(),
         recordedBy: {
@@ -202,7 +219,7 @@ export const Payments: React.FC = () => {
       setSuccess(false);
       setPrimaryPayerId('');
       setAllocations([{ playerId: '', amount: 0, discount: 0 }]);
-      setNotes('');
+      setDescription('');
     }, 1500);
   };
 
@@ -211,7 +228,7 @@ export const Payments: React.FC = () => {
     setPrimaryPayerId(p.primaryPayerId);
     setAllocations(p.allocations.map((a: any) => ({ ...a, discount: a.discount || 0 })));
     setMode(p.mode);
-    setNotes(p.notes || '');
+    setDescription(p.description || '');
     setPaymentDate(p.date);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -220,7 +237,7 @@ export const Payments: React.FC = () => {
     setEditingId(null);
     setPrimaryPayerId('');
     setAllocations([{ playerId: '', amount: 0, discount: 0 }]);
-    setNotes('');
+    setDescription('');
   };
 
   const handlePrimaryPayerChange = (val: string) => {
@@ -271,6 +288,8 @@ export const Payments: React.FC = () => {
                 type="date" 
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
+                title="Payment date"
+                aria-label="Payment date"
                 className="w-full bg-transparent p-2 md:p-3 text-xs md:text-sm font-bold text-gray-800 dark:text-white outline-none"
               />
             </div>
@@ -380,8 +399,8 @@ export const Payments: React.FC = () => {
           <label className="text-[9px] md:text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">Remarks</label>
           <input 
             type="text" 
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             placeholder="Optional notes..."
             className="w-full bg-gray-50 dark:bg-slate-800 border-2 border-transparent p-3 md:p-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold text-gray-800 dark:text-white outline-none focus:border-emerald-500 transition-all shadow-inner"
           />
@@ -441,6 +460,27 @@ export const Payments: React.FC = () => {
             </div>
           </div>
 
+          <div className="relative">
+            <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search player name, amount, description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-gray-50 dark:bg-slate-800 border-none pl-9 md:pl-12 pr-8 p-2.5 md:p-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-bold outline-none ring-1 ring-gray-100 dark:ring-slate-700 focus:ring-emerald-300 dark:focus:ring-emerald-800 transition-all text-gray-800 dark:text-white"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                title="Clear search"
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
           <div className="flex items-center justify-between gap-2 px-1">
             <div className="flex items-center gap-2 md:gap-3">
                <div className="flex items-center gap-1.5">
@@ -448,6 +488,8 @@ export const Payments: React.FC = () => {
                  <select 
                    value={payLimit}
                    onChange={(e) => setPayLimit(Number(e.target.value))}
+                   title="Items per page"
+                   aria-label="Items per page"
                    className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-emerald-600 dark:text-emerald-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                  >
                    {[10, 20, 50, 100].map(v => (
@@ -489,8 +531,8 @@ export const Payments: React.FC = () => {
                         <div className="text-[8px] md:text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase mt-0.5 flex flex-wrap items-center gap-1 md:gap-2">
                           <span>{p.date}</span>
                           {waived > 0 && <span className="text-amber-600 dark:text-amber-500 font-black shrink-0">• ₹{waived} waived</span>}
-                          {p.notes && <span className="w-0.5 h-0.5 rounded-full bg-gray-200 dark:bg-slate-700 shrink-0"></span>}
-                          {p.notes && <span className="lowercase italic truncate max-w-[80px] md:max-w-[120px] dark:text-slate-400 shrink-0">{p.notes}</span>}
+                          {p.description && <span className="w-0.5 h-0.5 rounded-full bg-gray-200 dark:bg-slate-700 shrink-0"></span>}
+                          {p.description && <span className="lowercase italic truncate max-w-[80px] md:max-w-[120px] dark:text-slate-400 shrink-0">{p.description}</span>}
                         </div>
                       </div>
                     </div>
