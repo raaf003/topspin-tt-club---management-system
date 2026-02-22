@@ -94,10 +94,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Public data - Always fetch for calculation
       const playersPromise = api.get('/players');
       // Matches are needed for leaderboard calculation even for public users
-      const matchesPromise = api.get('/matches?limit=1000');
+      const matchesPromise = api.get('/matches?limit=100000');
 
       // Protected data - Only if authenticated
-      const paymentsPromise = token ? api.get('/finance/payments') : Promise.resolve([]);
+      const paymentsPromise = token ? api.get('/finance/payments?limit=100000') : Promise.resolve([]);
       const expensesPromise = (token && isAdminFlag) ? api.get('/finance/expenses') : Promise.resolve([]);
       const gameTypesPromise = token ? api.get('/config/game-types') : Promise.resolve([]);
       const tablesPromise = token ? api.get('/config/tables') : Promise.resolve([]);
@@ -302,23 +302,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .filter(m => m.playerAId === playerId || m.playerBId === playerId)
       .sort((a, b) => a.recordedAt - b.recordedAt); // Chronological for trend
     
-    // Sum all match charges for this player
-    const totalSpent = playerMatches.reduce((sum, m) => {
-      const charge = m.charges ? (m.charges[playerId] || 0) : 0;
-      return sum + charge;
-    }, 0);
-    
-    // Sum all payment allocations for this player
+    let totalSpent = 0;
     let totalPaid = 0;
     let totalDiscounted = 0;
-    
-    filteredPayments.forEach(p => {
-      const allocation = p.allocations.find(a => a.playerId === playerId);
-      if (allocation) {
-        totalPaid += (allocation.amount || 0);
-        totalDiscounted += (allocation.discount || 0);
-      }
-    });
+
+    // If no date range is provided, use the pre-calculated stats from the backend
+    if (!dateRange && player) {
+      totalSpent = player.totalSpent || 0;
+      totalPaid = player.totalPaid || 0;
+      totalDiscounted = player.totalDiscounted || 0;
+    } else {
+      // Sum all match charges for this player
+      totalSpent = playerMatches.reduce((sum, m) => {
+        const charge = m.charges ? (m.charges[playerId] || 0) : 0;
+        return sum + charge;
+      }, 0);
+      
+      // Sum all payment allocations for this player
+      filteredPayments.forEach(p => {
+        const allocation = p.allocations.find(a => a.playerId === playerId);
+        if (allocation) {
+          totalPaid += (allocation.amount || 0);
+          totalDiscounted += (allocation.discount || 0);
+        }
+      });
+    }
     
     const initialBalance = player?.initialBalance || 0;
     

@@ -269,7 +269,10 @@ export const Matches: React.FC = () => {
     // Get all matches where this player was charged, sorted chronologically
     const playerMatchHistory = matches
       .filter(m => ((m.charges as any)?.[playerId] || 0) > 0)
-      .sort((a, b) => a.recordedAt - b.recordedAt);
+      .sort((a, b) => {
+        if (a.recordedAt !== b.recordedAt) return a.recordedAt - b.recordedAt;
+        return a.id.localeCompare(b.id);
+      });
     
     let cumulativeCharge = 0;
     for (const m of playerMatchHistory) {

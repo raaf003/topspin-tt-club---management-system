@@ -41,7 +41,36 @@ export const getPlayers = async (req: Request, res: Response) => {
       })));
     }
 
-    res.json(players);
+    // Calculate financial stats for authenticated users
+    const stats: any[] = await prisma.$queryRaw`
+      SELECT 
+        p.id,
+        COALESCE((SELECT SUM(CAST(m.charges->>p.id AS numeric)) FROM "Match" m WHERE m.charges ? p.id), 0) as "totalSpent",
+        COALESCE((SELECT SUM(CAST(elem->>'amount' AS numeric)) FROM "Payment" pay, jsonb_array_elements(pay.allocations) elem WHERE elem->>'playerId' = p.id), 0) as "totalPaid",
+        COALESCE((SELECT SUM(CAST(elem->>'discount' AS numeric)) FROM "Payment" pay, jsonb_array_elements(pay.allocations) elem WHERE elem->>'playerId' = p.id), 0) as "totalDiscounted"
+      FROM "Player" p;
+    `;
+
+    const statsMap = stats.reduce((acc, curr) => {
+      acc[curr.id] = {
+        totalSpent: Number(curr.totalSpent),
+        totalPaid: Number(curr.totalPaid),
+        totalDiscounted: Number(curr.totalDiscounted)
+      };
+      return acc;
+    }, {} as Record<string, { totalSpent: number, totalPaid: number, totalDiscounted: number }>);
+
+    const playersWithStats = players.map(p => {
+      const pStats = statsMap[p.id] || { totalSpent: 0, totalPaid: 0, totalDiscounted: 0 };
+      return {
+        ...p,
+        totalSpent: pStats.totalSpent,
+        totalPaid: pStats.totalPaid,
+        totalDiscounted: pStats.totalDiscounted
+      };
+    });
+
+    res.json(playersWithStats);
   } catch (error: unknown) {
     res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
   }

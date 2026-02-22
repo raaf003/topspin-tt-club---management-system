@@ -185,7 +185,7 @@ export const Payments: React.FC = () => {
     e.preventDefault();
     if (!primaryPayerId) return;
     
-    const validAllocations = allocations.filter(a => a.playerId && ((a.amount || 0) > 0 || (a.discount || 0) > 0));
+    const validAllocations = allocations.filter(a => a.playerId && ((a.amount || 0) !== 0 || (a.discount || 0) !== 0));
     if (validAllocations.length === 0) return;
 
     if (editingId) {
@@ -406,7 +406,7 @@ export const Payments: React.FC = () => {
           />
         </div>
 
-        {totalSettlement > 0 && (
+        {totalSettlement !== 0 && (
            <div className="bg-gray-900 dark:bg-slate-800 p-4 md:p-5 rounded-2xl md:rounded-3xl space-y-2 md:space-y-3 shadow-2xl transition-all">
              <div className="flex items-center justify-between">
                 <div>

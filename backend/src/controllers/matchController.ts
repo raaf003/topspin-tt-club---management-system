@@ -193,10 +193,10 @@ export const updateMatch = async (req: AuthenticatedRequest, res: Response) => {
 
 export const getMatches = async (req: Request, res: Response) => {
   try {
-    const { date, startDate, endDate, page = '1', limit = '1000' } = req.query;
+    const { date, startDate, endDate, page = '1', limit = '100000' } = req.query;
     
     const p = parseInt(page as string) || 1;
-    const l = parseInt(limit as string) || 1000;
+    const l = parseInt(limit as string) || 100000;
     const skip = (p - 1) * l;
 
     const where: any = {};

@@ -3,21 +3,34 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getFinancialReport = exports.getExpenses = exports.getPayments = exports.recordSpecialTransaction = exports.createExpense = exports.createPayment = void 0;
+exports.getFinancialReport = exports.getExpenses = exports.getPayments = exports.recordSpecialTransaction = exports.updateExpense = exports.createExpense = exports.updatePayment = exports.createPayment = void 0;
 const prisma_1 = __importDefault(require("../lib/prisma"));
 const client_1 = require("@prisma/client");
+const logger_1 = require("../utils/logger");
+const socket_1 = require("../socket");
+const zod_1 = require("zod");
+const idParamSchema = zod_1.z.object({
+    id: zod_1.z.string().uuid(),
+});
 const createPayment = async (req, res) => {
     try {
-        const { playerId, totalAmount, allocations, mode, notes, date } = req.body;
+        const { playerId, totalAmount, allocations, mode, description, date, recordedAt } = req.body;
         const amount = parseFloat(totalAmount);
+        if (!req.user)
+            return res.status(401).json({ message: 'Unauthorized' });
+        // Use recordedAt (timestamp) if available to preserve time, 
+        // otherwise fallback to date string or current time
+        const createdAt = recordedAt ? new Date(recordedAt) : (date ? new Date(date) : new Date());
+        const paymentDate = date || createdAt.toISOString().split('T')[0];
         const payment = await prisma_1.default.payment.create({
             data: {
                 playerId,
                 amount,
                 allocations: allocations || [],
                 mode,
-                description: notes,
-                createdAt: date ? new Date(date) : new Date(),
+                description,
+                date: paymentDate,
+                createdAt,
                 recordedById: req.user.userId
             }
         });
@@ -25,15 +38,21 @@ const createPayment = async (req, res) => {
             data: {
                 type: client_1.TransactionType.MATCH_PAYMENT,
                 amount,
-                description: `Payment from player ${playerId}: ${notes || ''}`,
+                description: `Payment from player ${playerId}: ${description || ''}`,
+                date: paymentDate,
                 recordedById: req.user.userId
             }
         });
+        await (0, logger_1.logAction)(req.user.userId, logger_1.AuditAction.CREATE, logger_1.AuditResource.PAYMENT, payment.id, { playerId, amount });
+        (0, socket_1.notifyDataUpdate)('FINANCE');
         res.status(201).json({
             ...payment,
             totalAmount: payment.amount,
             primaryPayerId: payment.playerId,
-            date: payment.createdAt.toISOString().split('T')[0]
+            allocations: payment.allocations || [],
+            date: payment.date || payment.createdAt.toISOString().split('T')[0],
+            recordedAt: payment.createdAt.getTime(),
+            recordedBy: req.user
         });
     }
     catch (error) {
@@ -41,16 +60,60 @@ const createPayment = async (req, res) => {
     }
 };
 exports.createPayment = createPayment;
+const updatePayment = async (req, res) => {
+    try {
+        const { id } = idParamSchema.parse(req.params);
+        const { playerId, totalAmount, allocations, mode, description, date } = req.body;
+        const amount = parseFloat(totalAmount);
+        if (!req.user)
+            return res.status(401).json({ message: 'Unauthorized' });
+        const updated = await prisma_1.default.payment.update({
+            where: { id },
+            data: {
+                playerId,
+                amount,
+                allocations: allocations || [],
+                mode,
+                description,
+                date
+            },
+            include: { player: true, recorder: true }
+        });
+        await (0, logger_1.logAction)(req.user.userId, logger_1.AuditAction.UPDATE, logger_1.AuditResource.PAYMENT, id, { playerId, amount });
+        (0, socket_1.notifyDataUpdate)('FINANCE');
+        res.json({
+            ...updated,
+            totalAmount: updated.amount,
+            primaryPayerId: updated.playerId,
+            allocations: updated.allocations || [],
+            date: updated.date || updated.createdAt.toISOString().split('T')[0],
+            recordedAt: updated.createdAt.getTime(),
+            recordedBy: updated.recorder
+        });
+    }
+    catch (error) {
+        if (error instanceof zod_1.z.ZodError) {
+            return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+        }
+        res.status(500).json({ message: error.message });
+    }
+};
+exports.updatePayment = updatePayment;
 const createExpense = async (req, res) => {
     try {
-        const { amount, category, notes, mode, date } = req.body;
+        const { amount, category, description, mode, date, recordedAt } = req.body;
+        if (!req.user)
+            return res.status(401).json({ message: 'Unauthorized' });
+        const createdAt = recordedAt ? new Date(recordedAt) : (date ? new Date(date) : new Date());
+        const expenseDate = date || createdAt.toISOString().split('T')[0];
         const expense = await prisma_1.default.expense.create({
             data: {
                 amount: parseFloat(amount),
                 category,
-                description: notes,
+                description,
                 mode: mode || 'CASH',
-                createdAt: date ? new Date(date) : new Date(),
+                date: expenseDate,
+                createdAt,
                 recordedById: req.user.userId
             }
         });
@@ -58,13 +121,18 @@ const createExpense = async (req, res) => {
             data: {
                 type: client_1.TransactionType.EXPENSE,
                 amount: parseFloat(amount),
-                description: `Expense (${category}): ${notes || ''}`,
+                description: `Expense (${category}): ${description || ''}`,
+                date: expenseDate,
                 recordedById: req.user.userId
             }
         });
+        await (0, logger_1.logAction)(req.user.userId, logger_1.AuditAction.CREATE, logger_1.AuditResource.EXPENSE, expense.id, { amount: expense.amount, category });
+        (0, socket_1.notifyDataUpdate)('FINANCE');
         res.status(201).json({
             ...expense,
-            date: expense.createdAt.toISOString().split('T')[0]
+            date: expense.date || expense.createdAt.toISOString().split('T')[0],
+            recordedAt: expense.createdAt.getTime(),
+            recordedBy: req.user
         });
     }
     catch (error) {
@@ -72,9 +140,45 @@ const createExpense = async (req, res) => {
     }
 };
 exports.createExpense = createExpense;
+const updateExpense = async (req, res) => {
+    try {
+        const { id } = idParamSchema.parse(req.params);
+        const { amount, category, description, mode, date } = req.body;
+        if (!req.user)
+            return res.status(401).json({ message: 'Unauthorized' });
+        const updated = await prisma_1.default.expense.update({
+            where: { id },
+            data: {
+                amount: parseFloat(amount),
+                category,
+                description,
+                mode,
+                date
+            },
+            include: { recorder: true }
+        });
+        await (0, logger_1.logAction)(req.user.userId, logger_1.AuditAction.UPDATE, logger_1.AuditResource.EXPENSE, id, { amount: updated.amount, category });
+        (0, socket_1.notifyDataUpdate)('FINANCE');
+        res.json({
+            ...updated,
+            date: updated.date || updated.createdAt.toISOString().split('T')[0],
+            recordedAt: updated.createdAt.getTime(),
+            recordedBy: updated.recorder
+        });
+    }
+    catch (error) {
+        if (error instanceof zod_1.z.ZodError) {
+            return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+        }
+        res.status(500).json({ message: error.message });
+    }
+};
+exports.updateExpense = updateExpense;
 const recordSpecialTransaction = async (req, res) => {
     try {
         const { type, amount, description } = req.body;
+        if (!req.user)
+            return res.status(401).json({ message: 'Unauthorized' });
         // type should be SALARY or CAPITAL_DISTRIBUTION
         const transaction = await prisma_1.default.financialTransaction.create({
             data: {
@@ -93,46 +197,76 @@ const recordSpecialTransaction = async (req, res) => {
 exports.recordSpecialTransaction = recordSpecialTransaction;
 const getPayments = async (req, res) => {
     try {
+        const { startDate, endDate, limit = '100000' } = req.query;
+        const l = parseInt(limit) || 100000;
+        const where = {};
+        if (startDate || endDate) {
+            where.date = {};
+            if (startDate)
+                where.date.gte = startDate;
+            if (endDate)
+                where.date.lte = endDate;
+        }
         const payments = await prisma_1.default.payment.findMany({
+            where,
             include: { player: true, recorder: true },
             orderBy: { createdAt: 'desc' },
-            take: 100
+            take: l
         });
         const formatted = payments.map((p) => ({
             ...p,
             totalAmount: p.amount,
             primaryPayerId: p.playerId,
             allocations: p.allocations || [],
-            date: p.createdAt.toISOString().split('T')[0]
+            date: p.date || p.createdAt.toISOString().split('T')[0],
+            recordedAt: p.createdAt.getTime(),
+            recordedBy: p.recorder
         }));
         res.json(formatted);
     }
     catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
     }
 };
 exports.getPayments = getPayments;
 const getExpenses = async (req, res) => {
     try {
+        const { startDate, endDate, limit = '100000' } = req.query;
+        const l = parseInt(limit) || 100000;
+        const where = {};
+        if (startDate || endDate) {
+            where.date = {};
+            if (startDate)
+                where.date.gte = startDate;
+            if (endDate)
+                where.date.lte = endDate;
+        }
         const expenses = await prisma_1.default.expense.findMany({
+            where,
             include: { recorder: true },
             orderBy: { createdAt: 'desc' },
-            take: 100
+            take: l
         });
         const formatted = expenses.map((e) => ({
             ...e,
-            date: e.createdAt.toISOString().split('T')[0]
+            date: e.date || e.createdAt.toISOString().split('T')[0],
+            recordedAt: e.createdAt.getTime(),
+            recordedBy: e.recorder
         }));
         res.json(formatted);
     }
     catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
     }
 };
 exports.getExpenses = getExpenses;
 const getFinancialReport = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
+        const querySchema = zod_1.z.object({
+            startDate: zod_1.z.string().optional(),
+            endDate: zod_1.z.string().optional(),
+        });
+        const { startDate, endDate } = querySchema.parse(req.query);
         const where = {};
         if (startDate && endDate) {
             where.createdAt = {
@@ -145,7 +279,7 @@ const getFinancialReport = async (req, res) => {
             orderBy: { createdAt: 'desc' }
         });
         const summary = transactions.reduce((acc, curr) => {
-            if (curr.type === client_1.TransactionType.MATCH_PAYMENT || curr.type === client_1.TransactionType.OTHER_INCOME) {
+            if (curr.type === client_1.TransactionType.MATCH_PAYMENT) {
                 acc.revenue += curr.amount;
             }
             else {

@@ -53,12 +53,11 @@ export const Players: React.FC = () => {
     e.preventDefault();
     if (!name) return;
 
-    const numericAmount = parseFloat(balanceAmount) || 0;
-    const initialBalance = balanceType === 'CREDIT' ? numericAmount : -numericAmount;
-
     if (editingPlayerId) {
-      updatePlayer(editingPlayerId, { name, nickname, phone, initialBalance });
+      updatePlayer(editingPlayerId, { name, nickname, phone });
     } else {
+      const numericAmount = parseFloat(balanceAmount) || 0;
+      const initialBalance = balanceType === 'CREDIT' ? numericAmount : -numericAmount;
       addPlayer({ name, nickname, phone, initialBalance });
     }
 
@@ -129,9 +128,9 @@ export const Players: React.FC = () => {
             />
           </div>
 
-          {isAdmin && (
+          {isAdmin && !editingPlayerId && (
             <div className="bg-orange-50 dark:bg-orange-900/10 p-3 md:p-4 rounded-xl md:rounded-2xl space-y-2 md:space-y-3">
-              <label className="text-[8px] md:text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest pl-1">Balance Adjustment</label>
+              <label className="text-[8px] md:text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest pl-1">Initial Balance (Opening)</label>
               <div className="flex gap-1.5 md:gap-2">
                 <button
                   type="button"
@@ -158,6 +157,14 @@ export const Players: React.FC = () => {
                   className="w-full bg-white dark:bg-slate-800 border border-transparent focus:border-orange-500 pl-7 p-2.5 md:p-3 rounded-lg md:rounded-xl outline-none font-black shadow-inner dark:text-white transition-all text-xs md:text-sm"
                 />
               </div>
+            </div>
+          )}
+
+          {isAdmin && editingPlayerId && (
+            <div className="bg-gray-50 dark:bg-slate-800/50 p-3 md:p-4 rounded-xl md:rounded-2xl">
+              <p className="text-[10px] md:text-xs text-gray-500 dark:text-slate-400 font-medium">
+                <strong className="text-gray-700 dark:text-slate-300">Note:</strong> Initial balance cannot be changed after creation. To add manual dues or credits, please record an <strong>Adjustment</strong> in the Payments tab.
+              </p>
             </div>
           )}
 

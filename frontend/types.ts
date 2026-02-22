@@ -60,6 +60,10 @@ export interface Player {
   rating?: number;
   ratingDeviation?: number;
   volatility?: number;
+  // Financial stats from backend
+  totalSpent?: number;
+  totalPaid?: number;
+  totalDiscounted?: number;
 }
 
 export interface OngoingMatch {

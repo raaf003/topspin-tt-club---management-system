@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.calculateAllPlayerStats = exports.processRatingPeriod = exports.glicko2 = exports.DEFAULT_VOLATILITY = exports.DEFAULT_RD = exports.DEFAULT_RATING = void 0;
+exports.calculateAllPlayerStats = exports.updateRatingsIncremental = exports.calculateEarnedTier = exports.processRatingPeriod = exports.glicko2 = exports.DEFAULT_VOLATILITY = exports.DEFAULT_RD = exports.DEFAULT_RATING = void 0;
 // Glicko-2 constants
 const GLICKO_SCALE = 173.7178;
 exports.DEFAULT_RATING = 1500;
@@ -126,6 +126,59 @@ const calculateEarnedTier = (rating, totalMatches) => {
     }
     return 0;
 };
+exports.calculateEarnedTier = calculateEarnedTier;
+const updateRatingsIncremental = (playerA, playerB, match) => {
+    if (!match.winnerId)
+        return {};
+    const glickoState = {
+        [playerA.id]: { rating: playerA.rating, rd: playerA.rd, vol: playerA.volatility },
+        [playerB.id]: { rating: playerB.rating, rd: playerB.rd, vol: playerB.volatility }
+    };
+    let weight = match.points === 10 ? 0.6 : 1.0;
+    if (match.isRated === false)
+        weight = 0;
+    if (weight === 0) {
+        return {
+            [playerA.id]: {
+                rating: playerA.rating,
+                rd: playerA.rd,
+                volatility: playerA.volatility,
+                earnedTier: playerA.earnedTier,
+                totalRatedMatches: playerA.totalRatedMatches,
+                peakRating: playerA.peakRating
+            },
+            [playerB.id]: {
+                rating: playerB.rating,
+                rd: playerB.rd,
+                volatility: playerB.volatility,
+                earnedTier: playerB.earnedTier,
+                totalRatedMatches: playerB.totalRatedMatches,
+                peakRating: playerB.peakRating
+            }
+        };
+    }
+    const periodUpdates = (0, exports.processRatingPeriod)(glickoState, [
+        { player1: playerA.id, player2: playerB.id, winner: match.winnerId, weight }
+    ]);
+    const result = {};
+    [playerA.id, playerB.id].forEach(id => {
+        const update = periodUpdates[id];
+        const { rating, rd } = exports.glicko2.fromInternal(update.mu, update.phi);
+        const p = id === playerA.id ? playerA : playerB;
+        const newTotalMatches = p.totalRatedMatches + 1;
+        const newPeak = Math.max(p.peakRating, rating);
+        result[id] = {
+            rating,
+            rd,
+            volatility: update.vol,
+            earnedTier: (0, exports.calculateEarnedTier)(rating, newTotalMatches),
+            totalRatedMatches: newTotalMatches,
+            peakRating: newPeak
+        };
+    });
+    return result;
+};
+exports.updateRatingsIncremental = updateRatingsIncremental;
 const calculateAllPlayerStats = (players, allMatches) => {
     const result = {};
     const glickoState = {};
@@ -168,9 +221,12 @@ const calculateAllPlayerStats = (players, allMatches) => {
             let weight = baseWeight;
             if (p1Count > 5 || p2Count > 5)
                 weight = 0;
+            // Track total rated matches for eligibility and display - regardless of capping
+            if (m.isRated !== false) {
+                [p1, p2].forEach(pid => playerTotalMatches[pid]++);
+            }
             if (weight > 0) {
                 ratedMatchesToProcess.push({ player1: p1, player2: p2, winner: m.winnerId, weight });
-                [p1, p2].forEach(pid => playerTotalMatches[pid]++);
             }
         });
         const periodUpdates = (0, exports.processRatingPeriod)(glickoState, ratedMatchesToProcess);
@@ -180,7 +236,7 @@ const calculateAllPlayerStats = (players, allMatches) => {
             glickoState[id] = { rating, rd, vol: update.vol };
             if (glickoState[id].rating > playerPeakRating[id])
                 playerPeakRating[id] = glickoState[id].rating;
-            const newTier = calculateEarnedTier(glickoState[id].rating, playerTotalMatches[id]);
+            const newTier = (0, exports.calculateEarnedTier)(glickoState[id].rating, playerTotalMatches[id]);
             if (newTier > playerEarnedTier[id])
                 playerEarnedTier[id] = newTier;
         });
@@ -189,7 +245,7 @@ const calculateAllPlayerStats = (players, allMatches) => {
         result[p.id] = {
             rating: glickoState[p.id].rating,
             rd: glickoState[p.id].rd,
-            vol: glickoState[p.id].vol,
+            volatility: glickoState[p.id].vol,
             earnedTier: playerEarnedTier[p.id],
             totalRatedMatches: playerTotalMatches[p.id],
             peakRating: playerPeakRating[p.id]

@@ -218,7 +218,8 @@ export const recordSpecialTransaction = async (req: AuthenticatedRequest, res: R
 
 export const getPayments = async (req: Request, res: Response) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, limit = '100000' } = req.query;
+    const l = parseInt(limit as string) || 100000;
     const where: any = {};
     if (startDate || endDate) {
       where.date = {};
@@ -230,7 +231,7 @@ export const getPayments = async (req: Request, res: Response) => {
       where,
       include: { player: true, recorder: true },
       orderBy: { createdAt: 'desc' },
-      take: 1000
+      take: l
     });
     
     const formatted = payments.map((p) => ({
@@ -251,7 +252,8 @@ export const getPayments = async (req: Request, res: Response) => {
 
 export const getExpenses = async (req: Request, res: Response) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, limit = '100000' } = req.query;
+    const l = parseInt(limit as string) || 100000;
     const where: any = {};
     if (startDate || endDate) {
       where.date = {};
@@ -263,7 +265,7 @@ export const getExpenses = async (req: Request, res: Response) => {
       where,
       include: { recorder: true },
       orderBy: { createdAt: 'desc' },
-      take: 1000
+      take: l
     });
     
     const formatted = expenses.map((e) => ({
