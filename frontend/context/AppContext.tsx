@@ -17,6 +17,7 @@ interface AppContextType extends AppState {
   deletePayment: (id: string) => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
   updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
   startOngoingMatch: (match: OngoingMatch) => void;
   clearOngoingMatch: () => void;
   setThemeMode: (mode: ThemeMode) => void;
@@ -284,6 +285,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
+  const deleteExpense = async (id: string) => {
+    await api.delete('/finance/expense/' + id);
+    setState(prev => ({
+      ...prev,
+      expenses: prev.expenses.filter(ex => ex.id !== id)
+    }));
+  };
+
   const startOngoingMatch = useCallback(async (match: OngoingMatch) => {
     try {
       await api.post('/matches/live', match);
@@ -506,6 +515,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deletePayment,
     addExpense,
     updateExpense,
+    deleteExpense,
     startOngoingMatch,
     clearOngoingMatch,
     setThemeMode,
@@ -516,7 +526,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     refreshData: fetchData,
     isAuthenticated,
     isLoading
-  }), [state, globalPlayerStats, addPlayer, updatePlayer, addMatch, updateMatch, deleteMatch, addPayment, updatePayment, deletePayment, addExpense, updateExpense, startOngoingMatch, clearOngoingMatch, setThemeMode, getPlayerDues, getPlayerStats, isAuthenticated, isLoading, logout, fetchData]);
+  }), [state, globalPlayerStats, addPlayer, updatePlayer, addMatch, updateMatch, deleteMatch, addPayment, updatePayment, deletePayment, addExpense, updateExpense, deleteExpense, startOngoingMatch, clearOngoingMatch, setThemeMode, getPlayerDues, getPlayerStats, isAuthenticated, isLoading, logout, fetchData]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

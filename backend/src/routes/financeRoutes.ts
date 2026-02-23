@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createPayment, updatePayment, deletePayment, createExpense, updateExpense, getFinancialReport, recordSpecialTransaction, getPayments, getExpenses } from '../controllers/financeController';
+import { createPayment, updatePayment, deletePayment, createExpense, updateExpense, deleteExpense, getFinancialReport, recordSpecialTransaction, getPayments, getExpenses } from '../controllers/financeController';
 import { authenticate, authorize } from '../middleware/auth';
 import { UserRole } from '@prisma/client';
 
@@ -12,6 +12,7 @@ router.patch('/payment/:id', authenticate, updatePayment);
 router.delete('/payment/:id', authenticate, authorize(UserRole.ADMIN, UserRole.SUPER_ADMIN), deletePayment);
 router.post('/expense', authenticate, authorize(UserRole.ADMIN, UserRole.SUPER_ADMIN), createExpense);
 router.patch('/expense/:id', authenticate, authorize(UserRole.ADMIN, UserRole.SUPER_ADMIN), updateExpense);
+router.delete('/expense/:id', authenticate, authorize(UserRole.ADMIN, UserRole.SUPER_ADMIN), deleteExpense);
 router.post('/special', authenticate, authorize(UserRole.SUPER_ADMIN), recordSpecialTransaction);
 router.get('/report', authenticate, authorize(UserRole.ADMIN, UserRole.SUPER_ADMIN), getFinancialReport);
 

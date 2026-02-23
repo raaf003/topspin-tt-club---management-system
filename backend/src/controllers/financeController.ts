@@ -234,6 +234,45 @@ export const updateExpense = async (req: AuthenticatedRequest, res: Response) =>
   }
 };
 
+export const deleteExpense = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const existing = await prisma.expense.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    await prisma.expense.delete({ where: { id } });
+
+    await prisma.financialTransaction.create({
+      data: {
+        type: TransactionType.EXPENSE,
+        amount: -existing.amount,
+        description: `Expense deleted (${id}): ${existing.description || existing.category}`,
+        date: existing.date || existing.createdAt.toISOString().split('T')[0],
+        recordedById: req.user.userId
+      }
+    });
+
+    await logAction(req.user.userId, AuditAction.DELETE, AuditResource.EXPENSE, id, {
+      amount: existing.amount,
+      category: existing.category
+    });
+
+    notifyDataUpdate('FINANCE');
+
+    res.json({ message: 'Expense deleted successfully', id });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+    }
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const recordSpecialTransaction = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { type, amount, description } = req.body;

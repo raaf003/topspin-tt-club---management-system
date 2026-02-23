@@ -2,9 +2,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { ExpenseCategory, PaymentMode, Expense, UserRole } from '../types';
-import { ShoppingBag, Plus, Calendar, Edit2, PieChart as PieChartIcon, ChevronUp, Filter, IndianRupee, Search, ChevronLeft, ChevronRight, X, Tag, CreditCard, Banknote } from 'lucide-react';
+import { ShoppingBag, Plus, Calendar, Edit2, PieChart as PieChartIcon, ChevronUp, Filter, IndianRupee, Search, ChevronLeft, ChevronRight, X, Tag, CreditCard, Banknote, Trash2 } from 'lucide-react';
 import { getLocalTodayStr, getMonthName } from '../utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ToastMessage, ToastState } from '../components/ToastMessage';
 
 const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#14b8a6', '#f43f5e', '#84cc16'];
 
@@ -27,9 +29,11 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export const Expenses: React.FC = () => {
-  const { expenses, addExpense, updateExpense, currentUser } = useApp();
+  const { expenses, addExpense, updateExpense, deleteExpense, currentUser } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; expenseId: string | null }>({ isOpen: false, expenseId: null });
+  const [deleteToast, setDeleteToast] = useState<ToastState | null>(null);
 
   const canManageExpenses = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPER_ADMIN;
 
@@ -92,6 +96,12 @@ export const Expenses: React.FC = () => {
     setCurrentPage(1);
   }, [selectedMonth, selectedYear, selectedCategory, selectedUser, searchQuery, itemsPerPage]);
 
+  useEffect(() => {
+    if (!deleteToast) return;
+    const timeout = setTimeout(() => setDeleteToast(null), 2500);
+    return () => clearTimeout(timeout);
+  }, [deleteToast]);
+
   const chartData = useMemo(() => {
     const categories: Record<string, number> = {};
     filteredExpenses.forEach(ex => {
@@ -147,10 +157,32 @@ export const Expenses: React.FC = () => {
     resetForm();
   };
 
+  const handleConfirmDeleteExpense = async () => {
+    if (!deleteDialog.expenseId) return;
+    try {
+      await deleteExpense(deleteDialog.expenseId);
+      setDeleteToast({ type: 'success', message: 'Expense deleted successfully.' });
+    } catch (err) {
+      setDeleteToast({ type: 'error', message: 'Failed to delete expense.' });
+    } finally {
+      setDeleteDialog({ isOpen: false, expenseId: null });
+    }
+  };
+
   const hasActiveFilters = selectedCategory !== 'all' || selectedUser !== 'all' || searchQuery.trim() !== '';
 
   return (
     <div className="space-y-4 md:space-y-6 pb-20">
+      <ConfirmDialog
+        open={deleteDialog.isOpen}
+        title="Delete Expense?"
+        message="This action cannot be undone."
+        onCancel={() => setDeleteDialog({ isOpen: false, expenseId: null })}
+        onConfirm={handleConfirmDeleteExpense}
+      />
+
+      <ToastMessage toast={deleteToast} />
+
       {/* Page Header */}
       <div className="flex justify-between items-center px-1">
         <div className="flex items-center gap-2 md:gap-3">
@@ -442,19 +474,19 @@ export const Expenses: React.FC = () => {
               {searchQuery && (
                 <span className="inline-flex items-center gap-1 text-[9px] font-black bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">
                   "{searchQuery}"
-                  <button onClick={() => setSearchQuery('')}><X className="w-2.5 h-2.5" /></button>
+                  <button type="button" title="Clear search filter" aria-label="Clear search filter" onClick={() => setSearchQuery('')}><X className="w-2.5 h-2.5" /></button>
                 </span>
               )}
               {selectedCategory !== 'all' && (
                 <span className="inline-flex items-center gap-1 text-[9px] font-black bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">
                   {selectedCategory.replace(/_/g, ' ')}
-                  <button onClick={() => setSelectedCategory('all')}><X className="w-2.5 h-2.5" /></button>
+                  <button type="button" title="Clear category filter" aria-label="Clear category filter" onClick={() => setSelectedCategory('all')}><X className="w-2.5 h-2.5" /></button>
                 </span>
               )}
               {selectedUser !== 'all' && (
                 <span className="inline-flex items-center gap-1 text-[9px] font-black bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">
                   By {selectedUser}
-                  <button onClick={() => setSelectedUser('all')}><X className="w-2.5 h-2.5" /></button>
+                  <button type="button" title="Clear user filter" aria-label="Clear user filter" onClick={() => setSelectedUser('all')}><X className="w-2.5 h-2.5" /></button>
                 </span>
               )}
             </div>
@@ -485,13 +517,22 @@ export const Expenses: React.FC = () => {
                           {ex.category.replace(/_/g, ' ')}
                         </span>
                         {canManageExpenses && (
-                          <button
-                            onClick={() => handleEdit(ex)}
-                            title="Edit expense"
-                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-300 hover:text-indigo-500 dark:text-slate-600 dark:hover:text-indigo-400 transition-all rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </button>
+                          <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
+                            <button
+                              onClick={() => handleEdit(ex)}
+                              title="Edit expense"
+                              className="p-1 text-gray-300 hover:text-indigo-500 dark:text-slate-600 dark:hover:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteDialog({ isOpen: true, expenseId: ex.id })}
+                              title="Delete expense"
+                              className="p-1 text-gray-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         )}
                       </div>
                       <div className="text-[9px] md:text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase mt-0.5 flex flex-wrap items-center gap-1 md:gap-2">
