@@ -191,6 +191,71 @@ export const updateMatch = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
+export const deleteMatch = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const existingMatch = await prisma.match.findUnique({
+      where: { id },
+      select: { id: true, playerAId: true, playerBId: true, winnerId: true, isRated: true }
+    });
+
+    if (!existingMatch) {
+      return res.status(404).json({ message: 'Match not found' });
+    }
+
+    await prisma.match.delete({ where: { id } });
+
+    // Recalculate rankings after deletion to keep persisted player ratings consistent
+    const allPlayers = await prisma.player.findMany();
+    const allMatches = await prisma.match.findMany({
+      orderBy: { createdAt: 'asc' }
+    });
+
+    const formattedMatches = allMatches.map((m) => ({
+      ...m,
+      date: (m.date as string) || m.createdAt.toISOString().split('T')[0],
+      charges: (m.charges as unknown as Record<string, number>) || {}
+    }));
+
+    const stats = calculateAllPlayerStats(allPlayers, formattedMatches);
+
+    const updatePromises = Object.keys(stats).map(playerId => {
+      const pStats = stats[playerId];
+      return prisma.player.update({
+        where: { id: playerId },
+        data: {
+          rating: pStats.rating,
+          rd: pStats.rd,
+          volatility: pStats.volatility,
+          earnedTier: pStats.earnedTier,
+          totalRatedMatches: pStats.totalRatedMatches,
+          peakRating: pStats.peakRating
+        }
+      });
+    });
+    await Promise.all(updatePromises);
+
+    await logAction(req.user.userId, AuditAction.DELETE, AuditResource.MATCH, id, {
+      playerAId: existingMatch.playerAId,
+      playerBId: existingMatch.playerBId,
+      winnerId: existingMatch.winnerId,
+      isRated: existingMatch.isRated
+    });
+
+    notifyDataUpdate('MATCH');
+
+    res.json({ message: 'Match deleted successfully', id });
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+    }
+    res.status(500).json({ message: error instanceof Error ? error.message : 'Unknown error' });
+  }
+};
+
 export const getMatches = async (req: Request, res: Response) => {
   try {
     const { date, startDate, endDate, page = '1', limit = '100000' } = req.query;

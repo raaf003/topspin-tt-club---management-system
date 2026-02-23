@@ -1,11 +1,13 @@
 import { Router } from 'express';
-import { createMatch, updateMatch, getMatches, startLiveMatchController, stopLiveMatchController } from '../controllers/matchController';
-import { authenticate, optionalAuthenticate } from '../middleware/auth';
+import { createMatch, updateMatch, deleteMatch, getMatches, startLiveMatchController, stopLiveMatchController } from '../controllers/matchController';
+import { authenticate, optionalAuthenticate, authorize } from '../middleware/auth';
+import { UserRole } from '@prisma/client';
 
 const router = Router();
 
 router.post('/', authenticate, createMatch);
 router.patch('/:id', authenticate, updateMatch);
+router.delete('/:id', authenticate, authorize(UserRole.ADMIN, UserRole.SUPER_ADMIN), deleteMatch);
 router.get('/', optionalAuthenticate, getMatches);
 
 // Live Match Routes

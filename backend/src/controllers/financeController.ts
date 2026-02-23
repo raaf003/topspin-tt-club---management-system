@@ -111,6 +111,46 @@ export const updatePayment = async (req: AuthenticatedRequest, res: Response) =>
   }
 };
 
+export const deletePayment = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const existing = await prisma.payment.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+
+    await prisma.payment.delete({ where: { id } });
+
+    // Reverse payment impact in financial report since transactions are not linked by FK
+    await prisma.financialTransaction.create({
+      data: {
+        type: TransactionType.MATCH_PAYMENT,
+        amount: -existing.amount,
+        description: `Payment deleted (${id}): ${existing.description || 'No description'}`,
+        date: existing.date || existing.createdAt.toISOString().split('T')[0],
+        recordedById: req.user.userId
+      }
+    });
+
+    await logAction(req.user.userId, AuditAction.DELETE, AuditResource.PAYMENT, id, {
+      playerId: existing.playerId,
+      amount: existing.amount
+    });
+
+    notifyDataUpdate('FINANCE');
+
+    res.json({ message: 'Payment deleted successfully', id });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+    }
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const createExpense = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { amount, category, description, mode, date, recordedAt } = req.body;

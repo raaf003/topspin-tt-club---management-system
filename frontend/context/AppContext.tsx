@@ -11,8 +11,10 @@ interface AppContextType extends AppState {
   updatePlayer: (id: string, player: Partial<Player>) => Promise<void>;
   addMatch: (match: Omit<Match, 'id'>) => Promise<void>;
   updateMatch: (id: string, match: Partial<Match>) => Promise<void>;
+  deleteMatch: (id: string) => Promise<void>;
   addPayment: (payment: Omit<Payment, 'id'>) => Promise<void>;
   updatePayment: (id: string, payment: Partial<Payment>) => Promise<void>;
+  deletePayment: (id: string) => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
   updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
   startOngoingMatch: (match: OngoingMatch) => void;
@@ -230,6 +232,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
+  const deleteMatch = async (id: string) => {
+    await api.delete('/matches/' + id);
+    setState(prev => ({
+      ...prev,
+      matches: prev.matches.filter(m => m.id !== id)
+    }));
+    const players = await api.get('/players');
+    setState(prev => ({ ...prev, players }));
+  };
+
   const addPayment = async (paymentData: Omit<Payment, 'id'>) => {
     const { primaryPayerId, ...rest } = paymentData as any;
     const newPayment = await api.post('/finance/payment', {
@@ -248,6 +260,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setState(prev => ({
       ...prev,
       payments: prev.payments.map(p => p.id === id ? updated : p)
+    }));
+  };
+
+  const deletePayment = async (id: string) => {
+    await api.delete('/finance/payment/' + id);
+    setState(prev => ({
+      ...prev,
+      payments: prev.payments.filter(p => p.id !== id)
     }));
   };
 
@@ -480,8 +500,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updatePlayer,
     addMatch,
     updateMatch,
+    deleteMatch,
     addPayment,
     updatePayment,
+    deletePayment,
     addExpense,
     updateExpense,
     startOngoingMatch,
@@ -494,7 +516,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     refreshData: fetchData,
     isAuthenticated,
     isLoading
-  }), [state, globalPlayerStats, addPlayer, updatePlayer, addMatch, updateMatch, addPayment, updatePayment, addExpense, updateExpense, startOngoingMatch, clearOngoingMatch, setThemeMode, getPlayerDues, getPlayerStats, isAuthenticated, isLoading, logout, fetchData]);
+  }), [state, globalPlayerStats, addPlayer, updatePlayer, addMatch, updateMatch, deleteMatch, addPayment, updatePayment, deletePayment, addExpense, updateExpense, startOngoingMatch, clearOngoingMatch, setThemeMode, getPlayerDues, getPlayerStats, isAuthenticated, isLoading, logout, fetchData]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

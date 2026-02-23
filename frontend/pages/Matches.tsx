@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useApp } from '../context/AppContext';
 import { api } from '../api';
 import { PayerOption, MatchPoints, UserRole, Player, Match } from '../types';
-import { Trophy, Check, RefreshCw, Zap, Table as TableIcon, Edit3, X, Clock, User, AlertCircle, Search, ChevronDown, Calendar, Filter, Activity, Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trophy, Check, RefreshCw, Zap, Table as TableIcon, Edit3, X, Clock, User, AlertCircle, Search, ChevronDown, Calendar, Filter, Activity, Play, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { generateUUID, getLocalTodayStr } from '../utils';
 
 interface SearchableSelectProps {
@@ -156,8 +156,9 @@ const TableSelect: React.FC<TableSelectProps> = ({ label, value, onChange, optio
 };
 
 export const Matches: React.FC = () => {
-  const { players, tables, gameConfigs, addMatch, updateMatch, matches, currentUser, getPlayerStats, getPlayerDues, ongoingMatch, startOngoingMatch, clearOngoingMatch, matchRates } = useApp();
+  const { players, tables, gameConfigs, addMatch, updateMatch, deleteMatch, matches, currentUser, getPlayerStats, getPlayerDues, ongoingMatch, startOngoingMatch, clearOngoingMatch, matchRates } = useApp();
   const canEdit = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.STAFF || currentUser.role === UserRole.SUPER_ADMIN;
+  const canDeleteMatches = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPER_ADMIN;
   
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -414,10 +415,8 @@ export const Matches: React.FC = () => {
         date: matchDate,
         recordedAt: Date.now(),
         recordedBy: {
-          id: currentUser.id || '', // Include ID if available
           role: currentUser.role,
-          name: currentUser.name,
-          email: '' // Email not needed for recordedMatch in Frontend
+          name: currentUser.name
         },
         points,
         playerAId,
@@ -916,13 +915,33 @@ export const Matches: React.FC = () => {
                         )}
                       </div>
                       {canEdit && (
-                        <button 
-                          onClick={() => handleEdit(m)}
-                          title="Edit match"
-                          className="p-1.5 md:p-2 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg md:rounded-xl transition-all"
-                        >
-                          <Edit3 className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={() => handleEdit(m)}
+                            title="Edit match"
+                            className="p-1.5 md:p-2 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg md:rounded-xl transition-all"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                          </button>
+                          {canDeleteMatches && (
+                            <button 
+                              onClick={async () => {
+                                if (window.confirm('Are you sure you want to delete this match?')) {
+                                  try {
+                                    await deleteMatch(m.id);
+                                    fetchLog(historyDate, pagination.page, logLimit);
+                                  } catch (err) {
+                                    alert('Failed to delete match');
+                                  }
+                                }
+                              }}
+                              title="Delete match"
+                              className="p-1.5 md:p-2 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-rose-100 dark:hover:bg-rose-900/30 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg md:rounded-xl transition-all"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

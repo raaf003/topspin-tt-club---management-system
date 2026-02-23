@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { PaymentMode, PaymentAllocation, UserRole, Player } from '../types';
 import { getLocalTodayStr } from '../utils';
-import { IndianRupee, CreditCard, Banknote, Check, UserPlus, Trash2, Edit3, X, Search, ChevronDown, Percent, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { IndianRupee, CreditCard, Banknote, Check, UserPlus, Trash2, Edit3, X, Search, ChevronDown, Percent, Calendar, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 
 interface SearchableSelectProps {
   label?: string;
@@ -104,8 +104,9 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 };
 
 export const Payments: React.FC = () => {
-  const { players, addPayment, updatePayment, getPlayerStats, payments, currentUser, getPlayerDues } = useApp();
+  const { players, addPayment, updatePayment, deletePayment, getPlayerStats, payments, currentUser, getPlayerDues } = useApp();
   const isAdmin = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPER_ADMIN;
+  const canDeletePayments = isAdmin;
   
   // State for system
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -122,6 +123,7 @@ export const Payments: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [payLimit, setPayLimit] = useState(50);
   const [payPage, setPayPage] = useState(1);
+  const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null);
 
   const filteredPayments = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -134,7 +136,7 @@ export const Payments: React.FC = () => {
         return (
           (payer?.name?.toLowerCase().includes(query)) ||
           (payer?.nickname?.toLowerCase().includes(query)) ||
-          p.amount?.toString().includes(query) ||
+          p.totalAmount?.toString().includes(query) ||
           (p.description && p.description.toLowerCase().includes(query)) ||
           p.allocations.some((a: any) => {
             const ap = players.find(pl => pl.id === a.playerId);
@@ -510,6 +512,16 @@ export const Payments: React.FC = () => {
             paginatedPayments.map(p => {
               const payer = players.find(player => player.id === p.primaryPayerId);
               const waived = p.allocations.reduce((sum, a) => sum + (a.discount || 0), 0);
+              const isExpanded = expandedPaymentId === p.id;
+              const hasOtherPlayers = p.allocations.some(a => a.playerId !== p.primaryPayerId);
+              const coveredAllocations = p.allocations.filter(a => a.playerId !== p.primaryPayerId && (a.amount || 0) > 0);
+              const coveredAmount = coveredAllocations.reduce((sum, a) => sum + (a.amount || 0), 0);
+              const coveredNames = coveredAllocations
+                .map(a => players.find(pl => pl.id === a.playerId)?.name)
+                .filter((name): name is string => !!name);
+              const coveredSummary = coveredNames.length > 2
+                ? `${coveredNames.slice(0, 2).join(', ')} +${coveredNames.length - 2}`
+                : coveredNames.join(', ');
               
               return (
                 <div key={p.id} className="flex flex-col group p-2 rounded-xl md:rounded-2xl transition-all hover:bg-gray-50 dark:hover:bg-slate-800/50">
@@ -522,9 +534,10 @@ export const Payments: React.FC = () => {
                       <div className="min-w-0">
                         <div className="font-bold text-gray-900 dark:text-white text-xs md:text-sm flex items-center gap-1.5 md:gap-2">
                           <span className="truncate">{payer?.name}</span>
-                          {p.allocations.length > 1 && (
-                            <span className="text-[7px] md:text-[8px] font-black bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-1 md:px-1.5 py-0.5 rounded-full shrink-0">
-                              +{p.allocations.length - 1}
+                          {hasOtherPlayers && (
+                            <span className="text-[7px] md:text-[8px] font-black bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-1.5 md:px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                              <Users className="w-2 h-2 md:w-2.5 md:h-2.5" />
+                              Paid for others
                             </span>
                           )}
                         </div>
@@ -534,6 +547,11 @@ export const Payments: React.FC = () => {
                           {p.description && <span className="w-0.5 h-0.5 rounded-full bg-gray-200 dark:bg-slate-700 shrink-0"></span>}
                           {p.description && <span className="lowercase italic truncate max-w-[80px] md:max-w-[120px] dark:text-slate-400 shrink-0">{p.description}</span>}
                         </div>
+                        {hasOtherPlayers && coveredAllocations.length > 0 && (
+                          <div className="mt-1 text-[8px] md:text-[10px] font-bold text-indigo-600 dark:text-indigo-400 truncate">
+                            Paid ₹{coveredAmount} for {coveredSummary}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2.5 md:gap-4 shrink-0 ml-2">
@@ -541,17 +559,80 @@ export const Payments: React.FC = () => {
                         <div className="text-base md:text-lg font-black text-gray-900 dark:text-white tracking-tight transition-all">₹{p.totalAmount}</div>
                         <div className="text-[7px] md:text-[8px] font-black text-emerald-500 dark:text-emerald-400 uppercase">Verified</div>
                       </div>
-                      {isAdmin && (
-                        <button 
-                          onClick={() => handleEdit(p)}
-                          title="Edit payment"
-                          className="p-2 md:p-2.5 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg md:rounded-xl transition-all"
-                        >
-                          <Edit3 className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {hasOtherPlayers && (
+                          <button 
+                            onClick={() => setExpandedPaymentId(isExpanded ? null : p.id)}
+                            title={isExpanded ? "Hide details" : "Show details"}
+                            className="p-2 md:p-2.5 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg md:rounded-xl transition-all"
+                          >
+                            <ChevronDown className={`w-3.5 h-3.5 md:w-4 md:h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <>
+                            <button 
+                              onClick={() => handleEdit(p)}
+                              title="Edit payment"
+                              className="p-2 md:p-2.5 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg md:rounded-xl transition-all"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                            </button>
+                            {canDeletePayments && (
+                              <button 
+                                onClick={async () => {
+                                  if (window.confirm('Are you sure you want to delete this payment?')) {
+                                    try {
+                                      await deletePayment(p.id);
+                                    } catch (err) {
+                                      alert('Failed to delete payment');
+                                    }
+                                  }
+                                }}
+                                title="Delete payment"
+                                className="p-2 md:p-2.5 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-rose-100 dark:hover:bg-rose-900/30 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg md:rounded-xl transition-all"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  
+                  {isExpanded && hasOtherPlayers && (
+                    <div className="mt-3 ml-12 md:ml-16 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700/50 animate-in slide-in-from-top-2">
+                      <div className="text-[9px] md:text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">Payment Breakdown</div>
+                      <div className="space-y-2">
+                        {p.allocations.map((alloc: any, idx: number) => {
+                          const allocPlayer = players.find(pl => pl.id === alloc.playerId);
+                          const isSelf = alloc.playerId === p.primaryPayerId;
+                          return (
+                            <div key={idx} className="flex items-center justify-between text-xs md:text-sm">
+                              <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 dark:bg-indigo-500"></div>
+                                <span className="font-bold text-gray-700 dark:text-slate-300">{allocPlayer?.name || 'Unknown Player'}</span>
+                                {isSelf && (
+                                  <span className="text-[8px] font-black bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-slate-400 px-1.5 py-0.5 rounded-md uppercase">Self</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                {!isSelf && (
+                                  <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">Paid by {payer?.name || 'Payer'}</span>
+                                )}
+                                {alloc.discount > 0 && (
+                                  <span className="text-[10px] font-bold text-amber-500">Waived: ₹{alloc.discount}</span>
+                                )}
+                                <span className="font-black text-gray-900 dark:text-white">₹{alloc.amount}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {p.recordedAt && (
                     <div className="mt-1.5 md:mt-2 pt-1 md:pt-1.5 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between opacity-50 group-hover:opacity-100 transition-opacity">
                       <div className="flex items-center gap-2 md:gap-3">
