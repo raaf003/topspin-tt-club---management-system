@@ -3,6 +3,8 @@ import { useApp } from '../context/AppContext';
 import { PaymentMode, PaymentAllocation, UserRole, Player } from '../types';
 import { getLocalTodayStr } from '../utils';
 import { IndianRupee, CreditCard, Banknote, Check, UserPlus, Trash2, Edit3, X, Search, ChevronDown, Percent, Calendar, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ToastMessage, ToastState } from '../components/ToastMessage';
 
 interface SearchableSelectProps {
   label?: string;
@@ -124,6 +126,8 @@ export const Payments: React.FC = () => {
   const [payLimit, setPayLimit] = useState(50);
   const [payPage, setPayPage] = useState(1);
   const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; paymentId: string | null }>({ isOpen: false, paymentId: null });
+  const [deleteToast, setDeleteToast] = useState<ToastState | null>(null);
 
   const filteredPayments = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -157,6 +161,12 @@ export const Payments: React.FC = () => {
   useEffect(() => {
     setPayPage(1);
   }, [historyDate, payLimit, searchQuery]);
+
+  useEffect(() => {
+    if (!deleteToast) return;
+    const timeout = setTimeout(() => setDeleteToast(null), 2500);
+    return () => clearTimeout(timeout);
+  }, [deleteToast]);
 
   const totalPaymentAmount = allocations.reduce((sum, a) => sum + (a.amount || 0), 0);
   const totalDiscountAmount = allocations.reduce((sum, a) => sum + (a.discount || 0), 0);
@@ -251,8 +261,30 @@ export const Payments: React.FC = () => {
     }
   };
 
+  const handleConfirmDeletePayment = async () => {
+    if (!deleteDialog.paymentId) return;
+    try {
+      await deletePayment(deleteDialog.paymentId);
+      setDeleteToast({ type: 'success', message: 'Payment deleted successfully.' });
+    } catch (err) {
+      setDeleteToast({ type: 'error', message: 'Failed to delete payment.' });
+    } finally {
+      setDeleteDialog({ isOpen: false, paymentId: null });
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-xl mx-auto pb-10">
+      <ConfirmDialog
+        open={deleteDialog.isOpen}
+        title="Delete Payment?"
+        message="This action cannot be undone."
+        onCancel={() => setDeleteDialog({ isOpen: false, paymentId: null })}
+        onConfirm={handleConfirmDeletePayment}
+      />
+
+      <ToastMessage toast={deleteToast} />
+
       <div className="flex justify-between items-center px-1">
         <div className="flex items-center gap-2 md:gap-3">
           <div className={`${editingId ? 'bg-amber-500' : 'bg-emerald-600'} p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all`}>
@@ -580,15 +612,7 @@ export const Payments: React.FC = () => {
                             </button>
                             {canDeletePayments && (
                               <button 
-                                onClick={async () => {
-                                  if (window.confirm('Are you sure you want to delete this payment?')) {
-                                    try {
-                                      await deletePayment(p.id);
-                                    } catch (err) {
-                                      alert('Failed to delete payment');
-                                    }
-                                  }
-                                }}
+                                onClick={() => setDeleteDialog({ isOpen: true, paymentId: p.id })}
                                 title="Delete payment"
                                 className="p-2 md:p-2.5 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-rose-100 dark:hover:bg-rose-900/30 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg md:rounded-xl transition-all"
                               >

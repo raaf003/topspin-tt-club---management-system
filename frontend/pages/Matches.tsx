@@ -4,6 +4,8 @@ import { api } from '../api';
 import { PayerOption, MatchPoints, UserRole, Player, Match } from '../types';
 import { Trophy, Check, RefreshCw, Zap, Table as TableIcon, Edit3, X, Clock, User, AlertCircle, Search, ChevronDown, Calendar, Filter, Activity, Play, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { generateUUID, getLocalTodayStr } from '../utils';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ToastMessage, ToastState } from '../components/ToastMessage';
 
 interface SearchableSelectProps {
   label: string;
@@ -159,6 +161,8 @@ export const Matches: React.FC = () => {
   const { players, tables, gameConfigs, addMatch, updateMatch, deleteMatch, matches, currentUser, getPlayerStats, getPlayerDues, ongoingMatch, startOngoingMatch, clearOngoingMatch, matchRates } = useApp();
   const canEdit = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.STAFF || currentUser.role === UserRole.SUPER_ADMIN;
   const canDeleteMatches = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPER_ADMIN;
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; matchId: string | null }>({ isOpen: false, matchId: null });
+  const [deleteToast, setDeleteToast] = useState<ToastState | null>(null);
   
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -230,6 +234,12 @@ export const Matches: React.FC = () => {
 
   // Live match timer
   const [elapsedTime, setElapsedTime] = useState(0);
+
+  useEffect(() => {
+    if (!deleteToast) return;
+    const timeout = setTimeout(() => setDeleteToast(null), 2500);
+    return () => clearTimeout(timeout);
+  }, [deleteToast]);
 
   useEffect(() => {
     if (!ongoingMatch) {
@@ -487,8 +497,31 @@ export const Matches: React.FC = () => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const handleConfirmDeleteMatch = async () => {
+    if (!deleteDialog.matchId) return;
+    try {
+      await deleteMatch(deleteDialog.matchId);
+      await fetchLog(historyDate, pagination.page, logLimit);
+      setDeleteToast({ type: 'success', message: 'Match deleted successfully.' });
+    } catch (err) {
+      setDeleteToast({ type: 'error', message: 'Failed to delete match.' });
+    } finally {
+      setDeleteDialog({ isOpen: false, matchId: null });
+    }
+  };
+
   return (
     <div className="max-w-xl mx-auto pb-8">
+      <ConfirmDialog
+        open={deleteDialog.isOpen}
+        title="Delete Match?"
+        message="This action cannot be undone."
+        onCancel={() => setDeleteDialog({ isOpen: false, matchId: null })}
+        onConfirm={handleConfirmDeleteMatch}
+      />
+
+      <ToastMessage toast={deleteToast} />
+
       {ongoingMatch && (
         <div 
           onClick={() => {
@@ -605,6 +638,8 @@ export const Matches: React.FC = () => {
                 type="date" 
                 value={matchDate}
                 onChange={(e) => setMatchDate(e.target.value)}
+                title="Match date"
+                aria-label="Match date"
                 className="w-full bg-transparent px-2 text-[10px] md:text-xs font-bold text-gray-800 dark:text-white outline-none"
               />
             </div>
@@ -617,6 +652,8 @@ export const Matches: React.FC = () => {
               <button 
                 type="button"
                 onClick={() => setIsRated(!isRated)}
+                title="Toggle ranked mode"
+                aria-label="Toggle ranked mode"
                 className={`w-7 h-3.5 md:w-8 md:h-4 rounded-full transition-colors relative ${isRated ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'}`}
               >
                 <div className={`absolute top-0.5 w-2.5 h-2.5 bg-white rounded-full transition-all ${isRated ? 'right-0.5' : 'left-0.5'}`} />
@@ -801,6 +838,8 @@ export const Matches: React.FC = () => {
                  <select 
                    value={statusFilter}
                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                   title="Filter by match status"
+                   aria-label="Filter by match status"
                    className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-indigo-600 dark:text-indigo-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                  >
                    <option value="ALL">All</option>
@@ -814,6 +853,8 @@ export const Matches: React.FC = () => {
                  <select 
                    value={logLimit}
                    onChange={(e) => setLogLimit(Number(e.target.value))}
+                   title="Matches per page"
+                   aria-label="Matches per page"
                    className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-indigo-600 dark:text-indigo-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                  >
                    {[10, 20, 50, 100].map(v => (
@@ -925,16 +966,7 @@ export const Matches: React.FC = () => {
                           </button>
                           {canDeleteMatches && (
                             <button 
-                              onClick={async () => {
-                                if (window.confirm('Are you sure you want to delete this match?')) {
-                                  try {
-                                    await deleteMatch(m.id);
-                                    fetchLog(historyDate, pagination.page, logLimit);
-                                  } catch (err) {
-                                    alert('Failed to delete match');
-                                  }
-                                }
-                              }}
+                              onClick={() => setDeleteDialog({ isOpen: true, matchId: m.id })}
                               title="Delete match"
                               className="p-1.5 md:p-2 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-rose-100 dark:hover:bg-rose-900/30 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg md:rounded-xl transition-all"
                             >
