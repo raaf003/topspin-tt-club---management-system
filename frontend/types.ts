@@ -139,6 +139,8 @@ export interface PlayerStats {
   gamesPlayed: number;
   wins: number;
   losses: number;
+  ratedWins: number;
+  ratedLosses: number;
   winRate: number;
   totalSpent: number;
   totalPaid: number;
@@ -225,7 +227,7 @@ export interface AuditLog {
     name: string;
     role: UserRole;
   };
-  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT';
   resource: string;
   resourceId: string;
   details?: any;

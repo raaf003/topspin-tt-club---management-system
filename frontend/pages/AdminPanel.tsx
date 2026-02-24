@@ -958,7 +958,7 @@ export const AdminPanel: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {users.filter(u => u.isPartner).map(partner => {
                     const share = profitDetails.mode === 'PERCENTAGE' 
-                      ? (profitDetails.amount * (partner.profitPercentage / 100))
+                      ? (profitDetails.amount * ((partner.profitPercentage ?? 0) / 100))
                       : (profitDetails.amount / users.filter(u => u.isPartner).length);
                     
                     return (
@@ -974,7 +974,7 @@ export const AdminPanel: React.FC = () => {
                             <div>
                                <p className="text-[7px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest mb-0.5">Share</p>
                                <p className="text-sm font-black text-indigo-600 dark:text-indigo-400 italic">
-                                 {profitDetails.mode === 'PERCENTAGE' ? `${partner.profitPercentage}%` : `SPLIT`}
+                                 {profitDetails.mode === 'PERCENTAGE' ? `${partner.profitPercentage ?? 0}%` : `SPLIT`}
                                </p>
                             </div>
                             <div className="text-right">

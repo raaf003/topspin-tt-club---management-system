@@ -498,7 +498,7 @@ export { TIER_THRESHOLDS };
 export const calculatePlayerScore = (
   playerId: string,
   matches: Match[],
-  getPlayerStats: (id: string | undefined) => any,
+  getPlayerStats: (id: string) => PlayerStats,
   players: Player[]
 ) => {
   const stats = getPlayerStats(playerId);
