@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { PaymentMode, PaymentAllocation, UserRole, Player } from '../types';
 import { getLocalTodayStr } from '../utils';
-import { IndianRupee, CreditCard, Banknote, Check, UserPlus, Trash2, Edit3, X, Search, ChevronDown, Percent, Calendar, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { IndianRupee, CreditCard, Banknote, Check, UserPlus, Trash2, Edit3, X, Search, ChevronDown, Percent, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ToastMessage, ToastState } from '../components/ToastMessage';
 
@@ -566,12 +566,6 @@ export const Payments: React.FC = () => {
                       <div className="min-w-0">
                         <div className="font-bold text-gray-900 dark:text-white text-xs md:text-sm flex items-center gap-1.5 md:gap-2">
                           <span className="truncate">{payer?.name}</span>
-                          {hasOtherPlayers && (
-                            <span className="text-[7px] md:text-[8px] font-black bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-1.5 md:px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
-                              <Users className="w-2 h-2 md:w-2.5 md:h-2.5" />
-                              Paid for others
-                            </span>
-                          )}
                         </div>
                         <div className="text-[8px] md:text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase mt-0.5 flex flex-wrap items-center gap-1 md:gap-2">
                           <span>{p.date}</span>
@@ -592,15 +586,6 @@ export const Payments: React.FC = () => {
                         <div className="text-[7px] md:text-[8px] font-black text-emerald-500 dark:text-emerald-400 uppercase">Verified</div>
                       </div>
                       <div className="flex items-center gap-1">
-                        {hasOtherPlayers && (
-                          <button 
-                            onClick={() => setExpandedPaymentId(isExpanded ? null : p.id)}
-                            title={isExpanded ? "Hide details" : "Show details"}
-                            className="p-2 md:p-2.5 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg md:rounded-xl transition-all"
-                          >
-                            <ChevronDown className={`w-3.5 h-3.5 md:w-4 md:h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                          </button>
-                        )}
                         {isAdmin && (
                           <>
                             <button 
@@ -624,9 +609,22 @@ export const Payments: React.FC = () => {
                       </div>
                     </div>
                   </div>
+
+                  {hasOtherPlayers && (
+                    <div className="mt-2 flex justify-end">
+                      <button
+                        onClick={() => setExpandedPaymentId(isExpanded ? null : p.id)}
+                        title={isExpanded ? 'Hide split details' : 'Show split details'}
+                        aria-label={isExpanded ? 'Hide split details' : 'Show split details'}
+                        className="p-1 text-gray-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                      >
+                        <ChevronDown className={`w-3 h-3 md:w-3.5 md:h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+                  )}
                   
                   {isExpanded && hasOtherPlayers && (
-                    <div className="mt-3 ml-12 md:ml-16 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700/50 animate-in slide-in-from-top-2">
+                    <div className="mt-3 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700/50 animate-in slide-in-from-top-2">
                       <div className="text-[9px] md:text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">Payment Breakdown</div>
                       <div className="space-y-2">
                         {p.allocations.map((alloc: any, idx: number) => {
