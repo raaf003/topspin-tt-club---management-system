@@ -726,7 +726,7 @@ export const AdminPanel: React.FC = () => {
                              <Edit3 className="w-4 h-4" />
                              Modify Asset Details
                           </h4>
-                          <button type="button" onClick={() => setEditingTable(null)} className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg"><X className="w-4 h-4" /></button>
+                          <button type="button" title="Close edit form" aria-label="Close edit form" onClick={() => setEditingTable(null)} className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg"><X className="w-4 h-4" /></button>
                        </div>
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-1.5">
@@ -736,6 +736,8 @@ export const AdminPanel: React.FC = () => {
                               required
                               value={editingTable.name}
                               onChange={e => setEditingTable({...editingTable, name: e.target.value})}
+                              title="Asset identity"
+                              aria-label="Asset identity"
                               className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-indigo-500/20 text-sm font-black text-slate-900 dark:text-white outline-none transition-all"
                             />
                           </div>
@@ -745,6 +747,8 @@ export const AdminPanel: React.FC = () => {
                               type="text"
                               value={editingTable.description}
                               onChange={e => setEditingTable({...editingTable, description: e.target.value})}
+                              title="Asset location or specification"
+                              aria-label="Asset location or specification"
                               className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-indigo-500/20 text-sm font-bold text-slate-900 dark:text-white outline-none transition-all"
                             />
                           </div>
@@ -1025,6 +1029,8 @@ export const AdminPanel: React.FC = () => {
                     type="date" 
                     value={logFilters.startDate} 
                     onChange={e => setLogFilters({...logFilters, startDate: e.target.value, page: 1})}
+                    title="Log start date"
+                    aria-label="Log start date"
                     className="bg-transparent border-none px-2 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none w-full text-center"
                   />
                   <span className="text-slate-400 text-xs font-bold px-1">-</span>
@@ -1032,6 +1038,8 @@ export const AdminPanel: React.FC = () => {
                     type="date" 
                     value={logFilters.endDate} 
                     onChange={e => setLogFilters({...logFilters, endDate: e.target.value, page: 1})}
+                    title="Log end date"
+                    aria-label="Log end date"
                     className="bg-transparent border-none px-2 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none w-full text-center"
                   />
                 </div>
@@ -1042,6 +1050,8 @@ export const AdminPanel: React.FC = () => {
                     <select 
                       value={logFilters.action} 
                       onChange={e => setLogFilters({...logFilters, action: e.target.value, page: 1})}
+                      title="Filter logs by action"
+                      aria-label="Filter logs by action"
                       className="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all w-full"
                     >
                       <option value="">All Actions</option>
@@ -1059,6 +1069,8 @@ export const AdminPanel: React.FC = () => {
                     <select 
                       value={logFilters.resource} 
                       onChange={e => setLogFilters({...logFilters, resource: e.target.value, page: 1})}
+                      title="Filter logs by resource"
+                      aria-label="Filter logs by resource"
                       className="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all w-full"
                     >
                       <option value="">All Resources</option>
@@ -1081,6 +1093,8 @@ export const AdminPanel: React.FC = () => {
                     <select 
                       value={logFilters.limit} 
                       onChange={e => setLogFilters({...logFilters, limit: parseInt(e.target.value), page: 1})}
+                      title="Logs per page"
+                      aria-label="Logs per page"
                       className="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all w-full"
                     >
                       <option value="10">10 / page</option>
