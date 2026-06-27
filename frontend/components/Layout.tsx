@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   Home, 
-  Trophy, 
+  Trophy,
   IndianRupee, 
   Users, 
   PieChart, 
@@ -37,15 +37,19 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   return (
     <div className="min-h-screen flex flex-col pb-20 md:pb-0 md:pl-20 bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 px-3 md:px-4 py-2.5 md:py-3 flex items-center justify-between transition-colors duration-300">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-          <div className="bg-indigo-600 p-1 md:p-1.5 rounded-lg shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
-            <Trophy className="text-white w-4 h-4 md:w-5 md:h-5" />
-          </div>
-          <h1 className="text-lg md:text-xl font-bold tracking-tight dark:text-white transition-all">TopSpin <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">TT</span></h1>
+      <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 px-3 md:px-4 py-2.5 md:py-3 grid grid-cols-[1fr_auto_1fr] items-center md:flex md:justify-between transition-colors duration-300">
+        {/* Left spacer — keeps logo centred on mobile, hidden on desktop */}
+        <span className="md:hidden" />
+
+        <div className="cursor-pointer" onClick={() => navigate('/')}>
+          <img
+            src={isDarkMode ? '/topspin_dark.png' : '/topspin_light.png'}
+            alt="TopSpin TT Club"
+            className="h-9 md:h-11 w-auto"
+          />
         </div>
-        
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 justify-self-end md:justify-self-auto">
           {/* Theme Selector */}
           <div className="relative">
             <button

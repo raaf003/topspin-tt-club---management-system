@@ -4,7 +4,7 @@ import { Lock, LogIn, AlertCircle, Loader2, Phone } from 'lucide-react';
 import { api } from '../api';
 
 export const Login: React.FC = () => {
-  const { login } = useApp();
+  const { login, isDarkMode } = useApp();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -30,11 +30,15 @@ export const Login: React.FC = () => {
     <div className="min-h-[80vh] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl border border-gray-100 dark:border-slate-800 transition-all">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-indigo-600 rounded-3xl rotate-12 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-100 dark:shadow-indigo-900/20">
-            <LogIn className="w-10 h-10 text-white -rotate-12" />
+          <div className="flex justify-center mb-6">
+            <img
+              src={isDarkMode ? '/topspin_dark.png' : '/topspin_light.png'}
+              alt="TopSpin TT Club"
+              className="h-20 w-auto"
+            />
           </div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white italic tracking-tighter">
-            WELCOME BACK
+            Welcome Back!
           </h1>
           <p className="text-slate-500 dark:text-slate-400 font-medium">
             Sign in to access your dashboard
@@ -86,7 +90,7 @@ export const Login: React.FC = () => {
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <>
-                <LogIn className="w-5 h-5" /> SIGN IN
+                <LogIn className="w-5 h-5" /> Sign In
               </>
             )}
           </button>
