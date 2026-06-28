@@ -648,8 +648,7 @@ export const Matches: React.FC = () => {
 
           <div className="space-y-1 md:space-y-1.5 col-span-1 flex flex-col justify-end">
             <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Ranked</label>
-            <div className="flex items-center justify-between gap-1 md:gap-2 px-2 md:px-3 bg-gray-50 dark:bg-slate-900 rounded-xl md:rounded-2xl border-2 border-transparent shadow-inner h-[42px] md:h-[52px]">
-              <Zap className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isRated ? 'text-amber-500' : 'text-gray-400'}`} />
+            <div className="flex items-center justify-center px-1.5 md:px-2 bg-gray-50 dark:bg-slate-900 rounded-xl md:rounded-2xl border-2 border-transparent shadow-inner h-[42px] md:h-[52px]">
               <button 
                 type="button"
                 onClick={() => setIsRated(!isRated)}
