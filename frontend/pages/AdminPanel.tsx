@@ -282,7 +282,7 @@ export const AdminPanel: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-1">
         <div>
           <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2 md:gap-3 italic tracking-tight">
-            <Shield className="w-6 h-6 md:w-7 md:h-7 text-indigo-600 animate-pulse" />
+            <Shield className="w-6 h-6 md:w-7 md:h-7 text-rose-600 animate-pulse" />
             Super Admin
           </h1>
           <p className="text-[9px] md:text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">System Controls & Audit</p>
@@ -291,7 +291,7 @@ export const AdminPanel: React.FC = () => {
         {activeTab === 'logs' && (
           <button 
             onClick={fetchLogs}
-            className="flex items-center justify-center gap-2 px-3.5 py-2 bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 font-bold text-[9px] md:text-xs rounded-xl border border-indigo-100 dark:border-indigo-900/50 shadow-sm hover:shadow-md transition-all active:scale-95 uppercase tracking-widest"
+            className="flex items-center justify-center gap-2 px-3.5 py-2 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 font-bold text-[9px] md:text-xs rounded-xl border border-rose-100 dark:border-rose-900/50 shadow-sm hover:shadow-md transition-all active:scale-95 uppercase tracking-widest"
           >
             <RefreshCw className="w-3 h-3" /> REFRESH LOGS
           </button>
@@ -378,7 +378,7 @@ export const AdminPanel: React.FC = () => {
                         className={`p-1.5 rounded-lg transition-all border flex items-center gap-2 px-3 ${
                           showAddForm 
                             ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500 border-rose-100 dark:border-rose-800' 
-                            : 'bg-indigo-600 dark:bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-700'
+                            : 'bg-rose-600 dark:bg-rose-600 text-white border-rose-500 hover:bg-rose-700'
                         }`}
                       >
                         {showAddForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
@@ -395,7 +395,7 @@ export const AdminPanel: React.FC = () => {
                         <div className="space-y-1">
                           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Display Name</label>
                           <div className="relative group/input">
-                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors">
+                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-rose-500 transition-colors">
                               <Users className="w-4 h-4" />
                             </div>
                             <input
@@ -406,7 +406,7 @@ export const AdminPanel: React.FC = () => {
                               onChange={e => editingUser 
                                 ? setEditingUser({...editingUser, name: e.target.value})
                                 : setNewUser({...newUser, name: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 focus:bg-white dark:focus:bg-slate-800/50 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white transition-all outline-none"
+                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-rose-500/20 focus:bg-white dark:focus:bg-slate-800/50 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white transition-all outline-none"
                             />
                           </div>
                         </div>
@@ -414,7 +414,7 @@ export const AdminPanel: React.FC = () => {
                         <div className="space-y-1">
                           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Email / ID</label>
                           <div className="relative group/input">
-                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors">
+                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-rose-500 transition-colors">
                               <Mail className="w-4 h-4" />
                             </div>
                             <input
@@ -425,7 +425,7 @@ export const AdminPanel: React.FC = () => {
                               onChange={e => editingUser
                                 ? setEditingUser({...editingUser, email: e.target.value})
                                 : setNewUser({...newUser, email: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 focus:bg-white dark:focus:bg-slate-800/50 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white transition-all outline-none"
+                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-rose-500/20 focus:bg-white dark:focus:bg-slate-800/50 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white transition-all outline-none"
                             />
                           </div>
                         </div>
@@ -433,7 +433,7 @@ export const AdminPanel: React.FC = () => {
                         <div className="space-y-1">
                           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Phone Number</label>
                           <div className="relative group/input">
-                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors">
+                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-rose-500 transition-colors">
                               <span className="font-bold text-xs">+91</span>
                             </div>
                             <input
@@ -444,7 +444,7 @@ export const AdminPanel: React.FC = () => {
                               onChange={e => editingUser
                                 ? setEditingUser({...editingUser, phone: e.target.value})
                                 : setNewUser({...newUser, phone: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 focus:bg-white dark:focus:bg-slate-800/50 rounded-xl pl-12 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white transition-all outline-none"
+                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-rose-500/20 focus:bg-white dark:focus:bg-slate-800/50 rounded-xl pl-12 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white transition-all outline-none"
                             />
                           </div>
                         </div>
@@ -462,7 +462,7 @@ export const AdminPanel: React.FC = () => {
                               onChange={e => editingUser
                                 ? setEditingUser({...editingUser, password: e.target.value})
                                 : setNewUser({...newUser, password: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-900 dark:text-white transition-all outline-none"
+                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-rose-500/20 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-900 dark:text-white transition-all outline-none"
                             />
                           </div>
                           <div className="space-y-1 uppercase font-bold tracking-widest">
@@ -473,7 +473,7 @@ export const AdminPanel: React.FC = () => {
                               onChange={e => editingUser
                                 ? setEditingUser({...editingUser, role: e.target.value as UserRole})
                                 : setNewUser({...newUser, role: e.target.value as UserRole})}
-                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 rounded-xl px-4 py-2.5 text-sm font-black text-slate-900 dark:text-white transition-all outline-none appearance-none"
+                              className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-rose-500/20 rounded-xl px-4 py-2.5 text-sm font-black text-slate-900 dark:text-white transition-all outline-none appearance-none"
                             >
                               <option value={UserRole.STAFF}>STAFF</option>
                               <option value={UserRole.ADMIN}>ADMIN</option>
@@ -482,9 +482,9 @@ export const AdminPanel: React.FC = () => {
                           </div>
                         </div>
                         
-                        <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30">
+                        <div className="p-3 bg-rose-50/50 dark:bg-rose-950/20 rounded-2xl border border-rose-100/50 dark:border-rose-900/30">
                           <div className="flex items-center justify-between mb-2">
-                             <label className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                             <label className="text-[9px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest flex items-center gap-2">
                                <PieChart className="w-3 h-3" /> Profit Cut %
                              </label>
                           </div>
@@ -503,9 +503,9 @@ export const AdminPanel: React.FC = () => {
                                   ? setEditingUser({...editingUser, profitPercentage: clamped})
                                   : setNewUser({...newUser, profitPercentage: clamped});
                               }}
-                              className="w-full bg-white dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500/20 rounded-xl px-4 py-2 text-sm font-black text-indigo-700 dark:text-indigo-300 transition-all outline-none"
+                              className="w-full bg-white dark:bg-slate-800 border-2 border-transparent focus:border-rose-500/20 rounded-xl px-4 py-2 text-sm font-black text-rose-700 dark:text-rose-300 transition-all outline-none"
                             />
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-indigo-400 pointer-events-none">%</div>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-rose-400 pointer-events-none">%</div>
                           </div>
                         </div>
                       </div>
@@ -518,7 +518,7 @@ export const AdminPanel: React.FC = () => {
                       <button
                         type="submit"
                         disabled={loading}
-                        className={`w-full md:w-auto md:min-w-[200px] text-white font-black py-3 px-8 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-xl active:scale-[0.98] ${editingUser ? 'shadow-none' : ''} ${editingUser ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-200 dark:shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none'}`}
+                        className={`w-full md:w-auto md:min-w-[200px] text-white font-black py-3 px-8 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-xl active:scale-[0.98] ${editingUser ? 'shadow-none' : ''} ${editingUser ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-200 dark:shadow-none' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-200 dark:shadow-none'}`}
                       >
                         {editingUser ? <Save className="w-4 h-4 md:w-5 md:h-5" /> : <Plus className="w-4 h-4 md:w-5 md:h-5" />}
                         <span className="text-sm uppercase tracking-tighter">{loading ? 'Processing...' : (editingUser ? 'Commit Changes' : 'Initialize Account')}</span>
@@ -533,7 +533,7 @@ export const AdminPanel: React.FC = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between px-1">
                  <h3 className="text-sm md:text-base font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                   <Users className="w-4 h-4 text-indigo-600" />
+                   <Users className="w-4 h-4 text-rose-600" />
                    Active Identities
                  </h3>
                  <div className="flex items-center gap-2">
@@ -550,14 +550,14 @@ export const AdminPanel: React.FC = () => {
                       <div className="flex items-start justify-between">
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-black shadow-inner border transition-colors ${
                           user.role === UserRole.SUPER_ADMIN ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 border-rose-100 dark:border-rose-900/50' :
-                          user.role === UserRole.ADMIN ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 border-indigo-100 dark:border-indigo-900/50' :
+                          user.role === UserRole.ADMIN ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 border-rose-100 dark:border-rose-900/50' :
                           'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-100 dark:border-slate-700'
                         }`}>
                           {user.name[0].toUpperCase()}
                         </div>
                         <span className={`text-[7px] font-black px-2 py-1 rounded-lg tracking-widest uppercase ${
                           user.role === UserRole.SUPER_ADMIN ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-400' :
-                          user.role === UserRole.ADMIN ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400' :
+                          user.role === UserRole.ADMIN ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-400' :
                           'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                         }`}>
                           {user.role}
@@ -589,7 +589,7 @@ export const AdminPanel: React.FC = () => {
                           role: user.role, 
                           profitPercentage: user.profitPercentage 
                         })}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl transition-all font-black text-[9px] uppercase tracking-widest border border-transparent hover:border-indigo-100/50"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl transition-all font-black text-[9px] uppercase tracking-widest border border-transparent hover:border-rose-100/50"
                       >
                         <Edit3 className="w-3.5 h-3.5" /> <span>Edit</span>
                       </button>
@@ -612,7 +612,7 @@ export const AdminPanel: React.FC = () => {
             {/* Rates Section */}
             <div className="max-w-xl mx-auto py-2 md:py-4">
               <div className="text-center mb-8 px-4">
-                <div className="inline-flex p-2 bg-indigo-600 dark:bg-indigo-500 rounded-xl text-white shadow-xl shadow-indigo-100 dark:shadow-none mb-4 animate-bounce-slow">
+                <div className="inline-flex p-2 bg-rose-600 dark:bg-rose-500 rounded-xl text-white shadow-xl shadow-rose-100 dark:shadow-none mb-4 animate-bounce-slow">
                   <DollarSign className="w-5 h-5" />
                 </div>
                 <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white italic tracking-tight">Game Rates</h3>
@@ -633,7 +633,7 @@ export const AdminPanel: React.FC = () => {
                     label="Standard Pro" 
                     value={rates.rate20} 
                     onChange={val => setRates({...rates, rate20: val})} 
-                    color="indigo"
+                    color="rose"
                   />
                 </div>
 
@@ -641,7 +641,7 @@ export const AdminPanel: React.FC = () => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full md:w-auto px-8 py-4 bg-indigo-600 dark:bg-indigo-600 text-white font-black rounded-2xl hover:bg-slate-900 dark:hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 shadow-2xl shadow-indigo-200 dark:shadow-none active:scale-95 text-xs uppercase tracking-widest italic"
+                    className="w-full md:w-auto px-8 py-4 bg-rose-600 dark:bg-rose-600 text-white font-black rounded-2xl hover:bg-slate-900 dark:hover:bg-rose-700 transition-all flex items-center justify-center gap-3 shadow-2xl shadow-rose-200 dark:shadow-none active:scale-95 text-xs uppercase tracking-widest italic"
                   >
                     {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     <span>{loading ? 'Saving Changes...' : 'Save Game Rates'}</span>
@@ -654,7 +654,7 @@ export const AdminPanel: React.FC = () => {
             <div className="max-w-xl mx-auto space-y-4">
               <div className="flex items-center justify-between px-2">
                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-600 dark:bg-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <div className="w-10 h-10 bg-rose-600 dark:bg-rose-500 rounded-xl flex items-center justify-center text-white shadow-lg">
                        <Activity className="w-5 h-5" />
                     </div>
                     <div>
@@ -664,22 +664,22 @@ export const AdminPanel: React.FC = () => {
                  </div>
                  <button 
                     onClick={() => setShowAddTable(!showAddTable)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${showAddTable ? 'bg-rose-50 text-rose-500 border border-rose-100' : 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 shadow-sm hover:shadow-md'}`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${showAddTable ? 'bg-rose-50 text-rose-500 border border-rose-100' : 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 shadow-sm hover:shadow-md'}`}
                   >
                     {showAddTable ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
                     {showAddTable ? 'CANCEL' : 'ADD TABLE'}
                   </button>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 md:p-8 shadow-2xl shadow-indigo-100 dark:shadow-none border border-slate-100 dark:border-slate-800 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none"></div>
+              <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 md:p-8 shadow-2xl shadow-rose-100 dark:shadow-none border border-slate-100 dark:border-slate-800 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none"></div>
                 
                 {showAddTable && (
-                  <form onSubmit={handleCreateTable} className="mb-10 p-6 bg-slate-50/50 dark:bg-slate-800/20 rounded-[2rem] border-2 border-dashed border-indigo-100 dark:border-indigo-900/50 animate-in slide-in-from-top-4 duration-500 relative z-10">
+                  <form onSubmit={handleCreateTable} className="mb-10 p-6 bg-slate-50/50 dark:bg-slate-800/20 rounded-[2rem] border-2 border-dashed border-rose-100 dark:border-rose-900/50 animate-in slide-in-from-top-4 duration-500 relative z-10">
                     <div className="space-y-6">
                        <div className="flex items-center justify-between">
                           <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest italic flex items-center gap-2">
-                             <Plus className="w-4 h-4 text-indigo-500" />
+                             <Plus className="w-4 h-4 text-rose-500" />
                              Initialize New Asset
                           </h4>
                           <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Step 1: Configuration</p>
@@ -693,7 +693,7 @@ export const AdminPanel: React.FC = () => {
                               placeholder="e.g. Table 4"
                               value={newTable.name}
                               onChange={e => setNewTable({...newTable, name: e.target.value})}
-                              className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-indigo-500/20 text-sm font-black text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-200"
+                              className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-rose-500/20 text-sm font-black text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-200"
                             />
                           </div>
                           <div className="space-y-1.5">
@@ -703,14 +703,14 @@ export const AdminPanel: React.FC = () => {
                               placeholder="e.g. Center Area"
                               value={newTable.description}
                               onChange={e => setNewTable({...newTable, description: e.target.value})}
-                              className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-indigo-500/20 text-sm font-bold text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-200"
+                              className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-rose-500/20 text-sm font-bold text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-200"
                             />
                           </div>
                        </div>
                        <button 
                          type="submit" 
                          disabled={loading}
-                         className="w-full py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:bg-slate-800 dark:hover:bg-indigo-700 active:scale-98 transition-all disabled:opacity-50"
+                         className="w-full py-4 bg-slate-900 dark:bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:bg-slate-800 dark:hover:bg-rose-700 active:scale-98 transition-all disabled:opacity-50"
                        >
                          {loading ? 'SYNCING...' : 'INITIALIZE ASSET'}
                        </button>
@@ -719,10 +719,10 @@ export const AdminPanel: React.FC = () => {
                 )}
 
                 {editingTable && (
-                  <form onSubmit={handleUpdateTableDetails} className="mb-10 p-6 bg-indigo-50/10 dark:bg-indigo-900/10 rounded-[2rem] border-2 border-indigo-500/20 animate-in slide-in-from-top-4 duration-500 relative z-10">
+                  <form onSubmit={handleUpdateTableDetails} className="mb-10 p-6 bg-rose-50/10 dark:bg-rose-900/10 rounded-[2rem] border-2 border-rose-500/20 animate-in slide-in-from-top-4 duration-500 relative z-10">
                     <div className="space-y-6">
                        <div className="flex items-center justify-between">
-                          <h4 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest italic flex items-center gap-2">
+                          <h4 className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest italic flex items-center gap-2">
                              <Edit3 className="w-4 h-4" />
                              Modify Asset Details
                           </h4>
@@ -738,7 +738,7 @@ export const AdminPanel: React.FC = () => {
                               onChange={e => setEditingTable({...editingTable, name: e.target.value})}
                               title="Asset identity"
                               aria-label="Asset identity"
-                              className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-indigo-500/20 text-sm font-black text-slate-900 dark:text-white outline-none transition-all"
+                              className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-rose-500/20 text-sm font-black text-slate-900 dark:text-white outline-none transition-all"
                             />
                           </div>
                           <div className="space-y-1.5">
@@ -749,14 +749,14 @@ export const AdminPanel: React.FC = () => {
                               onChange={e => setEditingTable({...editingTable, description: e.target.value})}
                               title="Asset location or specification"
                               aria-label="Asset location or specification"
-                              className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-indigo-500/20 text-sm font-bold text-slate-900 dark:text-white outline-none transition-all"
+                              className="w-full bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border-2 border-transparent focus:border-rose-500/20 text-sm font-bold text-slate-900 dark:text-white outline-none transition-all"
                             />
                           </div>
                        </div>
                        <button 
                          type="submit" 
                          disabled={loading}
-                         className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:bg-indigo-700 active:scale-98 transition-all disabled:opacity-50"
+                         className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:bg-rose-700 active:scale-98 transition-all disabled:opacity-50"
                        >
                          {loading ? 'SAVING...' : 'UPDATE ASSET'}
                        </button>
@@ -766,12 +766,12 @@ export const AdminPanel: React.FC = () => {
 
                 <div className="flex flex-col gap-3 relative z-10">
                   {tables.map((table, idx) => (
-                    <div key={table.id} className={`group p-4 md:p-5 rounded-[1.8rem] border-2 transition-all duration-300 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 ${table.isActive ? 'bg-white dark:bg-slate-900 border-slate-50 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-indigo-100 dark:hover:border-indigo-900' : 'bg-slate-100/50 dark:bg-slate-800/10 border-transparent opacity-60'}`}>
+                    <div key={table.id} className={`group p-4 md:p-5 rounded-[1.8rem] border-2 transition-all duration-300 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 ${table.isActive ? 'bg-white dark:bg-slate-900 border-slate-50 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-rose-100 dark:hover:border-rose-900' : 'bg-slate-100/50 dark:bg-slate-800/10 border-transparent opacity-60'}`}>
                       {/* Background Numbering */}
-                      <span className="absolute -bottom-2 right-4 text-5xl font-black text-slate-50 dark:text-slate-800/30 italic pointer-events-none select-none group-hover:text-indigo-50 dark:group-hover:text-indigo-900/10 transition-colors uppercase">0{idx + 1}</span>
+                      <span className="absolute -bottom-2 right-4 text-5xl font-black text-slate-50 dark:text-slate-800/30 italic pointer-events-none select-none group-hover:text-rose-50 dark:group-hover:text-rose-900/10 transition-colors uppercase">0{idx + 1}</span>
                       
                       <div className="flex items-center gap-3.5 relative z-10 flex-1 min-w-0">
-                         <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center border shadow-inner ${table.isActive ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 border-indigo-100/50' : 'bg-slate-200 dark:bg-slate-700 text-slate-400 border-transparent'}`}>
+                         <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center border shadow-inner ${table.isActive ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 border-rose-100/50' : 'bg-slate-200 dark:bg-slate-700 text-slate-400 border-transparent'}`}>
                             <Activity className="w-6 h-6" />
                          </div>
                          <div className="min-w-0 flex-1">
@@ -792,7 +792,7 @@ export const AdminPanel: React.FC = () => {
                          <button 
                             title="Edit Details"
                             onClick={() => setEditingTable({ id: table.id, name: table.name, description: table.description || '' })}
-                            className="p-2 text-indigo-500 hover:bg-white dark:hover:bg-slate-800 md:hover:bg-indigo-50 md:dark:hover:bg-indigo-900/20 rounded-lg transition-all active:scale-90"
+                            className="p-2 text-rose-500 hover:bg-white dark:hover:bg-slate-800 md:hover:bg-rose-50 md:dark:hover:bg-rose-900/20 rounded-lg transition-all active:scale-90"
                          >
                             <Edit3 className="w-4 h-4" />
                          </button>
@@ -858,7 +858,7 @@ export const AdminPanel: React.FC = () => {
                   label="Calculated Net" 
                   value={profitSummary.netProfit} 
                   icon={<PieChart className="w-4 h-4" />} 
-                  color="indigo" 
+                  color="rose"
                   desc="Taxable Margin"
                />
                <SummaryCard 
@@ -875,7 +875,7 @@ export const AdminPanel: React.FC = () => {
               {/* Distribution Console */}
               <div className="lg:col-span-4 space-y-4">
                 <div className="p-4 md:p-5 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 relative z-10 overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
                   
                   <h3 className="text-sm font-black text-slate-900 dark:text-white italic tracking-tight mb-4">Distribution Console</h3>
                   
@@ -886,14 +886,14 @@ export const AdminPanel: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setProfitDetails({...profitDetails, mode: 'EQUAL'})}
-                          className={`py-2 rounded-lg text-[9px] font-black tracking-widest uppercase transition-all ${profitDetails.mode === 'EQUAL' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-indigo-100/50 dark:border-indigo-900/50' : 'text-slate-400'}`}
+                          className={`py-2 rounded-lg text-[9px] font-black tracking-widest uppercase transition-all ${profitDetails.mode === 'EQUAL' ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-100/50 dark:border-rose-900/50' : 'text-slate-400'}`}
                         >
                           Flat Split
                         </button>
                         <button
                           type="button"
                           onClick={() => setProfitDetails({...profitDetails, mode: 'PERCENTAGE'})}
-                          className={`py-2 rounded-lg text-[9px] font-black tracking-widest uppercase transition-all ${profitDetails.mode === 'PERCENTAGE' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-indigo-100/50 dark:border-indigo-900/50' : 'text-slate-400'}`}
+                          className={`py-2 rounded-lg text-[9px] font-black tracking-widest uppercase transition-all ${profitDetails.mode === 'PERCENTAGE' ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-100/50 dark:border-rose-900/50' : 'text-slate-400'}`}
                         >
                           Weight
                         </button>
@@ -909,12 +909,12 @@ export const AdminPanel: React.FC = () => {
                           required
                           value={profitDetails.amount}
                           onChange={e => setProfitDetails({...profitDetails, amount: parseFloat(e.target.value)})}
-                          className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-slate-900 dark:text-white font-black text-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all placeholder:text-slate-300"
+                          className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-slate-900 dark:text-white font-black text-xl focus:ring-2 focus:ring-rose-500/20 outline-none transition-all placeholder:text-slate-300"
                         />
                         <button
                           type="button"
                           onClick={() => setProfitDetails({...profitDetails, amount: profitSummary.remainingProfit})}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest rounded-lg hover:bg-indigo-700 transition-all shadow-md active:scale-95"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-rose-600 text-white text-[8px] font-black uppercase tracking-widest rounded-lg hover:bg-rose-700 transition-all shadow-md active:scale-95"
                         >
                           MAX
                         </button>
@@ -927,14 +927,14 @@ export const AdminPanel: React.FC = () => {
                         value={profitDetails.description}
                         onChange={e => setProfitDetails({...profitDetails, description: e.target.value})}
                         placeholder="Purpose..."
-                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-slate-900 dark:text-white h-20 text-xs font-medium outline-none transition-all placeholder:text-slate-300 focus:ring-2 focus:ring-indigo-500/20"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-slate-900 dark:text-white h-20 text-xs font-medium outline-none transition-all placeholder:text-slate-300 focus:ring-2 focus:ring-rose-500/20"
                       />
                     </div>
 
                     <button
                       type="submit"
                       disabled={loading || profitDetails.amount <= 0 || profitDetails.amount > profitSummary.remainingProfit}
-                      className="w-full bg-slate-900 dark:bg-indigo-600 text-white font-black py-4 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xl active:scale-[0.98] text-sm italic tracking-tight uppercase"
+                      className="w-full bg-slate-900 dark:bg-rose-600 text-white font-black py-4 rounded-xl hover:bg-rose-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xl active:scale-[0.98] text-sm italic tracking-tight uppercase"
                     >
                       <DollarSign className="w-4 h-4" /> {loading ? 'Processing...' : 'Settle Payouts'}
                     </button>
@@ -952,7 +952,7 @@ export const AdminPanel: React.FC = () => {
               <div className="lg:col-span-8 space-y-3">
                 <div className="flex items-center justify-between px-1">
                   <h3 className="text-sm font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                    <PieChart className="w-4 h-4 text-indigo-600" /> Stakeholders
+                    <PieChart className="w-4 h-4 text-rose-600" /> Stakeholders
                   </h3>
                   <span className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg text-[8px] font-black text-slate-400 uppercase tracking-widest">
                     {users.filter(u => u.isPartner).length} Active
@@ -968,7 +968,7 @@ export const AdminPanel: React.FC = () => {
                     return (
                       <div key={partner.id} className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
                         <div className="absolute right-0 top-0 p-3 opacity-[0.05] group-hover:scale-110 transition-transform">
-                           <Users className="w-10 h-10 text-indigo-600" />
+                           <Users className="w-10 h-10 text-rose-600" />
                         </div>
                         <div className="relative z-10">
                           <p className="font-black text-slate-900 dark:text-white text-sm leading-none mb-0.5">{partner.name}</p>
@@ -977,7 +977,7 @@ export const AdminPanel: React.FC = () => {
                           <div className="mt-4 flex items-end justify-between">
                             <div>
                                <p className="text-[7px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest mb-0.5">Share</p>
-                               <p className="text-sm font-black text-indigo-600 dark:text-indigo-400 italic">
+                               <p className="text-sm font-black text-rose-600 dark:text-rose-400 italic">
                                  {profitDetails.mode === 'PERCENTAGE' ? `${partner.profitPercentage ?? 0}%` : `SPLIT`}
                                </p>
                             </div>
@@ -999,7 +999,7 @@ export const AdminPanel: React.FC = () => {
                         <Users className="w-6 h-6" />
                       </div>
                       <p className="text-slate-400 font-black italic uppercase tracking-widest text-[10px]">No stakeholders</p>
-                      <button onClick={() => setActiveTab('users')} className="mt-2 text-indigo-600 dark:text-indigo-400 font-black text-[9px] uppercase tracking-widest hover:underline px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">Initialize</button>
+                      <button onClick={() => setActiveTab('users')} className="mt-2 text-rose-600 dark:text-rose-400 font-black text-[9px] uppercase tracking-widest hover:underline px-3 py-1.5 bg-rose-50 dark:bg-rose-900/20 rounded-lg">Initialize</button>
                     </div>
                   )}
                 </div>
@@ -1013,7 +1013,7 @@ export const AdminPanel: React.FC = () => {
             <div className="flex items-center justify-between px-1">
               <div>
                 <h3 className="text-base md:text-lg font-black text-slate-900 dark:text-white italic tracking-tight flex items-center gap-2">
-                   <Shield className="w-4 h-4 text-indigo-600" />
+                   <Shield className="w-4 h-4 text-rose-600" />
                    Audit Trail
                 </h3>
                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Live platform activity monitor</p>
@@ -1052,7 +1052,7 @@ export const AdminPanel: React.FC = () => {
                       onChange={e => setLogFilters({...logFilters, action: e.target.value, page: 1})}
                       title="Filter logs by action"
                       aria-label="Filter logs by action"
-                      className="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all w-full"
+                      className="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all w-full"
                     >
                       <option value="">All Actions</option>
                       <option value="CREATE">CREATE</option>
@@ -1071,7 +1071,7 @@ export const AdminPanel: React.FC = () => {
                       onChange={e => setLogFilters({...logFilters, resource: e.target.value, page: 1})}
                       title="Filter logs by resource"
                       aria-label="Filter logs by resource"
-                      className="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all w-full"
+                      className="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all w-full"
                     >
                       <option value="">All Resources</option>
                       <option value="USER">USER</option>
@@ -1095,7 +1095,7 @@ export const AdminPanel: React.FC = () => {
                       onChange={e => setLogFilters({...logFilters, limit: parseInt(e.target.value), page: 1})}
                       title="Logs per page"
                       aria-label="Logs per page"
-                      className="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all w-full"
+                      className="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all w-full"
                     >
                       <option value="10">10 / page</option>
                       <option value="25">25 / page</option>
@@ -1138,7 +1138,7 @@ export const AdminPanel: React.FC = () => {
                       <React.Fragment key={log.id}>
                         <tr 
                           onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
-                          className="group hover:bg-indigo-50/10 dark:hover:bg-indigo-900/5 transition-colors cursor-pointer"
+                          className="group hover:bg-rose-50/10 dark:hover:bg-rose-900/5 transition-colors cursor-pointer"
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
@@ -1166,7 +1166,7 @@ export const AdminPanel: React.FC = () => {
                           <td className="px-6 py-4 text-center">
                             <div className="flex flex-col items-center gap-1">
                                <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tighter">{log.resource}</span>
-                               <div className="w-4 h-0.5 bg-indigo-500/20 rounded-full"></div>
+                               <div className="w-4 h-0.5 bg-rose-500/20 rounded-full"></div>
                             </div>
                           </td>
                           <td className="px-6 py-4">
@@ -1175,7 +1175,7 @@ export const AdminPanel: React.FC = () => {
                                 {log.details ? JSON.stringify(log.details) : '-'}
                               </div>
                               {log.details && (
-                                <div className="text-slate-400 group-hover:text-indigo-500 transition-colors">
+                                <div className="text-slate-400 group-hover:text-rose-500 transition-colors">
                                   <svg className={`w-4 h-4 transition-transform ${expandedLogId === log.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                   </svg>
@@ -1231,7 +1231,7 @@ export const AdminPanel: React.FC = () => {
                   >
                      <div className="flex items-center justify-between mb-2.5 border-b border-slate-50 dark:border-slate-800 pb-2.5">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-[10px] font-black text-indigo-600 dark:text-indigo-400">
+                          <div className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-[10px] font-black text-rose-600 dark:text-rose-400">
                              {(log.user?.name || 'S')[0]}
                           </div>
                           <div>
@@ -1313,7 +1313,7 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; icon: React.Re
     onClick={onClick}
     className={`flex-1 shrink-0 flex items-center justify-center gap-2 px-4 py-3 rounded-xl md:rounded-2xl text-[9px] md:text-xs font-bold transition-all uppercase tracking-widest active:scale-95 whitespace-nowrap ${
       active 
-        ? 'bg-indigo-600 dark:bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-none' 
+        ? 'bg-rose-600 dark:bg-rose-600 text-white shadow-lg shadow-rose-100 dark:shadow-none' 
         : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/50'
     }`}
   >
@@ -1323,7 +1323,7 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; icon: React.Re
 );
 
 const RateConfigCard: React.FC<{ points: number; label: string; value: number; onChange: (v: number) => void; color: string }> = ({ points, label, value, onChange, color }) => (
-  <div className="group bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-900 border-b-2 border-b-indigo-50 dark:border-b-indigo-950">
+  <div className="group bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:shadow-md hover:border-rose-100 dark:hover:border-rose-900 border-b-2 border-b-rose-50 dark:border-b-rose-950">
     <div className="flex items-center gap-2 mb-3">
       <div className={`w-8 h-8 rounded-lg bg-${color}-500/10 dark:bg-${color}-500/20 flex flex-col items-center justify-center border border-${color}-100 dark:border-${color}-900/50 shadow-inner group-hover:scale-105 transition-transform`}>
         <span className={`text-sm font-black italic tracking-tighter text-${color}-600 dark:text-${color}-400`}>{points}</span>
@@ -1339,13 +1339,13 @@ const RateConfigCard: React.FC<{ points: number; label: string; value: number; o
     </div>
     
     <div className="relative group/input">
-      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-black text-slate-300 dark:text-slate-700 italic group-focus-within/input:text-indigo-500 transition-colors">₹</div>
+      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-black text-slate-300 dark:text-slate-700 italic group-focus-within/input:text-rose-500 transition-colors">₹</div>
       <input
         title={`${label} pricing`}
         type="number"
         value={value}
         onChange={e => onChange(parseInt(e.target.value) || 0)}
-        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-8 pr-3 py-2 text-lg font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all shadow-inner"
+        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-8 pr-3 py-2 text-lg font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500/10 outline-none transition-all shadow-inner"
       />
     </div>
   </div>
@@ -1364,3 +1364,4 @@ const SummaryCard: React.FC<{ label: string; value: number; icon: React.ReactNod
 );
 
 export default AdminPanel;
+

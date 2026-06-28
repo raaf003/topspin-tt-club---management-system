@@ -46,7 +46,7 @@ export const Leaderboard: React.FC = () => {
             <h2 className="text-2xl font-black dark:text-white tracking-tight">Hall of Fame</h2>
             <button 
               onClick={() => setShowInfo(true)}
-              className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1 hover:opacity-70 transition-opacity"
+              className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest flex items-center gap-1 hover:opacity-70 transition-opacity"
             >
               <Info className="w-3 h-3" /> Glicko-2 System
             </button>
@@ -69,7 +69,7 @@ export const Leaderboard: React.FC = () => {
           sub={highlights.longestStreak ? `${globalPlayerStats[highlights.longestStreak.id]?.playStreak || 0} Days` : 'Min. 2 day streak'}
         />
         <HighlightCard 
-          icon={<Activity className="w-4 h-4 text-indigo-500" />}
+          icon={<Activity className="w-4 h-4 text-rose-500" />}
           label="Most Active"
           name={highlights.mostActive?.name || 'In Training'}
           sub={highlights.mostActive ? `${globalPlayerStats[highlights.mostActive.id]?.consistencyScore || 0}/30 Days` : 'New session data...'}
@@ -86,11 +86,11 @@ export const Leaderboard: React.FC = () => {
       {showInfo && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 w-full max-w-lg max-h-[90vh] rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col">
-            <div className="bg-indigo-600 p-8 text-white relative overflow-hidden shrink-0">
+            <div className="bg-rose-600 p-8 text-white relative overflow-hidden shrink-0">
               <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/10 rounded-full blur-3xl animate-pulse" />
               <div className="relative z-10">
                 <h3 className="text-2xl font-black uppercase tracking-wider mb-2">Ranking System</h3>
-                <p className="text-indigo-100 text-[11px] leading-relaxed font-semibold opacity-90 max-w-[80%]">
+                <p className="text-rose-100 text-[11px] leading-relaxed font-semibold opacity-90 max-w-[80%]">
                   We use the Glicko-2 algorithm — the gold standard for competitive skill measurement.
                 </p>
               </div>
@@ -106,8 +106,8 @@ export const Leaderboard: React.FC = () => {
             
             <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar flex-1">
               {/* Formula Card */}
-              <div className="bg-indigo-50 dark:bg-indigo-900/10 p-6 rounded-[2rem] border border-indigo-100 dark:border-indigo-800/30">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-2">
+              <div className="bg-rose-50 dark:bg-rose-900/10 p-6 rounded-[2rem] border border-rose-100 dark:border-rose-800/30">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-600 dark:text-rose-400 mb-4 flex items-center gap-2">
                   <Award className="w-4 h-4" /> The Performance Score
                 </h4>
                 <div className="space-y-4">
@@ -119,7 +119,7 @@ export const Leaderboard: React.FC = () => {
 
               <div className="grid gap-4">
                 <MechanicItem 
-                  icon={<ShieldCheck className="w-5 h-5 text-indigo-500" />}
+                  icon={<ShieldCheck className="w-5 h-5 text-rose-500" />}
                   title="Skill Confidence"
                   description="New players have high uncertainty. Playing more matches reduces this 'RD' value, making your rank more stable and accurate."
                 />
@@ -140,7 +140,7 @@ export const Leaderboard: React.FC = () => {
               <div className="pt-4">
                 <button 
                   onClick={() => setShowInfo(false)}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 dark:shadow-none active:scale-95 transition-all"
+                  className="w-full bg-rose-600 hover:bg-rose-700 text-white py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-rose-100 dark:shadow-none active:scale-95 transition-all"
                 >
                   Confirm Understanding
                 </button>
@@ -154,7 +154,7 @@ export const Leaderboard: React.FC = () => {
       <div className="flex gap-4 px-1 overflow-x-auto no-scrollbar">
         <LegendItem icon={<Zap className="w-3 h-3 text-amber-500 fill-amber-500" />} label="Momentum" />
         <LegendItem icon={<span className="text-[10px]">🔥</span>} label="Consistency" />
-        <LegendItem icon={<div className="w-2 h-2 rounded-full bg-indigo-500" />} label="Verified Tier" />
+        <LegendItem icon={<div className="w-2 h-2 rounded-full bg-rose-500" />} label="Verified Tier" />
       </div>
 
       <div className="relative px-1">
@@ -235,10 +235,10 @@ export const Leaderboard: React.FC = () => {
 const FormulaRow: React.FC<{ label: string; value: string; sub: string }> = ({ label, value, sub }) => (
   <div className="flex justify-between items-start">
     <div className="space-y-0.5">
-      <div className="text-[11px] font-black text-indigo-950 dark:text-indigo-100">{label}</div>
-      <div className="text-[9px] text-indigo-500/70 dark:text-indigo-400/50 font-bold leading-none">{sub}</div>
+      <div className="text-[11px] font-black text-rose-950 dark:text-rose-100">{label}</div>
+      <div className="text-[9px] text-rose-500/70 dark:text-rose-400/50 font-bold leading-none">{sub}</div>
     </div>
-    <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{value}</span>
+    <span className="text-sm font-black text-rose-600 dark:text-rose-400">{value}</span>
   </div>
 );
 
@@ -266,6 +266,7 @@ const HighlightCard: React.FC<{ icon: React.ReactNode; label: string; name: stri
       <span className="text-[8px] font-black text-gray-400 uppercase tracking-wider">{label}</span>
     </div>
     <div className={`font-bold text-xs truncate ${name === 'Awaiting Data' || name === 'Unclaimed' || name === 'In Training' || name === 'Spot Open' || name === '-' ? 'text-gray-300 italic' : 'dark:text-white'}`}>{name}</div>
-    {sub && <div className={`text-[9px] font-black uppercase tracking-tighter ${name === 'Awaiting Data' || name === 'Unclaimed' || name === 'In Training' || name === 'Spot Open' || name === '-' ? 'text-gray-300' : 'text-indigo-500'}`}>{sub}</div>}
+    {sub && <div className={`text-[9px] font-black uppercase tracking-tighter ${name === 'Awaiting Data' || name === 'Unclaimed' || name === 'In Training' || name === 'Spot Open' || name === '-' ? 'text-gray-300' : 'text-rose-500'}`}>{sub}</div>}
   </div>
 );
+

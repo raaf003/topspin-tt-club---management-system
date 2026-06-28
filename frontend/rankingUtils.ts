@@ -474,7 +474,7 @@ export const getPlayerTier = (rating: number, stats?: any) => {
   const tierInfo = {
     5: { name: 'Master', bg: 'bg-gradient-to-r from-amber-500 to-yellow-400', color: 'text-white', border: 'border-amber-600' },
     4: { name: 'Elite', bg: 'bg-purple-600', color: 'text-white', border: 'border-purple-700' },
-    3: { name: 'Advanced', bg: 'bg-indigo-500', color: 'text-white', border: 'border-indigo-600' },
+    3: { name: 'Advanced', bg: 'bg-rose-500', color: 'text-white', border: 'border-rose-600' },
     2: { name: 'Intermediate', bg: 'bg-emerald-500', color: 'text-white', border: 'border-emerald-600' },
     1: { name: 'Beginner', bg: 'bg-slate-400', color: 'text-white', border: 'border-slate-500' },
     0: { name: 'Novice', bg: 'bg-gray-300', color: 'text-gray-700', border: 'border-gray-400' }

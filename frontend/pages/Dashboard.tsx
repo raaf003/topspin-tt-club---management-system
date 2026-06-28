@@ -91,7 +91,7 @@ export const Dashboard: React.FC = () => {
           <NavLink 
             to="/matches" 
             replace
-            className="bg-indigo-600 text-white p-2.5 md:p-3 rounded-xl md:rounded-2xl shadow-lg shadow-indigo-100 dark:shadow-indigo-900/20 active:scale-95 transition-all"
+            className="bg-rose-600 text-white p-2.5 md:p-3 rounded-xl md:rounded-2xl shadow-lg shadow-rose-100 dark:shadow-rose-900/20 active:scale-95 transition-all"
           >
             <PlusCircle className="w-5 h-5 md:w-6 md:h-6" />
           </NavLink>
@@ -100,7 +100,7 @@ export const Dashboard: React.FC = () => {
         {/* Ongoing Match - Flashing UI */}
         {liveMatchData && (
           <div className="mb-6 animate-in slide-in-from-top-4 duration-500">
-            <div className="bg-indigo-600 dark:bg-indigo-700 rounded-3xl md:rounded-[2.5rem] p-4 md:p-6 text-white shadow-2xl shadow-indigo-200 dark:shadow-indigo-900/20 relative overflow-hidden ring-4 ring-indigo-50 dark:ring-indigo-900/10 border-2 border-indigo-400 dark:border-indigo-500 transition-all">
+            <div className="bg-rose-600 dark:bg-rose-700 rounded-3xl md:rounded-[2.5rem] p-4 md:p-6 text-white shadow-2xl shadow-rose-200 dark:shadow-rose-900/20 relative overflow-hidden ring-4 ring-rose-50 dark:ring-rose-900/10 border-2 border-rose-400 dark:border-rose-500 transition-all">
               {/* Flashing Background Effect */}
               <div className="absolute inset-0 bg-white/5 animate-pulse"></div>
               
@@ -110,7 +110,7 @@ export const Dashboard: React.FC = () => {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
                   </span>
-                  <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-indigo-100">Live Match Ongoing</span>
+                  <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-rose-100">Live Match Ongoing</span>
                 </div>
                 <button 
                   onClick={() => clearOngoingMatch()}
@@ -147,7 +147,7 @@ export const Dashboard: React.FC = () => {
               </div>
 
               <div className="mt-4 md:mt-6 flex items-center justify-between relative z-10 border-t border-white/10 pt-3 md:pt-4">
-                <div className="flex items-center gap-3 md:gap-4 text-[9px] md:text-[10px] font-bold text-indigo-100">
+                <div className="flex items-center gap-3 md:gap-4 text-[9px] md:text-[10px] font-bold text-rose-100">
                   <div className="flex items-center gap-1">
                     <Zap className="w-2.5 h-2.5 md:w-3 md:h-3 text-amber-400 fill-amber-400" />
                     {liveMatchData.table?.name}
@@ -159,7 +159,7 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <button 
                   onClick={() => navigate('/matches')}
-                  className="bg-white text-indigo-600 px-3 py-1.5 md:px-5 md:py-2 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-indigo-50 active:scale-95 transition-all"
+                  className="bg-white text-rose-600 px-3 py-1.5 md:px-5 md:py-2 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-rose-50 active:scale-95 transition-all"
                 >
                   Record
                 </button>
@@ -173,17 +173,17 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center gap-1.5 mb-4 bg-white dark:bg-slate-900 p-1 rounded-xl md:rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm w-fit transition-colors">
             <button 
               onClick={() => setFilterType('today')}
-              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-all ${filterType === 'today' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-all ${filterType === 'today' ? 'bg-rose-600 text-white shadow-md' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
             >
               Today
             </button>
             <button 
               onClick={() => setFilterType('month')}
-              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-all ${filterType === 'month' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-all ${filterType === 'month' ? 'bg-rose-600 text-white shadow-md' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
             >
               Month
             </button>
-            <div className={`flex items-center gap-1 px-1.5 py-1 rounded-lg transition-all ${filterType === 'custom' ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800' : ''}`}>
+            <div className={`flex items-center gap-1 px-1.5 py-1 rounded-lg transition-all ${filterType === 'custom' ? 'bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800' : ''}`}>
                <input 
                  type="date" 
                  value={customDate}
@@ -193,7 +193,7 @@ export const Dashboard: React.FC = () => {
                    setCustomDate(e.target.value);
                    setFilterType('custom');
                  }}
-                 className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-indigo-600 dark:text-indigo-400"
+                 className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-rose-600 dark:text-rose-400"
                />
             </div>
           </div>
@@ -224,13 +224,13 @@ export const Dashboard: React.FC = () => {
             <IndianRupee className="w-16 h-16 md:w-24 md:h-24 dark:text-white" />
           </div>
           <h3 className="text-[9px] md:text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Monthly Target</h3>
-          <div className="text-2xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400">₹{monthlyRevenue}</div>
+          <div className="text-2xl md:text-3xl font-black text-rose-600 dark:text-rose-400">₹{monthlyRevenue}</div>
           <p className="text-[9px] text-gray-400 dark:text-slate-500 font-bold mt-1.5 md:mt-2 uppercase">Effective value (Gross - Waivers)</p>
         </div>
 
         {isAdmin && (
           <div className="bg-gray-900 dark:bg-slate-800 p-4 md:p-5 rounded-2xl md:rounded-3xl text-white shadow-xl shadow-gray-200 dark:shadow-none transition-all">
-            <h3 className="text-[9px] md:text-[10px] font-black text-indigo-400 dark:text-indigo-300 uppercase tracking-widest mb-2 md:mb-3 flex items-center gap-2">
+            <h3 className="text-[9px] md:text-[10px] font-black text-rose-400 dark:text-rose-300 uppercase tracking-widest mb-2 md:mb-3 flex items-center gap-2">
               <CheckCircle2 className="w-2.5 h-2.5 md:w-3 md:h-3" />
               Actual Collection
             </h3>
@@ -239,7 +239,7 @@ export const Dashboard: React.FC = () => {
                 <div className="text-xl md:text-2xl font-black">₹{collectedForPeriod}</div>
                 <div className="text-[8px] md:text-[10px] opacity-60 font-bold uppercase">Cash/Online Received</div>
               </div>
-              <NavLink to="/reports" replace className="text-[8px] md:text-[10px] font-black bg-indigo-600 dark:bg-indigo-500 px-2 md:px-3 py-1.5 md:py-2 rounded-lg md:rounded-xl hover:bg-indigo-500 dark:hover:bg-indigo-400 transition-all">
+              <NavLink to="/reports" replace className="text-[8px] md:text-[10px] font-black bg-rose-600 dark:bg-rose-500 px-2 md:px-3 py-1.5 md:py-2 rounded-lg md:rounded-xl hover:bg-rose-500 dark:hover:bg-rose-400 transition-all">
                 REPORTS
               </NavLink>
             </div>
@@ -252,7 +252,7 @@ export const Dashboard: React.FC = () => {
           <h3 className="font-bold text-base md:text-lg tracking-tight dark:text-white">Quick Access</h3>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3">
-          <QuickButton to="/matches" label="New Match" color="bg-indigo-600 dark:bg-indigo-700 shadow-indigo-100 dark:shadow-indigo-900/20" />
+          <QuickButton to="/matches" label="New Match" color="bg-rose-600 dark:bg-rose-700 shadow-rose-100 dark:shadow-rose-900/20" />
           <QuickButton to="/payments" label="Record Pay" color="bg-blue-600 dark:bg-blue-700 shadow-blue-100 dark:shadow-blue-900/20" />
           <QuickButton to="/players" label="Add Player" color="bg-orange-500 dark:bg-orange-600 shadow-orange-100 dark:shadow-orange-900/20" />
           {isAdmin && <QuickButton to="/expenses" label="Expenses" color="bg-gray-700 dark:bg-slate-800 shadow-gray-100 dark:shadow-none" />}
@@ -265,7 +265,7 @@ export const Dashboard: React.FC = () => {
             <Trophy className="w-5 h-5 text-amber-500" />
             Top Rated
           </h3>
-          <NavLink to="/leaderboard" replace className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Leaderboard</NavLink>
+          <NavLink to="/leaderboard" replace className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase">Leaderboard</NavLink>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {topPlayers.map((p, idx) => (
@@ -283,7 +283,7 @@ export const Dashboard: React.FC = () => {
         <section>
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-bold text-base md:text-lg tracking-tight dark:text-white">Recent Battles</h3>
-            <NavLink to="/matches" replace className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">View All</NavLink>
+            <NavLink to="/matches" replace className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase">View All</NavLink>
           </div>
           <div className="space-y-2.5 md:space-y-3">
             {matches.slice(0, 5).map(match => (
@@ -336,7 +336,7 @@ const TopPlayerItem: React.FC<{ player: any; rank: number }> = ({ player, rank }
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <div className="font-bold text-sm text-gray-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{player.name}</div>
+            <div className="font-bold text-sm text-gray-900 dark:text-white truncate group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">{player.name}</div>
             {player.isHot && <Zap className="w-3 h-3 text-amber-500 fill-amber-500 animate-pulse" />}
             {player.attendanceStreak >= 3 && (
               <span className="flex items-center text-[10px] font-black text-orange-600 dark:text-orange-400">
@@ -353,7 +353,7 @@ const TopPlayerItem: React.FC<{ player: any; rank: number }> = ({ player, rank }
         </div>
       </div>
       <div className="text-right shrink-0">
-        <div className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+        <div className="text-sm font-black text-rose-600 dark:text-rose-400">
           {player.score.toFixed(0)}
         </div>
         <div className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-tighter">Rating</div>
@@ -399,7 +399,7 @@ const MatchItem: React.FC<{ match: any }> = ({ match }) => {
   return (
     <div className="bg-white dark:bg-slate-900 p-3 md:p-4 rounded-xl md:rounded-2xl border border-gray-100 dark:border-slate-800 flex justify-between items-center hover:shadow-md dark:hover:bg-slate-800/50 transition-all">
       <div className="flex items-center gap-2 md:gap-3 min-w-0">
-        <div className={`w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-lg md:rounded-xl flex items-center justify-center text-[10px] md:text-xs font-black ${match.points === 20 ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'}`}>
+        <div className={`w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-lg md:rounded-xl flex items-center justify-center text-[10px] md:text-xs font-black ${match.points === 20 ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'}`}>
           {match.points}p
         </div>
         <div className="min-w-0">
@@ -439,3 +439,4 @@ const PaymentItem: React.FC<{ payment: any }> = ({ payment }) => {
     </div>
   );
 }
+

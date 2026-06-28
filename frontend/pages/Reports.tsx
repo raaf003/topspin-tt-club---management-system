@@ -96,12 +96,12 @@ export const Reports: React.FC = () => {
       <div className="flex flex-col gap-3 md:gap-4 px-1">
         <div className="flex justify-between items-center">
           <h2 className="text-xl md:text-2xl font-black italic tracking-tight flex items-center gap-2 md:gap-3 dark:text-white transition-all">
-            <History className="text-indigo-600 dark:text-indigo-400 w-6 h-6 md:w-8 md:h-8" />
+            <History className="text-rose-600 dark:text-rose-400 w-6 h-6 md:w-8 md:h-8" />
             Financial Audit
           </h2>
           <button 
             onClick={exportCSV}
-            className="flex items-center gap-1.5 md:gap-2 bg-indigo-600 text-white px-3.5 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs shadow-lg shadow-indigo-100 dark:shadow-indigo-900/20 uppercase tracking-widest active:scale-95 transition-all"
+            className="flex items-center gap-1.5 md:gap-2 bg-rose-600 text-white px-3.5 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs shadow-lg shadow-rose-100 dark:shadow-rose-900/20 uppercase tracking-widest active:scale-95 transition-all"
           >
             <Download className="w-3.5 h-3.5 md:w-4 md:h-4" /> CSV
           </button>
@@ -119,7 +119,7 @@ export const Reports: React.FC = () => {
                <button
                  key={opt.id}
                  onClick={() => setReportRange(opt.id as any)}
-                 className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-all ${reportRange === opt.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
+                 className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-all ${reportRange === opt.id ? 'bg-rose-600 text-white shadow-md' : 'bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
                >
                  {opt.label}
                </button>
@@ -155,10 +155,10 @@ export const Reports: React.FC = () => {
       <section className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 px-1">
         <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-2xl md:rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm space-y-4 md:space-y-5 transition-all">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 md:gap-2 text-indigo-600 dark:text-indigo-400 font-black uppercase text-[9px] md:text-[10px] tracking-widest">
+            <div className="flex items-center gap-1.5 md:gap-2 text-rose-600 dark:text-rose-400 font-black uppercase text-[9px] md:text-[10px] tracking-widest">
               <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4" /> Period
             </div>
-            <span className="text-[8px] md:text-[10px] font-black bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 md:px-3 py-0.5 md:py-1 rounded-full uppercase transition-all">
+            <span className="text-[8px] md:text-[10px] font-black bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 px-2 md:px-3 py-0.5 md:py-1 rounded-full uppercase transition-all">
               {reportRange}
             </span>
           </div>
@@ -199,10 +199,10 @@ export const Reports: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-indigo-600 dark:bg-indigo-700 p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] text-white space-y-3 md:space-y-4 relative overflow-hidden shadow-2xl shadow-indigo-100 dark:shadow-none group transition-all">
+        <div className="bg-rose-600 dark:bg-rose-700 p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] text-white space-y-3 md:space-y-4 relative overflow-hidden shadow-2xl shadow-rose-100 dark:shadow-none group transition-all">
           <div className="absolute -right-8 -bottom-8 w-40 h-40 md:w-48 md:h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
           <IndianRupee className="absolute right-4 bottom-4 w-24 h-24 md:w-32 md:h-32 opacity-10 rotate-12" />
-          <div className="text-indigo-200 dark:text-indigo-300 font-black uppercase text-[9px] md:text-[10px] tracking-[0.3em]">Net Cash Flow</div>
+          <div className="text-rose-200 dark:text-rose-300 font-black uppercase text-[9px] md:text-[10px] tracking-[0.3em]">Net Cash Flow</div>
           <div className="text-4xl md:text-6xl font-black tracking-tighter italic transition-all">₹{summary.netCashFlow}</div>
           <div className="text-[10px] md:text-xs font-bold opacity-70 leading-relaxed max-w-[180px] md:max-w-[200px]">
             Actual liquid cash available from collections after deducting physical expenses.
@@ -275,3 +275,4 @@ export const Reports: React.FC = () => {
     </div>
   );
 };
+

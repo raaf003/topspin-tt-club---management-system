@@ -574,7 +574,7 @@ export const Payments: React.FC = () => {
                           {p.description && <span className="lowercase italic truncate max-w-[80px] md:max-w-[120px] dark:text-slate-400 shrink-0">{p.description}</span>}
                         </div>
                         {hasOtherPlayers && coveredAllocations.length > 0 && (
-                          <div className="mt-1 text-[8px] md:text-[10px] font-bold text-indigo-600 dark:text-indigo-400 truncate">
+                          <div className="mt-1 text-[8px] md:text-[10px] font-bold text-rose-600 dark:text-rose-400 truncate">
                             Paid ₹{coveredAmount} for {coveredSummary}
                           </div>
                         )}
@@ -616,7 +616,7 @@ export const Payments: React.FC = () => {
                         onClick={() => setExpandedPaymentId(isExpanded ? null : p.id)}
                         title={isExpanded ? 'Hide split details' : 'Show split details'}
                         aria-label={isExpanded ? 'Hide split details' : 'Show split details'}
-                        className="p-1 text-gray-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                        className="p-1 text-gray-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                       >
                         <ChevronDown className={`w-3 h-3 md:w-3.5 md:h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </button>
@@ -633,7 +633,7 @@ export const Payments: React.FC = () => {
                           return (
                             <div key={idx} className="flex items-center justify-between text-xs md:text-sm">
                               <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 dark:bg-indigo-500"></div>
+                                <div className="w-1.5 h-1.5 rounded-full bg-rose-400 dark:bg-rose-500"></div>
                                 <span className="font-bold text-gray-700 dark:text-slate-300">{allocPlayer?.name || 'Unknown Player'}</span>
                                 {isSelf && (
                                   <span className="text-[8px] font-black bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-slate-400 px-1.5 py-0.5 rounded-md uppercase">Self</span>
@@ -641,7 +641,7 @@ export const Payments: React.FC = () => {
                               </div>
                               <div className="flex items-center gap-3">
                                 {!isSelf && (
-                                  <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">Paid by {payer?.name || 'Payer'}</span>
+                                  <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">Paid by {payer?.name || 'Payer'}</span>
                                 )}
                                 {alloc.discount > 0 && (
                                   <span className="text-[10px] font-bold text-amber-500">Waived: ₹{alloc.discount}</span>
@@ -707,3 +707,4 @@ export const Payments: React.FC = () => {
     </div>
   );
 };
+

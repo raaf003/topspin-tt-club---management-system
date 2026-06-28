@@ -15,8 +15,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   SALARY: 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
   ELECTRICITY: 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
   WATER: 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400',
-  EQUIPMENT: 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400',
-  BATS: 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400',
+  EQUIPMENT: 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400',
+  BATS: 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400',
   BALLS: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
   MAINTENANCE: 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
   MARKETING: 'bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400',
@@ -219,7 +219,7 @@ export const Expenses: React.FC = () => {
       {showAdd && (
         <form
           onSubmit={handleSubmit}
-          className={`bg-white dark:bg-slate-900 p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 shadow-xl space-y-4 transition-all animate-in zoom-in-95 duration-200 ${editingId ? 'border-amber-200 dark:border-amber-800 ring-2 ring-amber-100 dark:ring-amber-900/20' : 'border-indigo-500/20 dark:border-indigo-500/30'}`}
+          className={`bg-white dark:bg-slate-900 p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 shadow-xl space-y-4 transition-all animate-in zoom-in-95 duration-200 ${editingId ? 'border-amber-200 dark:border-amber-800 ring-2 ring-amber-100 dark:ring-amber-900/20' : 'border-rose-500/20 dark:border-rose-500/30'}`}
         >
           <div className="grid grid-cols-2 gap-3 md:gap-4">
             <div className="space-y-1">
@@ -230,7 +230,7 @@ export const Expenses: React.FC = () => {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0"
-                className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3 md:p-4 rounded-xl text-lg md:text-xl font-bold outline-none dark:text-white transition-all shadow-inner focus:ring-2 ring-indigo-500/20"
+                className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3 md:p-4 rounded-xl text-lg md:text-xl font-bold outline-none dark:text-white transition-all shadow-inner focus:ring-2 ring-rose-500/20"
                 required
               />
             </div>
@@ -257,8 +257,8 @@ export const Expenses: React.FC = () => {
                   onClick={() => setCategory(cat)}
                   className={`p-2.5 rounded-xl text-[10px] md:text-xs font-bold transition-all border-2 ${
                     category === cat
-                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none scale-[1.02]'
-                      : 'bg-gray-50 dark:bg-slate-800 border-transparent text-gray-600 dark:text-gray-400 hover:border-indigo-200 dark:hover:border-slate-600'
+                      ? 'bg-rose-600 border-rose-600 text-white shadow-lg shadow-rose-200 dark:shadow-none scale-[1.02]'
+                      : 'bg-gray-50 dark:bg-slate-800 border-transparent text-gray-600 dark:text-gray-400 hover:border-rose-200 dark:hover:border-slate-600'
                   }`}
                 >
                   {cat.replace(/_/g, ' ')}
@@ -288,14 +288,14 @@ export const Expenses: React.FC = () => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="e.g. Electricity bill for Jan"
-                className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3 rounded-xl outline-none dark:text-white transition-all text-sm focus:ring-2 ring-indigo-500/20"
+                className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3 rounded-xl outline-none dark:text-white transition-all text-sm focus:ring-2 ring-rose-500/20"
               />
             </div>
           </div>
 
           <button
             type="submit"
-            className={`w-full py-3.5 md:py-4 rounded-xl font-bold shadow-lg active:scale-[0.98] transition-all text-sm md:text-base text-white ${editingId ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-100 dark:shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none'}`}
+            className={`w-full py-3.5 md:py-4 rounded-xl font-bold shadow-lg active:scale-[0.98] transition-all text-sm md:text-base text-white ${editingId ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-100 dark:shadow-none' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-200 dark:shadow-none'}`}
           >
             {editingId ? 'Update Expense' : 'Save Expense'}
           </button>
@@ -316,7 +316,7 @@ export const Expenses: React.FC = () => {
             <button
               onClick={() => setShowChart(!showChart)}
               title={showChart ? 'Hide chart' : 'Show breakdown chart'}
-              className="p-2 rounded-xl text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
+              className="p-2 rounded-xl text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
             >
               {showChart ? <ChevronUp className="w-5 h-5" /> : <PieChartIcon className="w-5 h-5" />}
             </button>
@@ -357,7 +357,7 @@ export const Expenses: React.FC = () => {
         <div className="flex flex-col gap-3 md:gap-4">
           <div className="flex justify-between items-center px-1">
             <h3 className="font-black text-base md:text-lg text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-              <Calendar className="w-4 h-4 md:w-5 md:h-5 text-indigo-600 dark:text-indigo-400" />
+              <Calendar className="w-4 h-4 md:w-5 md:h-5 text-rose-600 dark:text-rose-400" />
               Expense History
             </h3>
             {/* Year + Month pickers inline in header */}
@@ -367,7 +367,7 @@ export const Expenses: React.FC = () => {
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value === 'all' ? 'all' : Number(e.target.value))}
                   title="Select month"
-                  className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-indigo-600 dark:text-indigo-400 cursor-pointer"
+                  className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-rose-600 dark:text-rose-400 cursor-pointer"
                 >
                   <option value="all">All</option>
                   {Array.from({ length: 12 }, (_, i) => (
@@ -380,7 +380,7 @@ export const Expenses: React.FC = () => {
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
                   title="Select year"
-                  className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-indigo-600 dark:text-indigo-400 cursor-pointer"
+                  className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-rose-600 dark:text-rose-400 cursor-pointer"
                 >
                   {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
@@ -396,7 +396,7 @@ export const Expenses: React.FC = () => {
               placeholder="Search by category, description, amount..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-slate-800 border-none pl-9 md:pl-12 pr-8 p-2.5 md:p-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-bold outline-none ring-1 ring-gray-100 dark:ring-slate-700 focus:ring-indigo-300 dark:focus:ring-indigo-800 transition-all text-gray-800 dark:text-white"
+              className="w-full bg-gray-50 dark:bg-slate-800 border-none pl-9 md:pl-12 pr-8 p-2.5 md:p-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-bold outline-none ring-1 ring-gray-100 dark:ring-slate-700 focus:ring-rose-300 dark:focus:ring-rose-800 transition-all text-gray-800 dark:text-white"
             />
             {searchQuery && (
               <button
@@ -421,7 +421,7 @@ export const Expenses: React.FC = () => {
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   title="Filter by category"
                   aria-label="Filter by category"
-                  className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-indigo-600 dark:text-indigo-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                  className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-rose-600 dark:text-rose-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   <option value="all">All Categories</option>
                   {Object.values(ExpenseCategory).map(cat => (
@@ -439,7 +439,7 @@ export const Expenses: React.FC = () => {
                     onChange={(e) => setSelectedUser(e.target.value)}
                     title="Filter by user"
                     aria-label="Filter by user"
-                    className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-indigo-600 dark:text-indigo-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                    className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-rose-600 dark:text-rose-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                   >
                     <option value="all">All Users</option>
                     {usersList.map(u => <option key={u} value={u}>{u}</option>)}
@@ -455,7 +455,7 @@ export const Expenses: React.FC = () => {
                   onChange={(e) => setItemsPerPage(Number(e.target.value))}
                   title="Items per page"
                   aria-label="Items per page"
-                  className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-indigo-600 dark:text-indigo-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                  className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-rose-600 dark:text-rose-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   {[10, 20, 50, 100].map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
@@ -464,7 +464,7 @@ export const Expenses: React.FC = () => {
 
             {/* Total Count Badge */}
             <div className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-tighter shrink-0 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded-lg border border-gray-100 dark:border-slate-700">
-              Total: <span className="text-indigo-600 dark:text-indigo-400">{filteredExpenses.length}</span>
+              Total: <span className="text-rose-600 dark:text-rose-400">{filteredExpenses.length}</span>
             </div>
           </div>
 
@@ -472,19 +472,19 @@ export const Expenses: React.FC = () => {
           {hasActiveFilters && (
             <div className="flex flex-wrap gap-1.5 px-1">
               {searchQuery && (
-                <span className="inline-flex items-center gap-1 text-[9px] font-black bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-[9px] font-black bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-full">
                   "{searchQuery}"
                   <button type="button" title="Clear search filter" aria-label="Clear search filter" onClick={() => setSearchQuery('')}><X className="w-2.5 h-2.5" /></button>
                 </span>
               )}
               {selectedCategory !== 'all' && (
-                <span className="inline-flex items-center gap-1 text-[9px] font-black bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-[9px] font-black bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-full">
                   {selectedCategory.replace(/_/g, ' ')}
                   <button type="button" title="Clear category filter" aria-label="Clear category filter" onClick={() => setSelectedCategory('all')}><X className="w-2.5 h-2.5" /></button>
                 </span>
               )}
               {selectedUser !== 'all' && (
-                <span className="inline-flex items-center gap-1 text-[9px] font-black bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-[9px] font-black bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-full">
                   By {selectedUser}
                   <button type="button" title="Clear user filter" aria-label="Clear user filter" onClick={() => setSelectedUser('all')}><X className="w-2.5 h-2.5" /></button>
                 </span>
@@ -521,7 +521,7 @@ export const Expenses: React.FC = () => {
                             <button
                               onClick={() => handleEdit(ex)}
                               title="Edit expense"
-                              className="p-1 text-gray-300 hover:text-indigo-500 dark:text-slate-600 dark:hover:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                              className="p-1 text-gray-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20"
                             >
                               <Edit2 className="w-3 h-3" />
                             </button>
@@ -598,3 +598,4 @@ export const Expenses: React.FC = () => {
     </div>
   );
 };
+

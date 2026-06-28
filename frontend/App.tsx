@@ -49,7 +49,7 @@ const AppRoutes: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
+        <Loader2 className="w-12 h-12 text-rose-600 animate-spin mb-4" />
         <p className="text-slate-500 dark:text-slate-400 font-bold animate-pulse">LOADING TOPSPIN HUB...</p>
       </div>
     );
@@ -109,3 +109,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+

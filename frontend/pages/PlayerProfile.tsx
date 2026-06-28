@@ -64,8 +64,8 @@ const MonthlyProgressBar: React.FC<{ wins: number; games: number }> = ({ wins, g
 
   return (
     <div className="flex-1 h-3 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
-      <div ref={winRef} className="h-full bg-indigo-500 transition-all duration-500"></div>
-      <div ref={lossRef} className="h-full bg-indigo-200 dark:bg-indigo-900/50 transition-all duration-500"></div>
+      <div ref={winRef} className="h-full bg-rose-500 transition-all duration-500"></div>
+      <div ref={lossRef} className="h-full bg-rose-200 dark:bg-rose-900/50 transition-all duration-500"></div>
     </div>
   );
 };
@@ -227,7 +227,7 @@ export const PlayerProfile: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2rem] p-6 text-white shadow-xl shadow-indigo-500/20 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-rose-600 to-violet-700 rounded-[2rem] p-6 text-white shadow-xl shadow-rose-500/20 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl animate-pulse"></div>
         <div className="relative z-10 flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left">
           <div className="w-24 h-24 md:w-32 md:h-32 bg-white/20 backdrop-blur-md rounded-[2.5rem] flex items-center justify-center text-4xl md:text-5xl font-black shadow-inner border border-white/30 transition-all hover:scale-105 duration-500">
@@ -296,7 +296,7 @@ export const PlayerProfile: React.FC = () => {
         <HighlightStat 
           label="Conservative" 
           value={`${rankingMetrics?.conservativeRating.toFixed(0) || '-'}`} 
-          icon={<Gauge className="w-5 h-5 text-indigo-500" />} 
+          icon={<Gauge className="w-5 h-5 text-rose-500" />} 
           subValue="Rating - 2RD"
           tooltip="Conservative Rating = Skill Rating minus twice the Rating Deviation. This is 60% of your leaderboard score."
         />
@@ -361,7 +361,7 @@ export const PlayerProfile: React.FC = () => {
           
           <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm transition-all">
             <h3 className="font-black text-gray-900 dark:text-white uppercase text-xs tracking-[0.2em] flex items-center gap-2 mb-6">
-              <TrendingUp className="w-4 h-4 text-indigo-500" /> Monthly Games
+              <TrendingUp className="w-4 h-4 text-rose-500" /> Monthly Games
             </h3>
             <div className="space-y-4">
               {stats.monthlyStats.slice(0, 5).map(m => (
@@ -379,7 +379,7 @@ export const PlayerProfile: React.FC = () => {
               <HighlightStat 
                 label="Fav Opponent" 
                 value={stats.favoriteOpponent.name} 
-                icon={<User className="w-5 h-5 text-indigo-500" />} 
+                icon={<User className="w-5 h-5 text-rose-500" />} 
                 subValue={`${stats.favoriteOpponent.played} Battles`}
               />
             )}
@@ -393,7 +393,7 @@ export const PlayerProfile: React.FC = () => {
           {/* Rating History Graph */}
           <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm transition-all h-[300px] md:h-[400px]">
             <h3 className="font-black text-gray-900 dark:text-white uppercase text-xs tracking-[0.2em] flex items-center gap-2 mb-6">
-              <TrendingUp className="w-4 h-4 text-indigo-500" /> Rating History
+              <TrendingUp className="w-4 h-4 text-rose-500" /> Rating History
             </h3>
             <div className="h-[calc(100%-3rem)]">
               {ratingHistory.length > 0 ? (
@@ -436,7 +436,7 @@ export const PlayerProfile: React.FC = () => {
                         const entry = payload[0].payload;
                         return (
                           <div className="bg-white dark:bg-slate-900 p-3 rounded-xl shadow-xl border border-gray-100 dark:border-slate-800">
-                            <div className="text-xs font-black text-indigo-600 mb-1">{label}</div>
+                            <div className="text-xs font-black text-rose-600 mb-1">{label}</div>
                             <div className="text-lg font-black dark:text-white">{entry.rating?.toFixed(0)} Rating</div>
                             <div className="text-[10px] text-gray-500 dark:text-slate-400 font-bold">
                               RD: {entry.rd?.toFixed(0)} | {entry.matchCount} match{entry.matchCount > 1 ? 'es' : ''} 

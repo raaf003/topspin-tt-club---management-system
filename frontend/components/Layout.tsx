@@ -76,7 +76,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     }}
                     className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                       themeMode === option.mode
-                        ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+                        ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                     }`}
                   >
@@ -100,7 +100,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   className="flex items-center gap-2 p-1 rounded-full transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-700 bg-gray-100/50 dark:bg-slate-800/50"
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    isSuperAdmin ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
+                    isSuperAdmin ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400'
                   }`}>
                     {isSuperAdmin ? <ShieldCheck className="w-5 h-5" /> : isAdmin ? <ShieldCheck className="w-5 h-5" /> : <UserCircle className="w-5 h-5" />}
                   </div>
@@ -119,7 +119,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                           to="/admin"
                           replace
                           onClick={() => setShowProfileMenu(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg transition-colors"
                         >
                           <ShieldCheck className="w-4 h-4 text-amber-500" />
                           System Control and Audit
@@ -143,7 +143,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             ) : (
               <button
                 onClick={() => navigate('/login')}
-                className="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 dark:shadow-none"
+                className="px-4 py-1.5 rounded-lg bg-rose-600 text-white text-sm font-bold hover:bg-rose-700 transition-colors shadow-lg shadow-rose-200 dark:shadow-none"
               >
                 Sign In
               </button>
@@ -163,7 +163,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               href="https://www.newagesolutions.dev" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-all underline decoration-2 underline-offset-4"
+              className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-all underline decoration-2 underline-offset-4"
             >
               New Age Solutions
             </a>
@@ -198,7 +198,7 @@ const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string }> = 
     className={({ isActive }) =>
       `flex flex-col items-center justify-center gap-0.5 w-full md:w-auto px-2 md:px-0 transition-all duration-200 ${
         isActive 
-          ? 'text-indigo-600 dark:text-indigo-400 scale-110 md:scale-100' 
+          ? 'text-rose-600 dark:text-rose-400 scale-110 md:scale-100' 
           : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
       }`
     }
@@ -207,3 +207,4 @@ const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string }> = 
     <span className="text-[10px] md:hidden font-medium">{label}</span>
   </NavLink>
 );
+
