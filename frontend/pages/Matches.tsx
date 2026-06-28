@@ -174,6 +174,7 @@ export const Matches: React.FC = () => {
   const [payerOption, setPayerOption] = useState<PayerOption>(PayerOption.LOSER);
   const [winnerId, setWinnerId] = useState('');
   const [isRated, setIsRated] = useState(true);
+  const [showBilling, setShowBilling] = useState(false);
   const [matchDate, setMatchDate] = useState(getLocalTodayStr());
   const [success, setSuccess] = useState(false);
 
@@ -620,8 +621,8 @@ export const Matches: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          <div className="col-span-1">
+        <div className="grid grid-cols-5 gap-3">
+          <div className="col-span-2">
             <TableSelect 
               label="Table"
               value={table}
@@ -631,7 +632,7 @@ export const Matches: React.FC = () => {
             />
           </div>
 
-          <div className="space-y-1 md:space-y-1.5 col-span-1">
+          <div className="space-y-1 md:space-y-1.5 col-span-2">
             <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Match Date</label>
             <div className="bg-gray-50 dark:bg-slate-900 rounded-xl md:rounded-2xl border-2 border-transparent shadow-inner p-1 md:p-1.5 h-[42px] md:h-[52px] flex items-center">
               <input 
@@ -645,9 +646,9 @@ export const Matches: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-1 md:space-y-1.5 col-span-1">
+          <div className="space-y-1 md:space-y-1.5 col-span-1 flex flex-col justify-end">
             <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Ranked</label>
-            <div className="flex items-center justify-between px-3 bg-gray-50 dark:bg-slate-900 rounded-xl md:rounded-2xl border-2 border-transparent shadow-inner h-[42px] md:h-[52px]">
+            <div className="flex items-center justify-between gap-1 md:gap-2 px-2 md:px-3 bg-gray-50 dark:bg-slate-900 rounded-xl md:rounded-2xl border-2 border-transparent shadow-inner h-[42px] md:h-[52px]">
               <Zap className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isRated ? 'text-amber-500' : 'text-gray-400'}`} />
               <button 
                 type="button"
@@ -723,52 +724,40 @@ export const Matches: React.FC = () => {
         )}
 
         <div className="space-y-1.5 md:space-y-2">
-          <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Billing</label>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { id: PayerOption.LOSER, label: `Loser Pays` },
-              { id: PayerOption.BOTH, label: `Split (50/50)` },
-              { id: PayerOption.PLAYER_A, label: `A pays ₹${matchTotal}` },
-              { id: PayerOption.PLAYER_B, label: `B pays ₹${matchTotal}` },
-            ].map(opt => {
-              const isSelected = payerOption === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setPayerOption(opt.id)}
-                  className={`py-2.5 md:py-3 px-2 rounded-xl md:rounded-2xl border-2 text-[10px] md:text-[11px] font-black transition-all ${
-                    isSelected ? (editingId ? 'bg-amber-600 border-amber-600 text-white' : 'bg-rose-600 border-rose-600 text-white') + ' shadow-md' : 'bg-gray-50 dark:bg-slate-800 border-transparent text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowBilling(!showBilling)}
+            className="w-full flex items-center justify-between hover:opacity-80 transition-opacity group"
+          >
+            <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1 cursor-pointer">Billing</label>
+            <ChevronDown className={`w-4 h-4 md:w-5 md:h-5 text-gray-400 transition-transform ${showBilling ? 'rotate-180' : ''}`} />
+          </button>
+          {showBilling && (
+            <div className="grid grid-cols-2 gap-2 animate-in fade-in duration-200">
+              {[
+                { id: PayerOption.LOSER, label: `Loser Pays` },
+                { id: PayerOption.BOTH, label: `Split (50/50)` },
+                { id: PayerOption.PLAYER_A, label: `A pays ₹${matchTotal}` },
+                { id: PayerOption.PLAYER_B, label: `B pays ₹${matchTotal}` },
+              ].map(opt => {
+                const isSelected = payerOption === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setPayerOption(opt.id)}
+                    className={`py-2.5 md:py-3 px-2 rounded-xl md:rounded-2xl border-2 text-[10px] md:text-[11px] font-black transition-all ${
+                      isSelected ? (editingId ? 'bg-amber-600 border-amber-600 text-white' : 'bg-rose-600 border-rose-600 text-white') + ' shadow-md' : 'bg-gray-50 dark:bg-slate-800 border-transparent text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {playerAId && playerBId && (
-          <div className="bg-gray-900 dark:bg-slate-800 p-3.5 md:p-5 rounded-2xl md:rounded-3xl flex items-center justify-between text-white shadow-2xl transition-all">
-            <div className="space-y-0.5">
-              <p className="text-[8px] md:text-[9px] font-black text-rose-400 dark:text-rose-300 uppercase tracking-[0.2em]">Add to Dues</p>
-              <div className="flex gap-3 md:gap-4">
-                <div className="flex items-center gap-1 md:gap-1.5">
-                  <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-rose-500"></div>
-                  <span className="text-xs md:text-sm font-bold opacity-80">A: ₹{chargePreview.a}</span>
-                </div>
-                <div className="flex items-center gap-1 md:gap-1.5">
-                  <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-orange-500"></div>
-                  <span className="text-xs md:text-sm font-bold opacity-80">B: ₹{chargePreview.b}</span>
-                </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-[8px] md:text-[9px] font-black text-rose-400 dark:text-rose-300 uppercase tracking-[0.2em]">Game Value</p>
-              <p className="text-xl md:text-2xl font-black italic">₹{matchTotal}</p>
-            </div>
-          </div>
-        )}
         <div className="flex flex-col gap-3 md:gap-4 pt-1 md:pt-2">
           <button 
             type="submit"
