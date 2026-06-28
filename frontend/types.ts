@@ -1,4 +1,5 @@
 export enum UserRole {
+  SUPER_ADMIN = 'SUPER_ADMIN',
   ADMIN = 'ADMIN',
   STAFF = 'STAFF'
 }
@@ -12,8 +13,17 @@ export enum ExpenseCategory {
   RENT = 'RENT',
   SALARY = 'SALARY',
   ELECTRICITY = 'ELECTRICITY',
+  WATER = 'WATER',
+  EQUIPMENT = 'EQUIPMENT',
   BATS = 'BATS',
+  BALLS = 'BALLS',
   MAINTENANCE = 'MAINTENANCE',
+  MARKETING = 'MARKETING',
+  INTERNET = 'INTERNET',
+  CLEANING = 'CLEANING',
+  TOURNAMENT = 'TOURNAMENT',
+  REFRESHMENTS = 'REFRESHMENTS',
+  OFFICE = 'OFFICE',
   OTHER = 'OTHER'
 }
 
@@ -26,6 +36,19 @@ export enum PayerOption {
 
 export type MatchPoints = 10 | 20;
 
+export interface GameTable {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export interface GameConfig {
+  id: string;
+  type: string;
+  price: number;
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -37,6 +60,10 @@ export interface Player {
   rating?: number;
   ratingDeviation?: number;
   volatility?: number;
+  // Financial stats from backend
+  totalSpent?: number;
+  totalPaid?: number;
+  totalDiscounted?: number;
 }
 
 export interface OngoingMatch {
@@ -56,8 +83,11 @@ export interface Match {
     role: UserRole;
     name: string;
   };
-  table?: string;
+  tableId?: string;
+  table?: GameTable;
   points: MatchPoints;
+  typeId?: string;
+  type?: GameConfig;
   playerAId: string;
   playerBId: string;
   winnerId?: string;
@@ -81,7 +111,7 @@ export interface Payment {
   allocations: PaymentAllocation[];
   mode: PaymentMode;
   date: string;
-  notes?: string;
+  description?: string;
   recordedAt: number;
   recordedBy: {
     role: UserRole;
@@ -95,7 +125,7 @@ export interface Expense {
   category: ExpenseCategory;
   amount: number;
   mode: PaymentMode;
-  notes?: string;
+  description?: string;
   recordedBy: {
     role: UserRole;
     name: string;
@@ -109,6 +139,8 @@ export interface PlayerStats {
   gamesPlayed: number;
   wins: number;
   losses: number;
+  ratedWins: number;
+  ratedLosses: number;
   winRate: number;
   totalSpent: number;
   totalPaid: number;
@@ -165,10 +197,38 @@ export interface AppState {
   matches: Match[];
   payments: Payment[];
   expenses: Expense[];
+  tables: GameTable[];
+  gameConfigs: GameConfig[];
   ongoingMatch: OngoingMatch | null;
   currentUser: {
     role: UserRole;
     name: string;
+    id?: string;
   };
   themeMode: ThemeMode;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  phone?: string;
+  name: string;
+  role: UserRole;
+  isPartner: boolean;
+  profitPercentage?: number;
+  createdAt: number;
+}
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  userId: string;
+  user?: {
+    name: string;
+    role: UserRole;
+  };
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT';
+  resource: string;
+  resourceId: string;
+  details?: any;
 }

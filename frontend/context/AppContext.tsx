@@ -1,31 +1,41 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { Player, Match, Payment, Expense, AppState, UserRole, PayerOption, PaymentMode, OngoingMatch, ThemeMode, PlayerStats } from '../types';
-import { generateUUID } from '../utils';
 import { calculateAllPlayerStats } from '../rankingUtils';
+import { api, API_URL, SOCKET_URL } from '../api';
+import { io, Socket } from 'socket.io-client';
 
 interface AppContextType extends AppState {
   globalPlayerStats: Record<string, { rating: number; rd: number; vol: number; playStreak: number; consistencyScore: number; onFire: boolean; ratedMatchesLast30: number; rating7DaysAgo: number; lastMatchDate: string | null; earnedTier: number; totalRatedMatches: number; peakRating: number }>;
-  addPlayer: (player: Omit<Player, 'id' | 'createdAt'>) => void;
-  updatePlayer: (id: string, player: Partial<Player>) => void;
-  addMatch: (match: Omit<Match, 'id'>) => void;
-  updateMatch: (id: string, match: Partial<Match>) => void;
-  addPayment: (payment: Omit<Payment, 'id'>) => void;
-  updatePayment: (id: string, payment: Partial<Payment>) => void;
-  addExpense: (expense: Omit<Expense, 'id'>) => void;
-  updateExpense: (id: string, expense: Partial<Expense>) => void;
+  matchRates: { [key: string]: number };
+  addPlayer: (player: Omit<Player, 'id' | 'createdAt'>) => Promise<void>;
+  updatePlayer: (id: string, player: Partial<Player>) => Promise<void>;
+  addMatch: (match: Omit<Match, 'id'>) => Promise<void>;
+  updateMatch: (id: string, match: Partial<Match>) => Promise<void>;
+  deleteMatch: (id: string) => Promise<void>;
+  addPayment: (payment: Omit<Payment, 'id'>) => Promise<void>;
+  updatePayment: (id: string, payment: Partial<Payment>) => Promise<void>;
+  deletePayment: (id: string) => Promise<void>;
+  addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
+  updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
   startOngoingMatch: (match: OngoingMatch) => void;
   clearOngoingMatch: () => void;
-  switchRole: (role: UserRole) => void;
   setThemeMode: (mode: ThemeMode) => void;
   isDarkMode: boolean;
   getPlayerDues: (playerId: string) => number;
   getPlayerStats: (playerId: string, dateRange?: { start: string; end: string }) => PlayerStats;
+  login: (user: any, token: string) => void;
+  logout: () => void;
+  refreshData: (silent?: boolean) => Promise<void>;
+  isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'smashtrack_data_v1';
 const THEME_STORAGE_KEY = 'smashtrack_theme_v1';
+const TOKEN_KEY = 'smashtrack_token';
+const USER_KEY = 'smashtrack_user';
 
 const getSystemTheme = (): 'light' | 'dark' => {
   if (typeof window !== 'undefined' && window.matchMedia) {
@@ -41,61 +51,148 @@ const getEffectiveTheme = (themeMode: ThemeMode): 'light' | 'dark' => {
   return themeMode;
 };
 
-const INITIAL_PLAYERS: Player[] = [
-  { id: 'p1', name: 'Fardeen Malik', initialBalance: 0, createdAt: Date.now() },
-  { id: 'p2', name: 'Hamza Jeelani', initialBalance: 0, createdAt: Date.now() },
-  { id: 'p3', name: 'Amaan Tak', initialBalance: 0, createdAt: Date.now() },
-  { id: 'p4', name: 'Saqib Shapoo', nickname: 'Lenchi', initialBalance: 0, createdAt: Date.now() },
-  { id: 'p5', name: 'Rajid', nickname: 'Grenade', initialBalance: 0, createdAt: Date.now() },
-  { id: 'p6', name: 'Tahir Shapoo', initialBalance: 0, createdAt: Date.now() },
-];
-
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<AppState>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Migrate players if they don't have initialBalance
-      parsed.players = parsed.players.map((p: any) => ({
-        ...p,
-        initialBalance: p.initialBalance ?? 0
-      }));
-      // Ensure ongoingMatch exists in parsed state
-      if (parsed.ongoingMatch === undefined) parsed.ongoingMatch = null;
-      // Migrate old isDarkMode to themeMode
-      if (parsed.isDarkMode !== undefined && parsed.themeMode === undefined) {
-        parsed.themeMode = parsed.isDarkMode ? 'dark' : 'light';
-        delete parsed.isDarkMode;
-      }
-      return parsed;
+  const [isLoading, setIsLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(localStorage.getItem(TOKEN_KEY));
+  const socketRef = React.useRef<Socket | null>(null);
+  
+  const [state, setState] = useState<AppState & { matchRates: { [key: string]: number } }>({
+    players: [],
+    matches: [],
+    payments: [],
+    expenses: [],
+    tables: [],
+    gameConfigs: [],
+    ongoingMatch: null,
+    matchRates: {},
+    currentUser: JSON.parse(localStorage.getItem(USER_KEY) || '{"role":"STAFF","name":"Guest"}'),
+    themeMode: (localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode) || 'auto'
+  });
+
+  const isAuthenticated = !!token;
+
+  const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    setToken(null);
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
     }
-    return {
-      players: INITIAL_PLAYERS,
+    setState(prev => ({
+      ...prev,
+      players: [],
       matches: [],
       payments: [],
       expenses: [],
-      ongoingMatch: null,
-      currentUser: { role: UserRole.ADMIN, name: 'Partner 1' },
-      themeMode: (localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode) || 'auto'
-    };
-  });
+      currentUser: { role: UserRole.STAFF, name: 'Guest' }
+    }));
+  }, []);
+
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    try {
+      const isAdminFlag = state.currentUser.role === UserRole.ADMIN || state.currentUser.role === UserRole.SUPER_ADMIN;
+
+      // Public data - Always fetch for calculation
+      const playersPromise = api.get('/players');
+      // Matches are needed for leaderboard calculation even for public users
+      const matchesPromise = api.get('/matches?limit=100000');
+
+      // Protected data - Only if authenticated
+      const paymentsPromise = token ? api.get('/finance/payments?limit=100000') : Promise.resolve([]);
+      const expensesPromise = (token && isAdminFlag) ? api.get('/finance/expenses') : Promise.resolve([]);
+      const gameTypesPromise = token ? api.get('/config/game-types') : Promise.resolve([]);
+      const tablesPromise = token ? api.get('/config/tables') : Promise.resolve([]);
+
+      const [playersRes, matchRes, paymentsRes, expensesRes, configsRes, tablesRes] = await Promise.all([
+        playersPromise,
+        matchesPromise,
+        paymentsPromise,
+        expensesPromise,
+        gameTypesPromise,
+        tablesPromise
+      ]);
+
+      // Robust data extraction handling various potential response formats
+      const players = Array.isArray(playersRes) ? playersRes : (playersRes?.data || playersRes?.players || []);
+      const matchData = (matchRes as any);
+      const matches = Array.isArray(matchData) ? matchData : (matchData?.matches || matchData?.data?.matches || []);
+      
+      const payments = token ? (Array.isArray(paymentsRes) ? paymentsRes : ((paymentsRes as any)?.data || [])) : [];
+      const expenses = (token && isAdminFlag) ? (Array.isArray(expensesRes) ? expensesRes : ((expensesRes as any)?.data || [])) : [];
+      const configs = token ? (Array.isArray(configsRes) ? configsRes : ((configsRes as any)?.data || [])) : [];
+      const tables = token ? (Array.isArray(tablesRes) ? tablesRes : ((tablesRes as any)?.data || [])) : [];
+
+      const ratesMap = (configs || []).reduce((acc: any, curr: any) => {
+        acc[curr.type] = curr.price;
+        return acc;
+      }, {});
+      
+      setState(prev => ({
+        ...prev,
+        players,
+        matches,
+        payments,
+        expenses,
+        tables,
+        gameConfigs: configs,
+        matchRates: ratesMap
+      }));
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      if (token && ((error as any).message?.includes('token') || (error as any).status === 401)) {
+        logout();
+      }
+    } finally {
+      if (!silent) setIsLoading(false);
+    }
+  }, [token, state.currentUser?.role, logout]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (token && !socketRef.current) {
+      socketRef.current = io(SOCKET_URL, {
+        transports: ['websocket'], // Prefer websocket for reliability in some envs
+        reconnection: true
+      });
+
+      socketRef.current.on('connect', () => {
+        console.log('Connected to real-time sync');
+      });
+
+      socketRef.current.on('live-match-sync', (match: OngoingMatch | null) => {
+        setState(prev => ({ ...prev, ongoingMatch: match }));
+      });
+
+      socketRef.current.on('data-updated', (data: { type: string }) => {
+        console.log('Real-time data update:', data.type);
+        fetchData(true);
+      });
+    }
+
+    if (!token && socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+  }, [token, fetchData]);
+  
+  const login = (user: any, newToken: string) => {
+    localStorage.setItem(TOKEN_KEY, newToken);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    setToken(newToken);
+    setState(prev => ({ ...prev, currentUser: user }));
+  };
 
   const globalPlayerStats = useMemo(() => {
     return calculateAllPlayerStats(state.players, state.matches);
   }, [state.players, state.matches]);
 
-  // Initialize themeMode from storage on mount if not already loaded
-  useEffect(() => {
-    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode;
-    if (savedTheme && state.themeMode !== savedTheme) {
-      setState(prev => ({ ...prev, themeMode: savedTheme }));
-    }
-  }, []);
-
-  // Update DOM dark mode class and listen for system theme changes
   useEffect(() => {
     const effectiveTheme = getEffectiveTheme(state.themeMode);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     localStorage.setItem(THEME_STORAGE_KEY, state.themeMode);
     
     if (effectiveTheme === 'dark') {
@@ -103,101 +200,115 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else {
       document.documentElement.classList.remove('dark');
     }
+  }, [state.themeMode]);
 
-    // Listen for system theme changes when in auto mode
-    if (state.themeMode === 'auto' && typeof window !== 'undefined' && window.matchMedia) {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => {
-        const newTheme = getEffectiveTheme(state.themeMode);
-        if (newTheme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      };
-      
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    }
-  }, [state]);
-
-  const addPlayer = useCallback((playerData: Omit<Player, 'id' | 'createdAt'>) => {
-    const newPlayer: Player = {
-      ...playerData,
-      id: generateUUID(),
-      createdAt: Date.now(),
-      rating: 1500,
-      ratingDeviation: 350,
-      volatility: 0.06
-    };
+  const addPlayer = async (playerData: Omit<Player, 'id' | 'createdAt'>) => {
+    const newPlayer = await api.post('/players', playerData);
     setState(prev => ({ ...prev, players: [newPlayer, ...prev.players] }));
-  }, []);
+  };
 
-  const updatePlayer = useCallback((id: string, playerData: Partial<Player>) => {
+  const updatePlayer = async (id: string, playerData: Partial<Player>) => {
+    const updated = await api.patch('/players/' + id, playerData);
     setState(prev => ({
       ...prev,
-      players: prev.players.map(p => p.id === id ? { ...p, ...playerData } : p)
+      players: prev.players.map(p => p.id === id ? updated : p)
     }));
-  }, []);
+  };
 
-  const addMatch = useCallback((matchData: Omit<Match, 'id'>) => {
-    const newMatch: Match = {
+  const addMatch = async (matchData: Omit<Match, 'id'>) => {
+    const newMatch = await api.post('/matches', {
       ...matchData,
-      id: generateUUID(),
-      isRated: matchData.isRated ?? true,
-      weight: matchData.weight ?? (matchData.points === 10 ? 0.6 : 1.0)
-    };
+      recordedAt: Date.now()
+    });
     setState(prev => ({ ...prev, matches: [newMatch, ...prev.matches] }));
-  }, []);
+    const players = await api.get('/players');
+    setState(prev => ({ ...prev, players }));
+  };
 
-  const updateMatch = useCallback((id: string, matchData: Partial<Match>) => {
+  const updateMatch = async (id: string, matchData: Partial<Match>) => {
+    const updated = await api.patch('/matches/' + id, matchData);
     setState(prev => ({
       ...prev,
-      matches: prev.matches.map(m => m.id === id ? { ...m, ...matchData } : m)
+      matches: prev.matches.map(m => m.id === id ? updated : m)
     }));
-  }, []);
+  };
 
-  const addPayment = useCallback((paymentData: Omit<Payment, 'id'>) => {
-    const newPayment: Payment = {
-      ...paymentData,
-      id: generateUUID()
-    };
+  const deleteMatch = async (id: string) => {
+    await api.delete('/matches/' + id);
+    setState(prev => ({
+      ...prev,
+      matches: prev.matches.filter(m => m.id !== id)
+    }));
+    const players = await api.get('/players');
+    setState(prev => ({ ...prev, players }));
+  };
+
+  const addPayment = async (paymentData: Omit<Payment, 'id'>) => {
+    const { primaryPayerId, ...rest } = paymentData as any;
+    const newPayment = await api.post('/finance/payment', {
+      ...rest,
+      playerId: primaryPayerId
+    });
     setState(prev => ({ ...prev, payments: [newPayment, ...prev.payments] }));
-  }, []);
+  };
 
-  const updatePayment = useCallback((id: string, paymentData: Partial<Payment>) => {
+  const updatePayment = async (id: string, paymentData: Partial<Payment>) => {
+    const { primaryPayerId, ...rest } = paymentData as any;
+    const updated = await api.patch('/finance/payment/' + id, {
+      ...rest,
+      playerId: primaryPayerId
+    });
     setState(prev => ({
       ...prev,
-      payments: prev.payments.map(p => p.id === id ? { ...p, ...paymentData } : p)
+      payments: prev.payments.map(p => p.id === id ? updated : p)
     }));
-  }, []);
+  };
 
-  const addExpense = useCallback((expenseData: Omit<Expense, 'id'>) => {
-    const newExpense: Expense = {
-      ...expenseData,
-      id: generateUUID(),
-      recordedAt: expenseData.recordedAt || Date.now()
-    };
+  const deletePayment = async (id: string) => {
+    await api.delete('/finance/payment/' + id);
+    setState(prev => ({
+      ...prev,
+      payments: prev.payments.filter(p => p.id !== id)
+    }));
+  };
+
+  const addExpense = async (expenseData: Omit<Expense, 'id'>) => {
+    const newExpense = await api.post('/finance/expense', expenseData);
     setState(prev => ({ ...prev, expenses: [newExpense, ...prev.expenses] }));
-  }, []);
+  };
 
-  const updateExpense = useCallback((id: string, expenseData: Partial<Expense>) => {
+  const updateExpense = async (id: string, expenseData: Partial<Expense>) => {
+    const updated = await api.patch('/finance/expense/' + id, expenseData);
     setState(prev => ({
       ...prev,
-      expenses: prev.expenses.map(ex => ex.id === id ? { ...ex, ...expenseData } : ex)
+      expenses: prev.expenses.map(ex => ex.id === id ? updated : ex)
     }));
+  };
+
+  const deleteExpense = async (id: string) => {
+    await api.delete('/finance/expense/' + id);
+    setState(prev => ({
+      ...prev,
+      expenses: prev.expenses.filter(ex => ex.id !== id)
+    }));
+  };
+
+  const startOngoingMatch = useCallback(async (match: OngoingMatch) => {
+    try {
+      await api.post('/matches/live', match);
+    } catch (err: any) {
+      console.error('Failed to start live match:', err);
+      // Re-throw to allow component to handle it
+      throw err;
+    }
   }, []);
 
-  const startOngoingMatch = useCallback((match: OngoingMatch) => {
-    setState(prev => ({ ...prev, ongoingMatch: match }));
-  }, []);
-
-  const clearOngoingMatch = useCallback(() => {
-    setState(prev => ({ ...prev, ongoingMatch: null }));
-  }, []);
-
-  const switchRole = useCallback((role: UserRole) => {
-    setState(prev => ({ ...prev, currentUser: { ...prev.currentUser, role } }));
+  const clearOngoingMatch = useCallback(async () => {
+    try {
+      await api.delete('/matches/live');
+    } catch (err) {
+      console.error('Failed to stop live match:', err);
+    }
   }, []);
 
   const setThemeMode = useCallback((mode: ThemeMode) => {
@@ -220,26 +331,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .filter(m => m.playerAId === playerId || m.playerBId === playerId)
       .sort((a, b) => a.recordedAt - b.recordedAt); // Chronological for trend
     
-    // Sum all match charges for this player
-    const totalSpent = playerMatches.reduce((sum, m) => sum + (m.charges[playerId] || 0), 0);
-    
-    // Sum all payment allocations for this player
+    let totalSpent = 0;
     let totalPaid = 0;
     let totalDiscounted = 0;
-    
-    filteredPayments.forEach(p => {
-      const allocation = p.allocations.find(a => a.playerId === playerId);
-      if (allocation) {
-        totalPaid += (allocation.amount || 0);
-        totalDiscounted += (allocation.discount || 0);
-      }
-    });
+
+    // If no date range is provided, use the pre-calculated stats from the backend
+    if (!dateRange && player) {
+      totalSpent = player.totalSpent || 0;
+      totalPaid = player.totalPaid || 0;
+      totalDiscounted = player.totalDiscounted || 0;
+    } else {
+      // Sum all match charges for this player
+      totalSpent = playerMatches.reduce((sum, m) => {
+        const charge = m.charges ? (m.charges[playerId] || 0) : 0;
+        return sum + charge;
+      }, 0);
+      
+      // Sum all payment allocations for this player
+      filteredPayments.forEach(p => {
+        const allocation = p.allocations.find(a => a.playerId === playerId);
+        if (allocation) {
+          totalPaid += (allocation.amount || 0);
+          totalDiscounted += (allocation.discount || 0);
+        }
+      });
+    }
     
     const initialBalance = player?.initialBalance || 0;
     
     // Performance stats
     let wins = 0;
     let losses = 0;
+    let ratedWins = 0;
+    let ratedLosses = 0;
     const recentForm: ('W' | 'L' | 'N')[] = [];
     let bestStreak = 0;
     let tempStreak = 0;
@@ -251,12 +375,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     playerMatches.forEach((m) => {
       const isWinner = m.winnerId === playerId;
       const hasResult = !!m.winnerId;
+      const isRated = m.isRated !== false;
       const opponentId = m.playerAId === playerId ? m.playerBId : m.playerAId;
       const opponent = state.players.find(p => p.id === opponentId);
 
       // Preferred Table
-      if (m.table) {
-        tableMap[m.table] = (tableMap[m.table] || 0) + 1;
+      if (m.table?.name) {
+        const tableName = m.table.name;
+        tableMap[tableName] = (tableMap[tableName] || 0) + 1;
       }
 
       // Rivalries
@@ -268,28 +394,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (hasResult) {
         if (isWinner) {
           wins++;
+          if (isRated) ratedWins++;
           tempStreak++;
           if (opponent) rivalryMap[opponentId].wins++;
         } else {
           losses++;
+          if (isRated) ratedLosses++;
           tempStreak = 0;
           if (opponent) rivalryMap[opponentId].losses++;
         }
         if (tempStreak > bestStreak) bestStreak = tempStreak;
       }
 
-      // Rating/Trend (Cumulative Win Rate)
-      const totalGamesWithResult = wins + losses;
+      // Rating/Trend (Cumulative Win Rate - Rated Only for better profile trend)
+      const gamesWithResult = wins + losses;
       performanceTrend.push({
         date: m.date,
-        rating: totalGamesWithResult > 0 ? (wins / totalGamesWithResult) * 100 : 0,
+        rating: gamesWithResult > 0 ? (wins / gamesWithResult) * 100 : 0,
         matchId: m.id
       });
     });
 
-    // Form from recent matches (last 10)
+    // Form from recent matches (last 10) - RATED ONLY for competitive form
     const sortedDescMatches = [...playerMatches].sort((a, b) => b.recordedAt - a.recordedAt);
-    sortedDescMatches.slice(0, 10).forEach(m => {
+    sortedDescMatches.filter(m => m.isRated !== false).slice(0, 10).forEach(m => {
       const isWinner = m.winnerId === playerId;
       const hasResult = !!m.winnerId;
       recentForm.push(hasResult ? (isWinner ? 'W' : 'L') : 'N');
@@ -337,7 +465,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       gamesPlayed: playerMatches.length,
       wins,
       losses,
-      winRate: (wins + losses) > 0 ? (wins / (wins + losses)) * 100 : 0,
+      ratedWins,
+      ratedLosses,
+      winRate: (ratedWins + ratedLosses) > 0 ? (ratedWins / (ratedWins + ratedLosses)) * 100 : 0,
       totalSpent,
       totalPaid,
       totalDiscounted,
@@ -379,17 +509,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updatePlayer,
     addMatch,
     updateMatch,
+    deleteMatch,
     addPayment,
     updatePayment,
+    deletePayment,
     addExpense,
     updateExpense,
+    deleteExpense,
     startOngoingMatch,
     clearOngoingMatch,
-    switchRole,
     setThemeMode,
     getPlayerDues,
-    getPlayerStats
-  }), [state, globalPlayerStats, addPlayer, updatePlayer, addMatch, updateMatch, addPayment, updatePayment, addExpense, updateExpense, startOngoingMatch, clearOngoingMatch, switchRole, setThemeMode, getPlayerDues, getPlayerStats]);
+    getPlayerStats,
+    login,
+    logout,
+    refreshData: fetchData,
+    isAuthenticated,
+    isLoading
+  }), [state, globalPlayerStats, addPlayer, updatePlayer, addMatch, updateMatch, deleteMatch, addPayment, updatePayment, deletePayment, addExpense, updateExpense, deleteExpense, startOngoingMatch, clearOngoingMatch, setThemeMode, getPlayerDues, getPlayerStats, isAuthenticated, isLoading, logout, fetchData]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

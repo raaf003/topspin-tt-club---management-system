@@ -1,8 +1,11 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
+import { api } from '../api';
 import { PayerOption, MatchPoints, UserRole, Player, Match } from '../types';
-import { Trophy, Check, RefreshCw, Zap, Table as TableIcon, Edit3, X, Clock, User, AlertCircle, Search, ChevronDown, Calendar, Filter, Activity, Play } from 'lucide-react';
-import { generateUUID } from '../utils';
+import { Trophy, Check, RefreshCw, Zap, Table as TableIcon, Edit3, X, Clock, User, AlertCircle, Search, ChevronDown, Calendar, Filter, Activity, Play, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { generateUUID, getLocalTodayStr } from '../utils';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ToastMessage, ToastState } from '../components/ToastMessage';
 
 interface SearchableSelectProps {
   label: string;
@@ -90,9 +93,76 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({ label, value, onCha
   );
 };
 
+interface TableSelectProps {
+  label: string;
+  value: string;
+  onChange: (id: string) => void;
+  options: any[]; // Tables
+  placeholder: string;
+}
+
+const TableSelect: React.FC<TableSelectProps> = ({ label, value, onChange, options, placeholder }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selectedTable = options.find(t => t.id === value);
+  const activeOptions = options.filter(t => t.isActive || t.id === value);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="space-y-1 md:space-y-1.5 relative" ref={containerRef}>
+      <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">{label}</label>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full bg-gray-50 dark:bg-slate-900 border-2 border-transparent p-2.5 md:p-4 rounded-xl md:rounded-2xl cursor-pointer flex justify-between items-center shadow-inner group hover:border-indigo-100 dark:hover:border-indigo-900 transition-all font-black text-xs md:text-sm"
+      >
+        <div className="flex items-center gap-2 truncate">
+           <div className={`w-1.5 h-1.5 rounded-full ${selectedTable ? 'bg-indigo-500' : 'bg-gray-300'}`}></div>
+           <span className={`${selectedTable ? 'text-gray-800 dark:text-white' : 'text-gray-400 dark:text-slate-500'}`}>
+             {selectedTable ? selectedTable.name : placeholder}
+           </span>
+        </div>
+        <ChevronDown className={`w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-1 md:mt-2 w-full bg-white dark:bg-slate-900 rounded-xl md:rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="max-h-48 md:max-h-60 overflow-y-auto py-1 md:py-2">
+            {activeOptions.map(t => (
+              <div 
+                key={t.id}
+                onClick={() => {
+                  onChange(t.id);
+                  setIsOpen(false);
+                }}
+                className={`px-3 md:px-4 py-2.5 md:py-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-indigo-900/30 flex flex-col justify-center gap-0.5 border-l-4 transition-all ${value === t.id ? 'bg-indigo-50/50 dark:bg-indigo-900/40 border-indigo-500' : 'border-transparent'}`}
+              >
+                <span className={`text-xs md:text-sm font-black ${value === t.id ? 'text-indigo-600 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>{t.name}</span>
+                {t.description && <span className="text-[8px] md:text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">{t.description}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const Matches: React.FC = () => {
-  const { players, addMatch, updateMatch, matches, currentUser, getPlayerStats, getPlayerDues, ongoingMatch, startOngoingMatch, clearOngoingMatch } = useApp();
-  const canEdit = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.STAFF;
+  const { players, tables, gameConfigs, addMatch, updateMatch, deleteMatch, matches, currentUser, getPlayerStats, getPlayerDues, ongoingMatch, startOngoingMatch, clearOngoingMatch, matchRates } = useApp();
+  const canEdit = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.STAFF || currentUser.role === UserRole.SUPER_ADMIN;
+  const canDeleteMatches = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPER_ADMIN;
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; matchId: string | null }>({ isOpen: false, matchId: null });
+  const [deleteToast, setDeleteToast] = useState<ToastState | null>(null);
   
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -100,11 +170,19 @@ export const Matches: React.FC = () => {
   const [playerAId, setPlayerAId] = useState('');
   const [playerBId, setPlayerBId] = useState('');
   const [points, setPoints] = useState<MatchPoints>(20);
-  const [table, setTable] = useState('Table 1');
+  const [table, setTable] = useState(''); // Stores table ID now
   const [payerOption, setPayerOption] = useState<PayerOption>(PayerOption.LOSER);
   const [winnerId, setWinnerId] = useState('');
   const [isRated, setIsRated] = useState(true);
+  const [matchDate, setMatchDate] = useState(getLocalTodayStr());
   const [success, setSuccess] = useState(false);
+
+  // Set default table once loaded
+  useEffect(() => {
+    if (!table && tables.length > 0) {
+      setTable(tables[0].id);
+    }
+  }, [tables, table]);
 
   // Auto-populate from ongoing match if it exists and we aren't editing something else
   useEffect(() => {
@@ -124,13 +202,44 @@ export const Matches: React.FC = () => {
   }, [ongoingMatch, playerAId, playerBId]);
 
   // History & Filter State
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalTodayStr();
   const [historyDate, setHistoryDate] = useState(todayStr);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING_RESULT' | 'PENDING_PAYMENT'>('ALL');
 
+  // Paginated log state
+  const [logMatches, setLogMatches] = useState<Match[]>([]);
+  const [logLimit, setLogLimit] = useState(50);
+  const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, totalPages: 1 });
+  const [isFetchingLog, setIsFetchingLog] = useState(false);
+
+  const fetchLog = useCallback(async (date: string, page: number = 1, limit: number = 50) => {
+    setIsFetchingLog(true);
+    try {
+      const resp = await api.get(`/matches?date=${date}&page=${page}&limit=${limit}`);
+      if (resp && resp.matches) {
+        setLogMatches(resp.matches);
+        setPagination(resp.pagination);
+      }
+    } catch (err) {
+      console.error('Failed to fetch matches log', err);
+    } finally {
+      setIsFetchingLog(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLog(historyDate, 1, logLimit);
+  }, [historyDate, logLimit, fetchLog]);
+
   // Live match timer
   const [elapsedTime, setElapsedTime] = useState(0);
+
+  useEffect(() => {
+    if (!deleteToast) return;
+    const timeout = setTimeout(() => setDeleteToast(null), 2500);
+    return () => clearTimeout(timeout);
+  }, [deleteToast]);
 
   useEffect(() => {
     if (!ongoingMatch) {
@@ -156,30 +265,36 @@ export const Matches: React.FC = () => {
     return `${mins}m ${secs}s`;
   };
 
-  const matchTotal = points === 20 ? 30 : 20;
+  const matchTotal = useMemo(() => {
+    const config = gameConfigs.find(c => c.type === (points === 20 ? '20_POINTS' : '10_POINTS'));
+    return config?.price || 0;
+  }, [points, gameConfigs]);
 
   /**
    * FIFO Logic: Determine if a specific match is "Paid" for a player.
    * A match is paid if (Lifetime Payments + Initial Credits + Lifetime Discounts) >= (Cumulative Charges up to this match).
    */
-  const checkIsMatchPaid = (match: Match, playerId: string) => {
+  const checkIsMatchPaid = useCallback((match: Match, playerId: string) => {
     const stats = getPlayerStats(playerId);
 
     // Get all matches where this player was charged, sorted chronologically
     const playerMatchHistory = matches
-      .filter(m => m.charges[playerId] !== undefined)
-      .sort((a, b) => a.recordedAt - b.recordedAt);
+      .filter(m => ((m.charges as any)?.[playerId] || 0) > 0)
+      .sort((a, b) => {
+        if (a.recordedAt !== b.recordedAt) return a.recordedAt - b.recordedAt;
+        return a.id.localeCompare(b.id);
+      });
     
     let cumulativeCharge = 0;
     for (const m of playerMatchHistory) {
-      cumulativeCharge += m.charges[playerId] || 0;
+      cumulativeCharge += (m.charges as any)?.[playerId] || 0;
       if (m.id === match.id) break;
     }
     
     // Resources include actual payments, initial credit balance, AND waivers/discounts
-    const totalAvailableResources = stats.totalPaid + stats.initialBalance + stats.totalDiscounted;
+    const totalAvailableResources = (stats?.totalPaid || 0) + (stats?.initialBalance || 0) + (stats?.totalDiscounted || 0);
     return totalAvailableResources >= cumulativeCharge;
-  };
+  }, [matches, getPlayerStats]);
   
   const chargePreview = useMemo(() => {
     if (!playerAId || !playerBId) return { a: 0, b: 0 };
@@ -201,8 +316,8 @@ export const Matches: React.FC = () => {
   }, [playerAId, playerBId, matchTotal, payerOption, winnerId]);
 
   const filteredMatches = useMemo(() => {
-    return matches.filter(m => {
-      // Date filter
+    return logMatches.filter(m => {
+      // Date filter is already handled by server-side fetch, but we keep it for consistency if needed
       if (m.date !== historyDate) return false;
       // Search filter (player names) - Support comma separated multiple names
       const searchTerms = searchQuery.split(',').map(s => s.trim().toLowerCase()).filter(s => s !== '');
@@ -231,7 +346,7 @@ export const Matches: React.FC = () => {
         // 1. It has no result yet (for loser pays format)
         // 2. Any player charged in this match hasn't cleared their charges according to FIFO
         const matchHasUnpaidCharges = [m.playerAId, m.playerBId].some(id => {
-          const charge = m.charges[id] || 0;
+          const charge = (m.charges as any)?.[id] || 0;
           if (charge === 0) return false;
           return !checkIsMatchPaid(m, id);
         });
@@ -240,23 +355,40 @@ export const Matches: React.FC = () => {
 
       return true;
     });
-  }, [matches, historyDate, searchQuery, statusFilter, players, getPlayerDues, getPlayerStats]);
+  }, [logMatches, historyDate, searchQuery, statusFilter, players, checkIsMatchPaid]);
 
-  const handleGoLive = () => {
+  const handleGoLive = async () => {
     if (!playerAId || !playerBId) return;
-    startOngoingMatch({
-      id: generateUUID(),
-      playerAId,
-      playerBId,
-      points,
-      table,
-      startTime: Date.now()
-    });
-    setSuccess(true);
-    setTimeout(() => setSuccess(false), 1200);
+
+    const selectedTable = tables.find(t => t.id === table);
+    if (selectedTable && !selectedTable.isActive) {
+      alert("This table is currently inactive. Please select an active table.");
+      return;
+    }
+
+    try {
+      await startOngoingMatch({
+        id: generateUUID(),
+        playerAId,
+        playerBId,
+        points,
+        table,
+        startTime: Date.now()
+      });
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 1200);
+    } catch (err: any) {
+      alert(err.message || 'Failed to start live match. Another match might be in progress.');
+    }
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  useEffect(() => {
+    if (matchDate !== todayStr && !isDirectRecord) {
+      setIsDirectRecord(true);
+    }
+  }, [matchDate, todayStr, isDirectRecord]);
+
+  const handleSubmit = async (e?: React.FormEvent) => {
     if(e) e.preventDefault();
     if (!playerAId || !playerBId) return;
 
@@ -272,12 +404,13 @@ export const Matches: React.FC = () => {
     if (chargePreview.b > 0) charges[playerBId] = chargePreview.b;
 
     if (editingId) {
-      updateMatch(editingId, {
+      await updateMatch(editingId, {
+        date: matchDate,
         points,
         playerAId,
         playerBId,
         winnerId: winnerId || undefined,
-        table,
+        tableId: table,
         payerOption,
         totalValue: matchTotal,
         charges,
@@ -285,8 +418,11 @@ export const Matches: React.FC = () => {
       });
       setEditingId(null);
     } else {
-      addMatch({
-        date: new Date().toISOString().split('T')[0],
+      // Find proper gameTypeId from gameConfigs if it matches the point format
+      const gameType = gameConfigs.find(c => c.type === (points === 20 ? '20_POINTS' : '10_POINTS'));
+      
+      await addMatch({
+        date: matchDate,
         recordedAt: Date.now(),
         recordedBy: {
           role: currentUser.role,
@@ -296,7 +432,8 @@ export const Matches: React.FC = () => {
         playerAId,
         playerBId,
         winnerId: winnerId || undefined,
-        table,
+        tableId: table, // tableId is expected by type
+        typeId: gameType?.id, // Use actual ID from config
         payerOption,
         totalValue: matchTotal,
         charges,
@@ -307,6 +444,9 @@ export const Matches: React.FC = () => {
         clearOngoingMatch();
       }
     }
+
+    // Refresh the log
+    fetchLog(historyDate, pagination.page, logLimit);
 
     setSuccess(true);
     setTimeout(() => {
@@ -325,10 +465,11 @@ export const Matches: React.FC = () => {
     setPlayerAId(m.playerAId);
     setPlayerBId(m.playerBId);
     setPoints(m.points);
-    setTable(m.table || 'Table 1');
+    setTable(m.tableId || '');
     setPayerOption(m.payerOption);
     setWinnerId(m.winnerId || '');
     setIsRated(m.isRated ?? true);
+    setMatchDate(m.date);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -349,12 +490,38 @@ export const Matches: React.FC = () => {
     setSuccess(false);
   };
 
-  const formatTime = (ts: number) => {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatTime = (ts: any) => {
+    if (!ts) return '';
+    const date = new Date(ts);
+    if (isNaN(date.getTime())) return 'N/A';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleConfirmDeleteMatch = async () => {
+    if (!deleteDialog.matchId) return;
+    try {
+      await deleteMatch(deleteDialog.matchId);
+      await fetchLog(historyDate, pagination.page, logLimit);
+      setDeleteToast({ type: 'success', message: 'Match deleted successfully.' });
+    } catch (err) {
+      setDeleteToast({ type: 'error', message: 'Failed to delete match.' });
+    } finally {
+      setDeleteDialog({ isOpen: false, matchId: null });
+    }
   };
 
   return (
     <div className="max-w-xl mx-auto pb-8">
+      <ConfirmDialog
+        open={deleteDialog.isOpen}
+        title="Delete Match?"
+        message="This action cannot be undone."
+        onCancel={() => setDeleteDialog({ isOpen: false, matchId: null })}
+        onConfirm={handleConfirmDeleteMatch}
+      />
+
+      <ToastMessage toast={deleteToast} />
+
       {ongoingMatch && (
         <div 
           onClick={() => {
@@ -377,6 +544,10 @@ export const Matches: React.FC = () => {
               <span className="text-white font-bold text-xs truncate">
                 {players.find(p => p.id === ongoingMatch.playerAId)?.name} vs {players.find(p => p.id === ongoingMatch.playerBId)?.name}
               </span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/20 rounded-lg text-[10px] text-white font-black shrink-0">
+                 <Activity className="w-2.5 h-2.5" />
+                 {tables.find(t => t.id === ongoingMatch.table)?.name}
+              </div>
               <span className="text-white/70 font-bold text-xs shrink-0">({formatElapsedTime(elapsedTime)})</span>
             </div>
           </div>
@@ -442,30 +613,53 @@ export const Matches: React.FC = () => {
               >
                 <span className="text-base md:text-lg">{pts} Points</span>
                 <span className={`text-[8px] md:text-[10px] opacity-80 ${points === pts ? 'text-white/70' : 'text-gray-400 dark:text-slate-500'}`}>
-                  Value: ₹{pts === 20 ? 30 : 20}
+                  Value: ₹{matchRates[`${pts}_POINTS`] || 0}
                 </span>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <Zap className={`w-4 h-4 ${isRated ? 'text-amber-500' : 'text-gray-400'}`} />
-            <div>
-              <div className="text-[10px] font-black uppercase dark:text-white">Rated Match</div>
-              <div className="text-[8px] font-bold text-gray-400 uppercase">Affects Skill Rating</div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="col-span-1">
+            <TableSelect 
+              label="Table"
+              value={table}
+              onChange={setTable}
+              options={tables}
+              placeholder="Select..."
+            />
+          </div>
+
+          <div className="space-y-1 md:space-y-1.5 col-span-1">
+            <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Match Date</label>
+            <div className="bg-gray-50 dark:bg-slate-900 rounded-xl md:rounded-2xl border-2 border-transparent shadow-inner p-1 md:p-1.5 h-[42px] md:h-[52px] flex items-center">
+              <input 
+                type="date" 
+                value={matchDate}
+                onChange={(e) => setMatchDate(e.target.value)}
+                title="Match date"
+                aria-label="Match date"
+                className="w-full bg-transparent px-2 text-[10px] md:text-xs font-bold text-gray-800 dark:text-white outline-none"
+              />
             </div>
           </div>
-          <button 
-            type="button"
-            onClick={() => setIsRated(!isRated)}
-            title={isRated ? "Disable Rating" : "Enable Rating"}
-            aria-label={isRated ? "Disable Rating" : "Enable Rating"}
-            className={`w-10 h-5 rounded-full transition-colors relative ${isRated ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'}`}
-          >
-            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isRated ? 'right-1' : 'left-1'}`} />
-          </button>
+
+          <div className="space-y-1 md:space-y-1.5 col-span-1">
+            <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Ranked</label>
+            <div className="flex items-center justify-between px-3 bg-gray-50 dark:bg-slate-900 rounded-xl md:rounded-2xl border-2 border-transparent shadow-inner h-[42px] md:h-[52px]">
+              <Zap className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isRated ? 'text-amber-500' : 'text-gray-400'}`} />
+              <button 
+                type="button"
+                onClick={() => setIsRated(!isRated)}
+                title="Toggle ranked mode"
+                aria-label="Toggle ranked mode"
+                className={`w-7 h-3.5 md:w-8 md:h-4 rounded-full transition-colors relative ${isRated ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'}`}
+              >
+                <div className={`absolute top-0.5 w-2.5 h-2.5 bg-white rounded-full transition-all ${isRated ? 'right-0.5' : 'left-0.5'}`} />
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 md:gap-4">
@@ -578,9 +772,9 @@ export const Matches: React.FC = () => {
         <div className="flex flex-col gap-3 md:gap-4 pt-1 md:pt-2">
           <button 
             type="submit"
-            disabled={!playerAId || !playerBId}
+            disabled={!playerAId || !playerBId || (!!ongoingMatch && !isCurrentlyLive && !isDirectRecord && !editingId)}
             className={`w-full py-4 md:py-6 rounded-2xl md:rounded-3xl font-black text-lg md:text-xl shadow-2xl transition-all flex items-center justify-center gap-2 md:gap-3 ${
-              !playerAId || !playerBId 
+              (!playerAId || !playerBId || (!!ongoingMatch && !isCurrentlyLive && !isDirectRecord && !editingId))
                 ? 'bg-gray-200 dark:bg-slate-800 text-gray-400 dark:text-slate-600 cursor-not-allowed' 
                 : editingId 
                   ? 'bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-amber-100 dark:shadow-none'
@@ -590,7 +784,7 @@ export const Matches: React.FC = () => {
             }`}
           >
             {editingId ? <Edit3 className="w-5 h-5 md:w-6 md:h-6" /> : isCurrentlyLive || isDirectRecord ? <Check className="w-5 h-5 md:w-6 md:h-6" /> : <Play className="w-5 h-5 md:w-6 md:h-6" />}
-            {editingId ? 'Save Changes' : isCurrentlyLive ? 'Finish & Record' : isDirectRecord ? 'Log Past Match' : 'Start Match'}
+            {editingId ? 'Save Changes' : isCurrentlyLive ? 'Finish & Record' : isDirectRecord ? 'Log Past Match' : (!!ongoingMatch && !isCurrentlyLive) ? 'Table Occupied' : 'Start Match'}
           </button>
 
           {!editingId && !isCurrentlyLive && playerAId && playerBId && (
@@ -636,36 +830,61 @@ export const Matches: React.FC = () => {
                 />
                 </div>
 
-          <div className="flex flex-wrap gap-1.5 md:gap-2">
-            {[
-              { id: 'ALL', label: 'All' },
-              { id: 'PENDING_RESULT', label: 'Result Missing' },
-              { id: 'PENDING_PAYMENT', label: 'Unpaid' }
-            ].map(filter => (
-              <button
-                key={filter.id}
-                onClick={() => setStatusFilter(filter.id as any)}
-                className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-all border ${
-                  statusFilter === filter.id 
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
-                  : 'bg-white dark:bg-slate-900 text-gray-400 dark:text-slate-500 border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800'
-                }`}
-              >
-                {filter.label}
-              </button>
-            ))}
+          <div className="flex items-center justify-between gap-2 px-1">
+            <div className="flex flex-wrap items-center gap-2 md:gap-4 flex-1">
+               {/* Status Filter Dropdown */}
+               <div className="flex items-center gap-1.5">
+                 <Filter className="w-3 h-3 md:w-3.5 md:h-3.5 text-gray-400" />
+                 <select 
+                   value={statusFilter}
+                   onChange={(e) => setStatusFilter(e.target.value as any)}
+                   title="Filter by match status"
+                   aria-label="Filter by match status"
+                   className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-indigo-600 dark:text-indigo-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                 >
+                   <option value="ALL">All</option>
+                   <option value="PENDING_RESULT">Result Missing</option>
+                   <option value="PENDING_PAYMENT">Unpaid</option>
+                 </select>
+               </div>
+
+               <div className="flex items-center gap-1.5">
+                 <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-tighter">Show</span>
+                 <select 
+                   value={logLimit}
+                   onChange={(e) => setLogLimit(Number(e.target.value))}
+                   title="Matches per page"
+                   aria-label="Matches per page"
+                   className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-indigo-600 dark:text-indigo-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                 >
+                   {[10, 20, 50, 100].map(v => (
+                     <option key={v} value={v}>{v}</option>
+                   ))}
+                 </select>
+               </div>
+            </div>
+
+            <div className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-tighter shrink-0 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded-lg border border-gray-100 dark:border-slate-700">
+              Total: <span className="text-indigo-600 dark:text-indigo-400">{pagination.total}</span>
+            </div>
           </div>
         </div>
 
         <div className="space-y-3 md:space-y-4">
-          {filteredMatches.length > 0 ? (
+          {isFetchingLog ? (
+            <div className="py-12 flex flex-col items-center justify-center space-y-3">
+              <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin opacity-30" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Loading Log...</p>
+            </div>
+          ) : filteredMatches.length > 0 ? (
             filteredMatches.map(m => {
               const pA = players.find(p => p.id === m.playerAId);
               const pB = players.find(p => p.id === m.playerBId);
               const isPendingResult = !m.winnerId && m.payerOption === PayerOption.LOSER;
               // NEW FIFO LOGIC: Determine if any involved player has not cleared their charge for THIS match
               const playersWithUnpaidBalance = [m.playerAId, m.playerBId].filter(id => {
-                if ((m.charges[id] || 0) === 0) return false;
+                const playerCharges = (m.charges as any) || {};
+                if ((playerCharges[id] || 0) === 0) return false;
                 return !checkIsMatchPaid(m, id);
               });
 
@@ -717,6 +936,9 @@ export const Matches: React.FC = () => {
                           <span className="text-[7px] md:text-[8px] font-black bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 px-1 md:px-1.5 py-0.5 rounded-md uppercase truncate">
                             {getPayerStatusLabel()}
                           </span>
+                          <span className="text-[7px] md:text-[8px] font-black bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 px-1 md:px-1.5 py-0.5 rounded-md uppercase">
+                            {m.table?.name}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -734,13 +956,24 @@ export const Matches: React.FC = () => {
                         )}
                       </div>
                       {canEdit && (
-                        <button 
-                          onClick={() => handleEdit(m)}
-                          title="Edit match"
-                          className="p-1.5 md:p-2 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg md:rounded-xl transition-all"
-                        >
-                          <Edit3 className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={() => handleEdit(m)}
+                            title="Edit match"
+                            className="p-1.5 md:p-2 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg md:rounded-xl transition-all"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                          </button>
+                          {canDeleteMatches && (
+                            <button 
+                              onClick={() => setDeleteDialog({ isOpen: true, matchId: m.id })}
+                              title="Delete match"
+                              className="p-1.5 md:p-2 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-rose-100 dark:hover:bg-rose-900/30 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg md:rounded-xl transition-all"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -752,7 +985,7 @@ export const Matches: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-1 text-[7px] md:text-[8px] font-bold text-gray-400 dark:text-slate-500">
                           <User className="w-2 md:w-2.5 h-2 md:h-2.5" />
-                          {m.recordedBy.name}
+                          {m.recordedBy?.name || 'System'}
                         </div>
                      </div>
                   </div>
@@ -762,6 +995,30 @@ export const Matches: React.FC = () => {
           ) : (
             <div className="py-8 md:py-10 text-center text-gray-300 dark:text-slate-700 font-bold italic border-2 border-dashed border-gray-50 dark:border-slate-800 rounded-2xl md:rounded-3xl">
               No games found...
+            </div>
+          )}
+
+          {!isFetchingLog && pagination.totalPages > 1 && (
+            <div className="pt-3 md:pt-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
+              <button 
+                type="button"
+                onClick={() => fetchLog(historyDate, pagination.page - 1, logLimit)}
+                disabled={pagination.page === 1}
+                className="p-1.5 md:p-2 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-300 dark:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-[9px] md:text-[10px] font-black uppercase text-gray-500 dark:text-slate-400 transition-all hover:bg-gray-50 dark:hover:bg-slate-700"
+              >
+                <ChevronLeft className="w-3 h-3 md:w-4 md:h-4" /> Prev
+              </button>
+              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-800 px-3 py-1 rounded-full border border-gray-100 dark:border-slate-700">
+                Page {pagination.page} / {pagination.totalPages}
+              </span>
+              <button 
+                type="button"
+                onClick={() => fetchLog(historyDate, pagination.page + 1, logLimit)}
+                disabled={pagination.page === pagination.totalPages}
+                className="p-1.5 md:p-2 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-300 dark:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-[9px] md:text-[10px] font-black uppercase text-gray-500 dark:text-slate-400 transition-all hover:bg-gray-50 dark:hover:bg-slate-700"
+              >
+                Next <ChevronRight className="w-3 h-3 md:w-4 md:h-4" />
+              </button>
             </div>
           )}
         </div>

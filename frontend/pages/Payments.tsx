@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { PaymentMode, PaymentAllocation, UserRole, Player } from '../types';
-import { IndianRupee, CreditCard, Banknote, Check, UserPlus, Trash2, Edit3, X, Search, ChevronDown, Percent, Calendar } from 'lucide-react';
+import { getLocalTodayStr } from '../utils';
+import { IndianRupee, CreditCard, Banknote, Check, UserPlus, Trash2, Edit3, X, Search, ChevronDown, Percent, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ToastMessage, ToastState } from '../components/ToastMessage';
 
 interface SearchableSelectProps {
   label?: string;
@@ -103,33 +106,77 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 };
 
 export const Payments: React.FC = () => {
-  const { players, addPayment, updatePayment, getPlayerStats, payments, currentUser, getPlayerDues } = useApp();
-  const isAdmin = currentUser.role === UserRole.ADMIN;
+  const { players, addPayment, updatePayment, deletePayment, getPlayerStats, payments, currentUser, getPlayerDues } = useApp();
+  const isAdmin = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPER_ADMIN;
+  const canDeletePayments = isAdmin;
   
   // State for system
   const [editingId, setEditingId] = useState<string | null>(null);
   const [primaryPayerId, setPrimaryPayerId] = useState('');
   const [allocations, setAllocations] = useState<PaymentAllocation[]>([{ playerId: '', amount: 0, discount: 0 }]);
   const [mode, setMode] = useState<PaymentMode>(PaymentMode.CASH);
-  const [notes, setNotes] = useState('');
+  const [description, setDescription] = useState('');
+  const [paymentDate, setPaymentDate] = useState(getLocalTodayStr());
   const [success, setSuccess] = useState(false);
 
   // History & Filter State
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalTodayStr();
   const [historyDate, setHistoryDate] = useState(todayStr);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [payLimit, setPayLimit] = useState(50);
+  const [payPage, setPayPage] = useState(1);
+  const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; paymentId: string | null }>({ isOpen: false, paymentId: null });
+  const [deleteToast, setDeleteToast] = useState<ToastState | null>(null);
 
   const filteredPayments = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     return payments
-      .filter(p => !historyDate || p.date === historyDate)
+      .filter(p => {
+        const matchesDate = !historyDate || p.date === historyDate;
+        if (!matchesDate) return false;
+        if (!query) return true;
+        const payer = players.find(pl => pl.id === p.primaryPayerId);
+        return (
+          (payer?.name?.toLowerCase().includes(query)) ||
+          (payer?.nickname?.toLowerCase().includes(query)) ||
+          p.totalAmount?.toString().includes(query) ||
+          (p.description && p.description.toLowerCase().includes(query)) ||
+          p.allocations.some((a: any) => {
+            const ap = players.find(pl => pl.id === a.playerId);
+            return ap?.name?.toLowerCase().includes(query);
+          })
+        );
+      })
       .sort((a, b) => b.recordedAt - a.recordedAt);
-  }, [payments, historyDate]);
+  }, [payments, historyDate, searchQuery, players]);
+
+  const totalPages = Math.ceil(filteredPayments.length / payLimit);
+  const paginatedPayments = useMemo(() => {
+    const start = (payPage - 1) * payLimit;
+    return filteredPayments.slice(start, start + payLimit);
+  }, [filteredPayments, payPage, payLimit]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPayPage(1);
+  }, [historyDate, payLimit, searchQuery]);
+
+  useEffect(() => {
+    if (!deleteToast) return;
+    const timeout = setTimeout(() => setDeleteToast(null), 2500);
+    return () => clearTimeout(timeout);
+  }, [deleteToast]);
 
   const totalPaymentAmount = allocations.reduce((sum, a) => sum + (a.amount || 0), 0);
   const totalDiscountAmount = allocations.reduce((sum, a) => sum + (a.discount || 0), 0);
   const totalSettlement = totalPaymentAmount + totalDiscountAmount;
 
-  const formatTime = (ts: number) => {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatTime = (ts: any) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const handleAddAllocation = () => {
@@ -150,16 +197,17 @@ export const Payments: React.FC = () => {
     e.preventDefault();
     if (!primaryPayerId) return;
     
-    const validAllocations = allocations.filter(a => a.playerId && ((a.amount || 0) > 0 || (a.discount || 0) > 0));
+    const validAllocations = allocations.filter(a => a.playerId && ((a.amount || 0) !== 0 || (a.discount || 0) !== 0));
     if (validAllocations.length === 0) return;
 
     if (editingId) {
       updatePayment(editingId, {
+        date: paymentDate,
         primaryPayerId,
         totalAmount: totalPaymentAmount,
         allocations: validAllocations,
         mode,
-        notes
+        description
       });
       setEditingId(null);
     } else {
@@ -168,8 +216,8 @@ export const Payments: React.FC = () => {
         totalAmount: totalPaymentAmount,
         allocations: validAllocations,
         mode,
-        notes,
-        date: new Date().toISOString().split('T')[0],
+        description,
+        date: paymentDate,
         recordedAt: Date.now(),
         recordedBy: {
           role: currentUser.role,
@@ -183,7 +231,7 @@ export const Payments: React.FC = () => {
       setSuccess(false);
       setPrimaryPayerId('');
       setAllocations([{ playerId: '', amount: 0, discount: 0 }]);
-      setNotes('');
+      setDescription('');
     }, 1500);
   };
 
@@ -192,7 +240,8 @@ export const Payments: React.FC = () => {
     setPrimaryPayerId(p.primaryPayerId);
     setAllocations(p.allocations.map((a: any) => ({ ...a, discount: a.discount || 0 })));
     setMode(p.mode);
-    setNotes(p.notes || '');
+    setDescription(p.description || '');
+    setPaymentDate(p.date);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -200,7 +249,7 @@ export const Payments: React.FC = () => {
     setEditingId(null);
     setPrimaryPayerId('');
     setAllocations([{ playerId: '', amount: 0, discount: 0 }]);
-    setNotes('');
+    setDescription('');
   };
 
   const handlePrimaryPayerChange = (val: string) => {
@@ -212,8 +261,30 @@ export const Payments: React.FC = () => {
     }
   };
 
+  const handleConfirmDeletePayment = async () => {
+    if (!deleteDialog.paymentId) return;
+    try {
+      await deletePayment(deleteDialog.paymentId);
+      setDeleteToast({ type: 'success', message: 'Payment deleted successfully.' });
+    } catch (err) {
+      setDeleteToast({ type: 'error', message: 'Failed to delete payment.' });
+    } finally {
+      setDeleteDialog({ isOpen: false, paymentId: null });
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-xl mx-auto pb-10">
+      <ConfirmDialog
+        open={deleteDialog.isOpen}
+        title="Delete Payment?"
+        message="This action cannot be undone."
+        onCancel={() => setDeleteDialog({ isOpen: false, paymentId: null })}
+        onConfirm={handleConfirmDeletePayment}
+      />
+
+      <ToastMessage toast={deleteToast} />
+
       <div className="flex justify-between items-center px-1">
         <div className="flex items-center gap-2 md:gap-3">
           <div className={`${editingId ? 'bg-amber-500' : 'bg-emerald-600'} p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all`}>
@@ -244,6 +315,20 @@ export const Payments: React.FC = () => {
         )}
 
         <div className="space-y-3 md:space-y-4">
+          <div className="space-y-1 md:space-y-1.5">
+            <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1 mb-1 md:mb-1.5 block">Payment Date</label>
+            <div className="bg-gray-50 dark:bg-slate-900 border-2 border-transparent rounded-xl md:rounded-2xl shadow-inner group hover:border-emerald-100 dark:hover:border-emerald-900 transition-all p-1">
+              <input 
+                type="date" 
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                title="Payment date"
+                aria-label="Payment date"
+                className="w-full bg-transparent p-2 md:p-3 text-xs md:text-sm font-bold text-gray-800 dark:text-white outline-none"
+              />
+            </div>
+          </div>
+
           <SearchableSelect 
             label="Primary Payer"
             value={primaryPayerId}
@@ -348,14 +433,14 @@ export const Payments: React.FC = () => {
           <label className="text-[9px] md:text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">Remarks</label>
           <input 
             type="text" 
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             placeholder="Optional notes..."
             className="w-full bg-gray-50 dark:bg-slate-800 border-2 border-transparent p-3 md:p-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold text-gray-800 dark:text-white outline-none focus:border-emerald-500 transition-all shadow-inner"
           />
         </div>
 
-        {totalSettlement > 0 && (
+        {totalSettlement !== 0 && (
            <div className="bg-gray-900 dark:bg-slate-800 p-4 md:p-5 rounded-2xl md:rounded-3xl space-y-2 md:space-y-3 shadow-2xl transition-all">
              <div className="flex items-center justify-between">
                 <div>
@@ -392,27 +477,83 @@ export const Payments: React.FC = () => {
 
       {/* History Section */}
       <section className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-3xl md:rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm space-y-4 md:space-y-5 transition-all">
-        <div className="flex justify-between items-center px-1">
-          <h3 className="font-black text-base md:text-lg text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <Calendar className="w-4 h-4 md:w-5 md:h-5 text-emerald-600 dark:text-emerald-400" />
-            Recent Transactions
-          </h3>
-          <div className="bg-gray-50 dark:bg-slate-800 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-700 flex items-center gap-1.5 md:gap-2">
-            <input 
-              type="date" 
-              value={historyDate}
-              title="Select date"
-              onChange={(e) => setHistoryDate(e.target.value)}
-              className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-emerald-600 dark:text-emerald-400"
+        <div className="flex flex-col gap-3 md:gap-4">
+          <div className="flex justify-between items-center px-1">
+            <h3 className="font-black text-base md:text-lg text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
+              <Calendar className="w-4 h-4 md:w-5 md:h-5 text-emerald-600 dark:text-emerald-400" />
+              Recent Transactions
+            </h3>
+            <div className="bg-gray-50 dark:bg-slate-800 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-700 flex items-center gap-1.5 md:gap-2">
+              <input 
+                type="date" 
+                value={historyDate}
+                title="Select date"
+                onChange={(e) => setHistoryDate(e.target.value)}
+                className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-emerald-600 dark:text-emerald-400"
+              />
+            </div>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search player name, amount, description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-gray-50 dark:bg-slate-800 border-none pl-9 md:pl-12 pr-8 p-2.5 md:p-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-bold outline-none ring-1 ring-gray-100 dark:ring-slate-700 focus:ring-emerald-300 dark:focus:ring-emerald-800 transition-all text-gray-800 dark:text-white"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                title="Clear search"
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between gap-2 px-1">
+            <div className="flex items-center gap-2 md:gap-3">
+               <div className="flex items-center gap-1.5">
+                 <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-tighter">Show</span>
+                 <select 
+                   value={payLimit}
+                   onChange={(e) => setPayLimit(Number(e.target.value))}
+                   title="Items per page"
+                   aria-label="Items per page"
+                   className="bg-gray-50 dark:bg-slate-800 border-none text-[9px] md:text-[10px] font-black text-emerald-600 dark:text-emerald-400 rounded-lg px-1.5 md:px-2 py-1 outline-none ring-1 ring-gray-100 dark:ring-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                 >
+                   {[10, 20, 50, 100].map(v => (
+                     <option key={v} value={v}>{v}</option>
+                   ))}
+                 </select>
+               </div>
+            </div>
+
+            <div className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-tighter shrink-0 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded-lg border border-gray-100 dark:border-slate-700">
+              Total: <span className="text-emerald-600 dark:text-emerald-400">{filteredPayments.length}</span>
+            </div>
           </div>
         </div>
 
         <div className="space-y-3 md:space-y-4">
-          {filteredPayments.length > 0 ? (
-            filteredPayments.map(p => {
+          {paginatedPayments.length > 0 ? (
+            paginatedPayments.map(p => {
               const payer = players.find(player => player.id === p.primaryPayerId);
               const waived = p.allocations.reduce((sum, a) => sum + (a.discount || 0), 0);
+              const isExpanded = expandedPaymentId === p.id;
+              const hasOtherPlayers = p.allocations.some(a => a.playerId !== p.primaryPayerId);
+              const coveredAllocations = p.allocations.filter(a => a.playerId !== p.primaryPayerId && (a.amount || 0) > 0);
+              const coveredAmount = coveredAllocations.reduce((sum, a) => sum + (a.amount || 0), 0);
+              const coveredNames = coveredAllocations
+                .map(a => players.find(pl => pl.id === a.playerId)?.name)
+                .filter((name): name is string => !!name);
+              const coveredSummary = coveredNames.length > 2
+                ? `${coveredNames.slice(0, 2).join(', ')} +${coveredNames.length - 2}`
+                : coveredNames.join(', ');
               
               return (
                 <div key={p.id} className="flex flex-col group p-2 rounded-xl md:rounded-2xl transition-all hover:bg-gray-50 dark:hover:bg-slate-800/50">
@@ -425,18 +566,18 @@ export const Payments: React.FC = () => {
                       <div className="min-w-0">
                         <div className="font-bold text-gray-900 dark:text-white text-xs md:text-sm flex items-center gap-1.5 md:gap-2">
                           <span className="truncate">{payer?.name}</span>
-                          {p.allocations.length > 1 && (
-                            <span className="text-[7px] md:text-[8px] font-black bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-1 md:px-1.5 py-0.5 rounded-full shrink-0">
-                              +{p.allocations.length - 1}
-                            </span>
-                          )}
                         </div>
                         <div className="text-[8px] md:text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase mt-0.5 flex flex-wrap items-center gap-1 md:gap-2">
                           <span>{p.date}</span>
                           {waived > 0 && <span className="text-amber-600 dark:text-amber-500 font-black shrink-0">• ₹{waived} waived</span>}
-                          {p.notes && <span className="w-0.5 h-0.5 rounded-full bg-gray-200 dark:bg-slate-700 shrink-0"></span>}
-                          {p.notes && <span className="lowercase italic truncate max-w-[80px] md:max-w-[120px] dark:text-slate-400 shrink-0">{p.notes}</span>}
+                          {p.description && <span className="w-0.5 h-0.5 rounded-full bg-gray-200 dark:bg-slate-700 shrink-0"></span>}
+                          {p.description && <span className="lowercase italic truncate max-w-[80px] md:max-w-[120px] dark:text-slate-400 shrink-0">{p.description}</span>}
                         </div>
+                        {hasOtherPlayers && coveredAllocations.length > 0 && (
+                          <div className="mt-1 text-[8px] md:text-[10px] font-bold text-indigo-600 dark:text-indigo-400 truncate">
+                            Paid ₹{coveredAmount} for {coveredSummary}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2.5 md:gap-4 shrink-0 ml-2">
@@ -444,17 +585,76 @@ export const Payments: React.FC = () => {
                         <div className="text-base md:text-lg font-black text-gray-900 dark:text-white tracking-tight transition-all">₹{p.totalAmount}</div>
                         <div className="text-[7px] md:text-[8px] font-black text-emerald-500 dark:text-emerald-400 uppercase">Verified</div>
                       </div>
-                      {isAdmin && (
-                        <button 
-                          onClick={() => handleEdit(p)}
-                          title="Edit payment"
-                          className="p-2 md:p-2.5 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg md:rounded-xl transition-all"
-                        >
-                          <Edit3 className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {isAdmin && (
+                          <>
+                            <button 
+                              onClick={() => handleEdit(p)}
+                              title="Edit payment"
+                              className="p-2 md:p-2.5 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg md:rounded-xl transition-all"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                            </button>
+                            {canDeletePayments && (
+                              <button 
+                                onClick={() => setDeleteDialog({ isOpen: true, paymentId: p.id })}
+                                title="Delete payment"
+                                className="p-2 md:p-2.5 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-rose-100 dark:hover:bg-rose-900/30 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg md:rounded-xl transition-all"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
+
+                  {hasOtherPlayers && (
+                    <div className="mt-2 flex justify-end">
+                      <button
+                        onClick={() => setExpandedPaymentId(isExpanded ? null : p.id)}
+                        title={isExpanded ? 'Hide split details' : 'Show split details'}
+                        aria-label={isExpanded ? 'Hide split details' : 'Show split details'}
+                        className="p-1 text-gray-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                      >
+                        <ChevronDown className={`w-3 h-3 md:w-3.5 md:h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+                  )}
+                  
+                  {isExpanded && hasOtherPlayers && (
+                    <div className="mt-3 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700/50 animate-in slide-in-from-top-2">
+                      <div className="text-[9px] md:text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">Payment Breakdown</div>
+                      <div className="space-y-2">
+                        {p.allocations.map((alloc: any, idx: number) => {
+                          const allocPlayer = players.find(pl => pl.id === alloc.playerId);
+                          const isSelf = alloc.playerId === p.primaryPayerId;
+                          return (
+                            <div key={idx} className="flex items-center justify-between text-xs md:text-sm">
+                              <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 dark:bg-indigo-500"></div>
+                                <span className="font-bold text-gray-700 dark:text-slate-300">{allocPlayer?.name || 'Unknown Player'}</span>
+                                {isSelf && (
+                                  <span className="text-[8px] font-black bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-slate-400 px-1.5 py-0.5 rounded-md uppercase">Self</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                {!isSelf && (
+                                  <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">Paid by {payer?.name || 'Payer'}</span>
+                                )}
+                                {alloc.discount > 0 && (
+                                  <span className="text-[10px] font-bold text-amber-500">Waived: ₹{alloc.discount}</span>
+                                )}
+                                <span className="font-black text-gray-900 dark:text-white">₹{alloc.amount}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {p.recordedAt && (
                     <div className="mt-1.5 md:mt-2 pt-1 md:pt-1.5 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between opacity-50 group-hover:opacity-100 transition-opacity">
                       <div className="flex items-center gap-2 md:gap-3">
@@ -476,6 +676,30 @@ export const Payments: React.FC = () => {
           ) : (
             <div className="py-8 md:py-10 text-center text-gray-300 dark:text-slate-700 font-bold italic border-2 border-dashed border-gray-50 dark:border-slate-800 rounded-2xl md:rounded-3xl">
               No payments yet...
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="pt-3 md:pt-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
+              <button 
+                type="button"
+                onClick={() => setPayPage(prev => Math.max(1, prev - 1))}
+                disabled={payPage === 1}
+                className="p-1.5 md:p-2 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-300 dark:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-[9px] md:text-[10px] font-black uppercase text-gray-500 dark:text-slate-400 transition-all hover:bg-gray-50 dark:hover:bg-slate-700"
+              >
+                <ChevronLeft className="w-3 h-3 md:w-4 md:h-4" /> Prev
+              </button>
+              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-800 px-3 py-1 rounded-full border border-gray-100 dark:border-slate-700">
+                Page {payPage} / {totalPages}
+              </span>
+              <button 
+                type="button"
+                onClick={() => setPayPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={payPage === totalPages}
+                className="p-1.5 md:p-2 rounded-lg md:rounded-xl border border-gray-100 dark:border-slate-300 dark:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-[9px] md:text-[10px] font-black uppercase text-gray-500 dark:text-slate-400 transition-all hover:bg-gray-50 dark:hover:bg-slate-700"
+              >
+                Next <ChevronRight className="w-3 h-3 md:w-4 md:h-4" />
+              </button>
             </div>
           )}
         </div>

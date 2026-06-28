@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useSmartNavigate } from '../hooks/useSmartNavigate';
 import { useApp } from '../context/AppContext';
+import { getLocalTodayStr, getNDaysAgoStr } from '../utils';
 import { ChevronLeft, Trophy, Target, TrendingUp, History, Phone, Award, Zap, Calendar, Filter, User, Table as TableIcon, Activity, IndianRupee, Info, BarChart3, Users, Gauge } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { calculatePlayerPerformanceScore, getPlayerTier, getTopPerformers, calculatePlayerRatingHistory } from '../rankingUtils';
+import { calculatePlayerPerformanceScore, getPlayerTier, getTopPerformers, calculatePlayerRatingHistory, calculatePlayerScore } from '../rankingUtils';
 
 const HighlightStat: React.FC<{ label: string; value: string; icon: React.ReactNode; subValue?: string; tooltip?: string }> = ({ label, value, icon, subValue, tooltip }) => (
   <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transition-all relative group/stat">
@@ -89,14 +91,14 @@ const RivalryProgressBar: React.FC<{ wins: number; losses: number; played: numbe
 
 export const PlayerProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { players, matches, payments, getPlayerStats, isDarkMode } = useApp();
+  const { navigate, goBack } = useSmartNavigate();
+  const { players, matches, payments, getPlayerStats, isDarkMode, isAuthenticated } = useApp();
   
   const player = players.find(p => p.id === id);
 
   // Range Selection
-  const todayStr = new Date().toISOString().split('T')[0];
-  const lastMonthStr = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const todayStr = getLocalTodayStr();
+  const lastMonthStr = getNDaysAgoStr(30);
   
   const [range, setRange] = useState<'30d' | '90d' | 'all' | 'custom'>('30d');
   const [customStart, setCustomStart] = useState(lastMonthStr);
@@ -105,7 +107,8 @@ export const PlayerProfile: React.FC = () => {
   const activeRange = useMemo(() => {
     if (range === 'all') return undefined;
     if (range === '30d') return { start: lastMonthStr, end: todayStr };
-    if (range === '90d') return { start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], end: todayStr };
+    const ninetyDaysAgoStr = getNDaysAgoStr(90);
+    if (range === '90d') return { start: ninetyDaysAgoStr, end: todayStr };
     return { start: customStart, end: customEnd };
   }, [range, customStart, customEnd, lastMonthStr, todayStr]);
 
@@ -126,42 +129,14 @@ export const PlayerProfile: React.FC = () => {
   const rankingMetrics = useMemo(() => {
     if (!stats || !id) return null;
     
-    const rating = stats.rating || 1500;
-    const rd = stats.rd || 350;
-    const conservativeRating = rating - rd;
-    
-    // Calculate average opponent rating (same as leaderboard)
-    const wonMatches = matches.filter(m => m.winnerId === id && m.isRated !== false);
-    let avgOpponentRating = 1500;
-    if (wonMatches.length > 0) {
-      let totalOppRating = 0;
-      wonMatches.forEach(m => {
-        const oppId = m.playerAId === id ? m.playerBId : m.playerAId;
-        const oppStats = getPlayerStats(oppId);
-        totalOppRating += oppStats?.rating || 1500;
-      });
-      avgOpponentRating = totalOppRating / wonMatches.length;
-    }
-    const opponentStrengthFactor = Math.min(avgOpponentRating / 1500, 1.5);
-    
-    // Activity bonus
-    const activityBonus = Math.min((stats.ratedMatchesLast30 || 0) * 5, 100);
-    
-    // Score calculation (same as leaderboard)
-    const score = (conservativeRating * 0.60) + 
-                 (conservativeRating * opponentStrengthFactor * 0.30) +
-                 (activityBonus * 0.10);
+    const scoreMetrics = calculatePlayerScore(id, matches, getPlayerStats, players);
     
     // Find rank position
     const topPerformers = getTopPerformers(players, matches, getPlayerStats, players.length);
     const rank = topPerformers.findIndex(p => p.id === id) + 1;
     
     return {
-      conservativeRating,
-      avgOpponentRating,
-      opponentStrengthFactor,
-      activityBonus,
-      score,
+      ...scoreMetrics,
       rank,
       totalPlayers: players.length
     };
@@ -210,7 +185,7 @@ export const PlayerProfile: React.FC = () => {
     <div className="space-y-6 pb-20">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 px-1">
         <div className="flex items-center gap-4">
-          <button type="button" title="Go Back" aria-label="Go Back" onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-all">
+          <button type="button" title="Go Back" aria-label="Go Back" onClick={() => goBack()} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-all">
             <ChevronLeft className="w-6 h-6 text-gray-600 dark:text-slate-400" />
           </button>
           <h2 className="text-2xl font-black dark:text-white transition-all">Player Profile</h2>
@@ -231,15 +206,24 @@ export const PlayerProfile: React.FC = () => {
       </div>
 
       {range === 'custom' && (
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-orange-100 dark:border-orange-900/30 flex flex-wrap gap-4 animate-in slide-in-from-top-2 duration-300">
-           <div className="space-y-1">
-             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Start Date</label>
-             <input title="Start Date" type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="bg-gray-50 dark:bg-slate-800 border-none rounded-xl p-2 text-xs font-bold dark:text-white" />
-           </div>
-           <div className="space-y-1">
-             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">End Date</label>
-             <input title="End Date" type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="bg-gray-50 dark:bg-slate-800 border-none rounded-xl p-2 text-xs font-bold dark:text-white" />
-           </div>
+        <div className="bg-white dark:bg-slate-900 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-orange-100 dark:border-orange-900/30 animate-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/50 p-1 rounded-xl border border-gray-200 dark:border-slate-700 w-full md:w-auto">
+            <input 
+              title="Start Date" 
+              type="date" 
+              value={customStart} 
+              onChange={(e) => setCustomStart(e.target.value)} 
+              className="bg-transparent border-none px-2 py-1.5 text-xs font-bold text-gray-700 dark:text-slate-300 outline-none w-full text-center" 
+            />
+            <span className="text-gray-400 text-xs font-bold px-1">-</span>
+            <input 
+              title="End Date" 
+              type="date" 
+              value={customEnd} 
+              onChange={(e) => setCustomEnd(e.target.value)} 
+              className="bg-transparent border-none px-2 py-1.5 text-xs font-bold text-gray-700 dark:text-slate-300 outline-none w-full text-center" 
+            />
+          </div>
         </div>
       )}
 
@@ -247,11 +231,11 @@ export const PlayerProfile: React.FC = () => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl animate-pulse"></div>
         <div className="relative z-10 flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left">
           <div className="w-24 h-24 md:w-32 md:h-32 bg-white/20 backdrop-blur-md rounded-[2.5rem] flex items-center justify-center text-4xl md:text-5xl font-black shadow-inner border border-white/30 transition-all hover:scale-105 duration-500">
-            {player.name[0]}
+            {player.name?.[0] || '?'}
           </div>
           <div className="space-y-2">
             <div className="flex flex-col md:flex-row items-center gap-3">
-              <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none break-words max-w-full">{player.name}</h1>
+              <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none break-words max-w-full">{player.name || 'Anonymous'}</h1>
               {tier && (
                 <div className="flex flex-col items-center md:items-start gap-1">
                   <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${tier.bg} ${tier.color} ${tier.border}`}>
@@ -267,7 +251,7 @@ export const PlayerProfile: React.FC = () => {
             </div>
             <div className="flex flex-wrap justify-center md:justify-start gap-2">
               <span className="bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border border-white/10">@{player.nickname || 'Guest'}</span>
-              {player.phone && (
+              {isAuthenticated && player.phone && (
                 <span className="bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border border-white/10">
                   <Phone className="w-3 h-3" /> {player.phone}
                 </span>
@@ -306,22 +290,22 @@ export const PlayerProfile: React.FC = () => {
           label="Win Rate" 
           value={`${stats.winRate.toFixed(1)}%`} 
           icon={<Trophy className="w-5 h-5 text-yellow-500" />} 
-          subValue={`${stats.wins}W - ${stats.losses}L`}
-          tooltip="Percentage of games won in the selected period."
+          subValue={`${stats.ratedWins}W - ${stats.ratedLosses}L`}
+          tooltip="Percentage of rated games won in the selected period."
         />
         <HighlightStat 
           label="Conservative" 
           value={`${rankingMetrics?.conservativeRating.toFixed(0) || '-'}`} 
           icon={<Gauge className="w-5 h-5 text-indigo-500" />} 
-          subValue="Rating - RD"
-          tooltip="Conservative Rating = Skill Rating minus Rating Deviation. This is 60% of your leaderboard score."
+          subValue="Rating - 2RD"
+          tooltip="Conservative Rating = Skill Rating minus twice the Rating Deviation. This is 60% of your leaderboard score."
         />
         <HighlightStat 
           label="Opp. Strength" 
           value={`${rankingMetrics?.avgOpponentRating.toFixed(0) || '-'}`} 
           icon={<Users className="w-5 h-5 text-rose-500" />} 
           subValue={`×${rankingMetrics?.opponentStrengthFactor.toFixed(2) || '1.00'}`}
-          tooltip="Average rating of opponents you've beaten. Higher = quality wins. This is 30% of your score."
+          tooltip="Average rating of opponents you've beaten (90-day window). Higher = quality wins. This is 30% of your score."
         />
         <HighlightStat 
           label="Activity" 
@@ -358,7 +342,7 @@ export const PlayerProfile: React.FC = () => {
           label="Total Matches" 
           value={`${stats.totalRatedMatches || 0}`} 
           icon={<Award className="w-5 h-5 text-purple-500" />} 
-          subValue="Career Games"
+          subValue="Rated Games"
           tooltip="Total rated matches played. Tiers are climb-only - once earned, you keep them forever!"
         />
       </div>
@@ -367,11 +351,11 @@ export const PlayerProfile: React.FC = () => {
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm space-y-6 transition-all">
             <h3 className="font-black text-gray-900 dark:text-white uppercase text-xs tracking-[0.2em] flex items-center gap-2">
-              <Award className="w-4 h-4 text-orange-500" /> Performance
+              <Award className="w-4 h-4 text-orange-500" /> Rated Performance
             </h3>
             <div className="space-y-4">
-              <ProgressStat label="Wins" value={stats.wins} total={stats.wins + stats.losses} color="bg-emerald-500" />
-              <ProgressStat label="Losses" value={stats.losses} total={stats.wins + stats.losses} color="bg-rose-500" />
+              <ProgressStat label="Wins" value={stats.ratedWins} total={stats.ratedWins + stats.ratedLosses} color="bg-emerald-500" />
+              <ProgressStat label="Losses" value={stats.ratedLosses} total={stats.ratedWins + stats.ratedLosses} color="bg-rose-500" />
             </div>
           </div>
           
@@ -399,7 +383,9 @@ export const PlayerProfile: React.FC = () => {
                 subValue={`${stats.favoriteOpponent.played} Battles`}
               />
             )}
-            <HighlightStat label="Avg Spend/Game" value={`₹${stats.avgSpendPerGame.toFixed(1)}`} icon={<IndianRupee className="w-5 h-5 text-emerald-500" />} />
+            {isAuthenticated && (
+              <HighlightStat label="Avg Spend/Game" value={`₹${stats.avgSpendPerGame.toFixed(1)}`} icon={<IndianRupee className="w-5 h-5 text-emerald-500" />} />
+            )}
           </div>
         </div>
 
@@ -487,65 +473,79 @@ export const PlayerProfile: React.FC = () => {
           </div>
 
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
-            <div className="flex border-b border-gray-50 dark:border-slate-800 p-2">
-              <button type="button" onClick={() => setActiveTab('matches')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'matches' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/20' : 'text-gray-400 dark:text-slate-500'}`}>Matches</button>
-              <button type="button" onClick={() => setActiveTab('rivalries')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'rivalries' ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/20' : 'text-gray-400 dark:text-slate-500'}`}>Rivalries</button>
-              <button type="button" onClick={() => setActiveTab('payments')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'payments' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'text-gray-400 dark:text-slate-500'}`}>Payments</button>
-            </div>
-            <div className="p-6 max-h-[600px] overflow-y-auto custom-scrollbar">
-              {activeTab === 'matches' ? (
-                <div className="space-y-3">
-                  {playerMatches.map(m => (
-                    <div key={m.id} className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl flex justify-between items-center transition-all">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${m.winnerId === id ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400'}`}>
-                          {m.winnerId === id ? 'W' : 'L'}
-                        </div>
-                        <div>
-                          <div className="font-bold dark:text-white transition-all">vs {players.find(p => p.id === (m.playerAId === id ? m.playerBId : m.playerAId))?.name}</div>
-                          <div className="text-[10px] text-gray-400 dark:text-slate-500 font-black uppercase transition-all">{m.date}</div>
-                        </div>
-                      </div>
-                      <div className="font-black dark:text-white transition-all">₹{m.charges[id!] || 0}</div>
-                    </div>
-                  ))}
-                  {playerMatches.length === 0 && <p className="text-center py-8 text-gray-400 italic text-sm">No matches found.</p>}
+            {isAuthenticated ? (
+              <>
+                <div className="flex border-b border-gray-50 dark:border-slate-800 p-2">
+                  <button type="button" onClick={() => setActiveTab('matches')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'matches' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/20' : 'text-gray-400 dark:text-slate-500'}`}>Matches</button>
+                  <button type="button" onClick={() => setActiveTab('rivalries')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'rivalries' ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/20' : 'text-gray-400 dark:text-slate-500'}`}>Rivalries</button>
+                  <button type="button" onClick={() => setActiveTab('payments')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'payments' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'text-gray-400 dark:text-slate-500'}`}>Payments</button>
                 </div>
-              ) : activeTab === 'rivalries' ? (
-                <div className="space-y-4">
-                  {stats.rivalries.map(r => (
-                    <div key={r.opponentId} className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl space-y-3">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center font-black text-xs text-orange-500">{r.opponentName[0]}</div>
-                          <span className="font-bold dark:text-white">{r.opponentName}</span>
+                <div className="p-6 max-h-[600px] overflow-y-auto custom-scrollbar">
+                  {activeTab === 'matches' ? (
+                    <div className="space-y-3">
+                      {playerMatches.map(m => (
+                        <div key={m.id} className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl flex justify-between items-center transition-all">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${m.winnerId === id ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400'}`}>
+                              {m.winnerId === id ? 'W' : 'L'}
+                            </div>
+                            <div>
+                              <div className="font-bold dark:text-white transition-all">vs {players.find(p => p.id === (m.playerAId === id ? m.playerBId : m.playerAId))?.name}</div>
+                              <div className="text-[10px] text-gray-400 dark:text-slate-500 font-black uppercase transition-all">{m.date}</div>
+                            </div>
+                          </div>
+                          <div className="font-black dark:text-white transition-all">₹{m.charges[id!] || 0}</div>
                         </div>
-                        <span className="text-[10px] font-black text-gray-400">{r.played} Battles</span>
-                      </div>
-                      <RivalryProgressBar wins={r.wins} losses={r.losses} played={r.played} />
-                      <div className="flex justify-between text-[10px] font-black uppercase">
-                        <span className="text-emerald-600">{r.wins} Wins</span>
-                        <span className="text-rose-600">{r.losses} Losses</span>
-                      </div>
+                      ))}
+                      {playerMatches.length === 0 && <p className="text-center py-8 text-gray-400 italic text-sm">No matches found.</p>}
                     </div>
-                  ))}
-                  {stats.rivalries.length === 0 && <p className="text-center py-8 text-gray-400 italic text-sm">No rivalries yet.</p>}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {playerPayments.map(p => (
-                    <div key={p.id} className="bg-emerald-50/30 dark:bg-emerald-900/10 p-4 rounded-2xl flex justify-between items-center transition-all">
-                      <div>
-                        <div className="font-bold text-emerald-900 dark:text-emerald-400 transition-all">{p.mode} RECEIPT</div>
-                        <div className="text-[10px] text-emerald-600/60 dark:text-emerald-500/60 font-black uppercase transition-all">{p.date}</div>
-                      </div>
-                      <div className="font-black text-emerald-600 dark:text-emerald-400 transition-all">₹{p.allocations.find(a => a.playerId === id)?.amount || 0}</div>
+                  ) : activeTab === 'rivalries' ? (
+                    <div className="space-y-4">
+                      {stats.rivalries.map(r => (
+                        <div key={r.opponentId} className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl space-y-3">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center font-black text-xs text-orange-500">{r.opponentName[0]}</div>
+                              <span className="font-bold dark:text-white">{r.opponentName}</span>
+                            </div>
+                            <span className="text-[10px] font-black text-gray-400">{r.played} Battles</span>
+                          </div>
+                          <RivalryProgressBar wins={r.wins} losses={r.losses} played={r.played} />
+                          <div className="flex justify-between text-[10px] font-black uppercase">
+                            <span className="text-emerald-600">{r.wins} Wins</span>
+                            <span className="text-rose-600">{r.losses} Losses</span>
+                          </div>
+                        </div>
+                      ))}
+                      {stats.rivalries.length === 0 && <p className="text-center py-8 text-gray-400 italic text-sm">No rivalries yet.</p>}
                     </div>
-                  ))}
-                  {playerPayments.length === 0 && <p className="text-center py-8 text-gray-400 italic text-sm">No payments found.</p>}
+                  ) : (
+                    <div className="space-y-3">
+                      {playerPayments.map(p => (
+                        <div key={p.id} className="bg-emerald-50/30 dark:bg-emerald-900/10 p-4 rounded-2xl flex justify-between items-center transition-all">
+                          <div>
+                            <div className="font-bold text-emerald-900 dark:text-emerald-400 transition-all">{p.mode} RECEIPT</div>
+                            <div className="text-[10px] text-emerald-600/60 dark:text-emerald-500/60 font-black uppercase transition-all">{p.date}</div>
+                          </div>
+                          <div className="font-black text-emerald-600 dark:text-emerald-400 transition-all">₹{p.allocations.find(a => a.playerId === id)?.amount || 0}</div>
+                        </div>
+                      ))}
+                      {playerPayments.length === 0 && <p className="text-center py-8 text-gray-400 italic text-sm">No payments found.</p>}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            ) : (
+              <div className="p-12 text-center space-y-4">
+                <div className="w-16 h-16 bg-gray-50 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto">
+                    <History className="w-8 h-8 text-gray-300" />
+                </div>
+                <div className="space-y-1">
+                    <p className="font-black text-gray-900 dark:text-white uppercase text-xs tracking-widest">History Restricted</p>
+                    <p className="text-[10px] text-gray-500 font-bold max-w-[200px] mx-auto">Match history and rivalries are only visible to club members.</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

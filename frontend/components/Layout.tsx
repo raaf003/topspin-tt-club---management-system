@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   Home, 
-  Trophy, 
+  Trophy,
   IndianRupee, 
   Users, 
   PieChart, 
@@ -15,15 +14,19 @@ import {
   Monitor,
   LayoutDashboard,
   Zap,
-  Table as TableIcon
+  Table as TableIcon,
+  LogOut
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { UserRole } from '../types';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, switchRole, isDarkMode, themeMode, setThemeMode } = useApp();
+  const { currentUser, logout, isDarkMode, themeMode, setThemeMode, isAuthenticated } = useApp();
   const [showThemeMenu, setShowThemeMenu] = useState(false);
-  const isAdmin = currentUser.role === UserRole.ADMIN;
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const isSuperAdmin = isAuthenticated && currentUser.role === UserRole.SUPER_ADMIN;
+  const isAdmin = isAuthenticated && (currentUser.role === UserRole.ADMIN || isSuperAdmin);
+  const navigate = useNavigate();
 
   const themeOptions: { mode: 'light' | 'dark' | 'auto'; icon: React.ReactNode; label: string }[] = [
     { mode: 'light', icon: <Sun className="w-4 h-4" />, label: 'Light' },
@@ -34,19 +37,26 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   return (
     <div className="min-h-screen flex flex-col pb-20 md:pb-0 md:pl-20 bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 px-3 md:px-4 py-2.5 md:py-3 flex items-center justify-between transition-colors duration-300">
-        <div className="flex items-center gap-2">
-          <div className="bg-indigo-600 p-1 md:p-1.5 rounded-lg shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
-            <Trophy className="text-white w-4 h-4 md:w-5 md:h-5" />
-          </div>
-          <h1 className="text-lg md:text-xl font-bold tracking-tight dark:text-white transition-all">TopSpin <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">TT</span></h1>
+      <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 px-3 md:px-4 py-2.5 md:py-3 grid grid-cols-[1fr_auto_1fr] items-center md:flex md:justify-between transition-colors duration-300">
+        {/* Left spacer — keeps logo centred on mobile, hidden on desktop */}
+        <span className="md:hidden" />
+
+        <div className="cursor-pointer" onClick={() => navigate('/')}>
+          <img
+            src={isDarkMode ? '/topspin_dark.png' : '/topspin_light.png'}
+            alt="TopSpin TT Club"
+            className="h-9 md:h-11 w-auto"
+          />
         </div>
-        
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 justify-self-end md:justify-self-auto">
           {/* Theme Selector */}
           <div className="relative">
             <button
-              onClick={() => setShowThemeMenu(!showThemeMenu)}
+              onClick={() => {
+                setShowThemeMenu(!showThemeMenu);
+                setShowProfileMenu(false);
+              }}
               className="p-2 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
               aria-label="Select theme"
             >
@@ -78,35 +88,103 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             )}
           </div>
           
-          <button 
-            onClick={() => switchRole(isAdmin ? UserRole.STAFF : UserRole.ADMIN)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-              isAdmin 
-                ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' 
-                : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400'
-            }`}
-          >
-            {isAdmin ? <ShieldCheck className="w-3.5 h-3.5" /> : <UserCircle className="w-3.5 h-3.5" />}
-            {currentUser.role}
-          </button>
+          {/* Profile Menu */}
+          <div className="relative">
+            {isAuthenticated ? (
+              <>
+                <button
+                  onClick={() => {
+                    setShowProfileMenu(!showProfileMenu);
+                    setShowThemeMenu(false);
+                  }}
+                  className="flex items-center gap-2 p-1 rounded-full transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-700 bg-gray-100/50 dark:bg-slate-800/50"
+                >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    isSuperAdmin ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
+                  }`}>
+                    {isSuperAdmin ? <ShieldCheck className="w-5 h-5" /> : isAdmin ? <ShieldCheck className="w-5 h-5" /> : <UserCircle className="w-5 h-5" />}
+                  </div>
+                </button>
+                
+                {showProfileMenu && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden z-50">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
+                      <p className="text-sm font-bold truncate dark:text-white">{currentUser.name}</p>
+                      <p className="text-[10px] mt-0.5 text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">{currentUser.role.replace('_', ' ')}</p>
+                    </div>
+                    
+                    <div className="p-1.5">
+                      {isSuperAdmin && (
+                        <NavLink
+                          to="/admin"
+                          replace
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
+                        >
+                          <ShieldCheck className="w-4 h-4 text-amber-500" />
+                          System Control and Audit
+                        </NavLink>
+                      )}
+                      
+                      <button
+                        onClick={() => {
+                          logout();
+                          setShowProfileMenu(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <button
+                onClick={() => navigate('/login')}
+                className="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 dark:shadow-none"
+              >
+                Sign In
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="flex-1 max-w-4xl mx-auto w-full p-4 md:p-8">
         {children}
+        
+        <footer className="mt-12 mb-8 text-center border-t border-gray-100 dark:border-slate-800/50 pt-8">
+          <p className="text-slate-600 dark:text-slate-400 text-xs md:text-sm flex items-center justify-center gap-1.5 font-semibold tracking-wide">
+            Built locally with <span className="text-red-500 animate-bounce">❤️</span> by{' '}
+            <a 
+              href="https://www.newagesolutions.dev" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-all underline decoration-2 underline-offset-4"
+            >
+              New Age Solutions
+            </a>
+          </p>
+        </footer>
       </main>
 
       {/* Navigation - Bottom for Mobile, Left for Desktop */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 md:top-0 md:left-0 md:right-auto md:w-20 md:h-full md:border-t-0 md:border-r transition-colors duration-300">
         <div className="flex md:flex-col justify-around md:justify-start items-center h-16 md:h-full md:py-8 gap-1 md:gap-8 overflow-x-auto md:overflow-visible">
-          <NavItem to="/" icon={<Home className="w-6 h-6" />} label="Home" />
-          <NavItem to="/leaderboard" icon={<Trophy className="w-6 h-6" />} label="Rank" />
-          <NavItem to="/matches" icon={<TableIcon className="w-6 h-6" />} label="Matches" />
-          <NavItem to="/payments" icon={<IndianRupee className="w-6 h-6" />} label="Pay" />
-          <NavItem to="/players" icon={<Users className="w-6 h-6" />} label="Players" />
-          {isAdmin && <NavItem to="/expenses" icon={<ShoppingBag className="w-6 h-6" />} label="Expenses" />}
-          {isAdmin && <NavItem to="/reports" icon={<PieChart className="w-6 h-6" />} label="Reports" />}
+          {isAdmin && <NavItem to="/" icon={<Home className="w-6 h-6" />} label="Home" />}
+          {(!isAuthenticated || isAdmin) && <NavItem to="/leaderboard" icon={<Trophy className="w-6 h-6" />} label="Rank" />}
+          {isAuthenticated && (
+            <>
+              <NavItem to="/matches" icon={<TableIcon className="w-6 h-6" />} label="Matches" />
+              <NavItem to="/payments" icon={<IndianRupee className="w-6 h-6" />} label="Pay" />
+              <NavItem to="/players" icon={<Users className="w-6 h-6" />} label="Players" />
+              {isAdmin && <NavItem to="/expenses" icon={<ShoppingBag className="w-6 h-6" />} label="Expenses" />}
+              {isAdmin && <NavItem to="/reports" icon={<PieChart className="w-6 h-6" />} label="Reports" />}
+            </>
+          )}
         </div>
       </nav>
     </div>
@@ -116,6 +194,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string }> = ({ to, icon, label }) => (
   <NavLink
     to={to}
+    replace
     className={({ isActive }) =>
       `flex flex-col items-center justify-center gap-0.5 w-full md:w-auto px-2 md:px-0 transition-all duration-200 ${
         isActive 

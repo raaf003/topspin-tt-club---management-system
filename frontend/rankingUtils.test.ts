@@ -110,8 +110,8 @@ describe('calculateAllPlayerStats', () => {
     }));
     
     const stats = calculateAllPlayerStats(mockPlayers, manyMatches);
-    // Only first 5 matches should count toward totalRatedMatches
-    expect(stats['1'].totalRatedMatches).toBe(5);
+    // All rated matches count toward totalRatedMatches; cap applies only to rating impact
+    expect(stats['1'].totalRatedMatches).toBe(10);
   });
 });
 
